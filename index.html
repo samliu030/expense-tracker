@@ -315,6 +315,13 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 <div id="screen-settings" class="screen">
   <div class="topbar"><div class="topbar-left"><h1>設定 / 匯率</h1><p>依台灣中央銀行牌告匯率</p></div></div>
   <div class="content">
+    <div class="section-title">語言 / Language</div>
+    <div class="card">
+      <div style="display:flex;gap:10px">
+        <button id="lang-zh-btn" onclick="setLang('zh')" style="flex:1;padding:14px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s">🇹🇼 繁體中文</button>
+        <button id="lang-en-btn" onclick="setLang('en')" style="flex:1;padding:14px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s">🇬🇧 English</button>
+      </div>
+    </div>
     <div class="section-title">使用者名稱</div>
     <div class="card">
       <div class="form-group" style="margin-bottom:12px">
@@ -377,17 +384,17 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 <script>
 // ===== 常數 =====
 const CATS=[
-  {id:'food',label:'食物',icon:'🍱',color:'#eff6ff'},
-  {id:'drink',label:'飲料',icon:'🧋',color:'#f0fdf4'},
-  {id:'transport',label:'交通',icon:'🚇',color:'#fffbeb'},
-  {id:'shopping',label:'購物',icon:'🛍️',color:'#fdf2f8'},
-  {id:'entertainment',label:'娛樂',icon:'🎮',color:'#f5f3ff'},
-  {id:'travel',label:'旅遊',icon:'✈️',color:'#ecfdf5'},
-  {id:'medical',label:'醫療',icon:'💊',color:'#fef2f2'},
-  {id:'beauty',label:'美容',icon:'💄',color:'#fdf2f8'},
-  {id:'education',label:'教育',icon:'📚',color:'#eff6ff'},
-  {id:'bills',label:'帳單',icon:'📋',color:'#f9fafb'},
-  {id:'other',label:'其他',icon:'✏️',color:'#f9fafb'},
+  {id:'food',lkey:'cat_food',icon:'🍱',color:'#eff6ff'},
+  {id:'drink',lkey:'cat_drink',icon:'🧋',color:'#f0fdf4'},
+  {id:'transport',lkey:'cat_transport',icon:'🚇',color:'#fffbeb'},
+  {id:'shopping',lkey:'cat_shopping',icon:'🛍️',color:'#fdf2f8'},
+  {id:'entertainment',lkey:'cat_entertainment',icon:'🎮',color:'#f5f3ff'},
+  {id:'travel',lkey:'cat_travel',icon:'✈️',color:'#ecfdf5'},
+  {id:'medical',lkey:'cat_medical',icon:'💊',color:'#fef2f2'},
+  {id:'beauty',lkey:'cat_beauty',icon:'💄',color:'#fdf2f8'},
+  {id:'education',lkey:'cat_education',icon:'📚',color:'#eff6ff'},
+  {id:'bills',lkey:'cat_bills',icon:'📋',color:'#f9fafb'},
+  {id:'other',lkey:'cat_other',icon:'✏️',color:'#f9fafb'},
 ];
 const PRIMARY_CATS=['food','drink','transport','shopping','entertainment','travel'];
 const QUICK_CURR=['THB','TWD','USD','CNY'];
@@ -413,6 +420,118 @@ const CURRENCIES=[
   {code:'NOK',name:'挪威克朗',symbol:'kr',rate:3.2},
   {code:'NZD',name:'紐西蘭幣',symbol:'NZ$',rate:21.2},
 ];
+
+// ===== i18n =====
+const I18N={
+  zh:{
+    app_title:'記帳本',
+    nav_add:'新增',nav_today:'今日',nav_month:'本月',nav_report:'查詢',nav_settings:'設定',
+    title_add:'新增記錄',title_today:'今日支出',title_month:'本月總覽',title_report:'自訂查詢',title_settings:'設定 / 匯率',
+    settings_subtitle:'依台灣中央銀行牌告匯率',
+    report_subtitle:'選擇期間與分類',
+    who_paid:'誰支出的？',
+    lbl_cat:'類別',lbl_amount:'金額',lbl_curr:'幣別',lbl_note:'備註（店家、說明）',lbl_date:'日期',
+    curr_other:'其他：',cat_more:'— 更多類別 —',curr_more:'— 其他幣別 —',
+    note_placeholder:'例：全家、MK火鍋、Grab',
+    custom_cat_placeholder:'輸入自訂類別名稱',
+    btn_save:'儲存記錄',btn_save_edit:'儲存修改',btn_cancel:'取消',btn_save_budget:'儲存',
+    today_total:'今日合計 (THB)',today_sub:'泰銖',count_sub:'筆記錄',
+    month_total:'本月合計 (THB)',
+    report_total:'期間合計 (THB)',
+    sec_details:'明細',sec_cat_analysis:'各類別分析',sec_compare:'花費比較',sec_budget:'個人預算',
+    start_date:'開始日期',end_date:'結束日期',filter_cat:'類別篩選',btn_search:'查詢',
+    all_cats:'全部',
+    sec_users:'使用者名稱',lbl_user1:'使用者 1',lbl_user2:'使用者 2',btn_save_users:'儲存名稱',
+    device_identity:'此裝置身分：',btn_change_identity:'更改此裝置身分',
+    sec_lang:'語言 / Language',
+    sec_cloud:'雲端連線狀態',btn_change_api:'重新設定 API 網址',
+    sec_rates:'幣別匯率（對泰銖）',rate_spot:'即期匯率',btn_update_rate:'🔄 更新匯率',
+    rate_hint:'點「更新匯率」從台灣銀行取得最新即期匯率並自動換算為泰銖基準。修改後自動儲存。',
+    sec_data:'資料管理',data_hint:'資料儲存於你的 Google Sheets，本機同時保留快取。',
+    btn_resync:'重新同步雲端資料',btn_export:'匯出 CSV 備份',btn_clear:'清除本機快取',
+    conn_ok:'已連線至 Google Sheets',conn_no:'尚未設定 API 網址',sync_ok:'已連線',sync_off:'離線',sync_none:'未連線',
+    modal_setup_title:'☁️ 連結雲端資料庫',
+    modal_setup_desc:'設定一次，記帳資料自動存入你的 Google Sheets，兩人都能即時同步。',
+    step1:'開啟 sheets.new 建立新試算表，命名為「我的記帳本」',
+    step2:'點選單「擴充功能」→「Apps Script」，把 Code.gs 的內容全部貼進去，按儲存（Ctrl+S）',
+    step3:'點右上角「部署」→「新增部署作業」→「網頁應用程式」。執行身分選「我」，存取選「所有人」，按「部署」並授權',
+    step4:'複製部署後的「網頁應用程式網址」貼到下方',
+    lbl_api_url:'Apps Script 網址',btn_test_conn:'測試並儲存連線',btn_skip:'暫時跳過（僅本機儲存）',
+    modal_edit_title:'✎ 編輯記錄',
+    modal_budget_title:'💰 月份預算設定',
+    budget_lbl:'預算',spent_lbl:'已支出',remain_lbl:'結餘',btn_set_budget:'✎ 設定預算',
+    identity_title:'👤 這是誰的手機？',identity_desc:'選擇後會永久記住，不需要每次切換。之後可在設定頁更改。',
+    identity_prefix_0:'💙 這是 ',identity_prefix_1:'💗 這是 ',identity_suffix:' 的手機',
+    saved_msg:'已儲存：',cloud_fail:'本機已儲存，雲端同步失敗：',
+    err_amount:'請輸入有效金額',err_date:'請選擇日期',err_no_api:'請貼入網址',
+    conn_testing:'連線測試中...',conn_success:'連線成功！正在同步資料...',
+    conn_fail:'連線失敗：',conn_fail_hint:'。請確認「誰可以存取」設為「所有人」。',
+    syncing:'同步中...',rate_updating:'更新中...',rate_updated:'✅ 已更新 ',rate_types:' 種',rate_fail:'❌ 失敗',
+    confirm_delete:'確定刪除？',confirm_clear:'確定清除本機快取？Google Sheets 資料不受影響。',cleared:'本機快取已清除。',
+    no_records:'沒有記錄',no_export:'沒有資料可匯出',saving:'儲存中...',
+    csv_headers:['日期','類別','金額','幣別','泰銖換算','備註','使用者'],
+    users_saved:'使用者名稱已儲存！',
+    cat_food:'食物',cat_drink:'飲料',cat_transport:'交通',cat_shopping:'購物',
+    cat_entertainment:'娛樂',cat_travel:'旅遊',cat_medical:'醫療',cat_beauty:'美容',
+    cat_education:'教育',cat_bills:'帳單',cat_other:'其他',
+    twd_ref:'* 1 ฿ ≈ NT$ ',
+  },
+  en:{
+    app_title:'Expense Tracker',
+    nav_add:'Add',nav_today:'Today',nav_month:'Month',nav_report:'Report',nav_settings:'Settings',
+    title_add:'Add Record',title_today:"Today's Expense",title_month:'Monthly Overview',title_report:'Custom Report',title_settings:'Settings / Rates',
+    settings_subtitle:'Taiwan Central Bank Exchange Rates',
+    report_subtitle:'Select period & category',
+    who_paid:'Who paid?',
+    lbl_cat:'Category',lbl_amount:'Amount',lbl_curr:'Currency',lbl_note:'Note (Store, Details)',lbl_date:'Date',
+    curr_other:'Other:',cat_more:'— More Categories —',curr_more:'— Other Currency —',
+    note_placeholder:'e.g. 7-11, MK Suki, Grab',
+    custom_cat_placeholder:'Custom category name',
+    btn_save:'Save Record',btn_save_edit:'Save Changes',btn_cancel:'Cancel',btn_save_budget:'Save',
+    today_total:'Today Total (THB)',today_sub:'THB',count_sub:'records',
+    month_total:'Monthly Total (THB)',
+    report_total:'Period Total (THB)',
+    sec_details:'Details',sec_cat_analysis:'Category Analysis',sec_compare:'Expense Comparison',sec_budget:'Personal Budget',
+    start_date:'Start Date',end_date:'End Date',filter_cat:'Category Filter',btn_search:'Search',
+    all_cats:'All',
+    sec_users:'User Names',lbl_user1:'User 1',lbl_user2:'User 2',btn_save_users:'Save Names',
+    device_identity:'This device: ',btn_change_identity:'Change Device Identity',
+    sec_lang:'Language / 語言',
+    sec_cloud:'Cloud Connection',btn_change_api:'Reset API URL',
+    sec_rates:'Exchange Rates (to THB)',rate_spot:'Spot Rate',btn_update_rate:'🔄 Update Rates',
+    rate_hint:'Click "Update Rates" to fetch from Bank of Taiwan, auto-converted to THB base.',
+    sec_data:'Data Management',data_hint:'Data saved to Google Sheets. Local cache kept for offline access.',
+    btn_resync:'Re-sync Cloud Data',btn_export:'Export CSV',btn_clear:'Clear Local Cache',
+    conn_ok:'Connected to Google Sheets',conn_no:'API URL not set',sync_ok:'Connected',sync_off:'Offline',sync_none:'No Link',
+    modal_setup_title:'☁️ Connect Google Sheets',
+    modal_setup_desc:'Set up once — data auto-saves to your Google Sheets, synced across both devices.',
+    step1:'Open sheets.new and create a new spreadsheet named "My Expense Book"',
+    step2:'Go to Extensions → Apps Script, paste the Code.gs content, and save (Ctrl+S)',
+    step3:'Click Deploy → New Deployment → Web App. Execute as "Me", Access "Anyone", then Deploy & Authorize',
+    step4:'Copy the Web App URL and paste below',
+    lbl_api_url:'Apps Script URL',btn_test_conn:'Test & Save Connection',btn_skip:'Skip for now (Local only)',
+    modal_edit_title:'✎ Edit Record',
+    modal_budget_title:'💰 Monthly Budget',
+    budget_lbl:'Budget',spent_lbl:'Spent',remain_lbl:'Remaining',btn_set_budget:'✎ Set Budget',
+    identity_title:'👤 Whose phone is this?',identity_desc:'Your choice will be saved permanently. You can change it in Settings.',
+    identity_prefix_0:'💙 This is ',identity_prefix_1:'💗 This is ',identity_suffix:"'s phone",
+    saved_msg:'Saved: ',cloud_fail:'Local saved, cloud sync failed: ',
+    err_amount:'Please enter a valid amount',err_date:'Please select a date',err_no_api:'Please paste the URL',
+    conn_testing:'Testing connection...',conn_success:'Connected! Syncing data...',
+    conn_fail:'Failed: ',conn_fail_hint:'. Make sure "Who has access" is set to "Anyone".',
+    syncing:'Syncing...',rate_updating:'Updating...',rate_updated:'✅ Updated ',rate_types:' currencies',rate_fail:'❌ Failed',
+    confirm_delete:'Delete this record?',confirm_clear:'Clear local cache? Cloud data is safe.',cleared:'Cache cleared.',
+    no_records:'No records',no_export:'No data to export',saving:'Saving...',
+    csv_headers:['Date','Category','Amount','Currency','THB','Note','User'],
+    users_saved:'User names saved!',
+    cat_food:'Food',cat_drink:'Drink',cat_transport:'Transport',cat_shopping:'Shopping',
+    cat_entertainment:'Entertain',cat_travel:'Travel',cat_medical:'Medical',cat_beauty:'Beauty',
+    cat_education:'Education',cat_bills:'Bills',cat_other:'Other',
+    twd_ref:'* 1 ฿ ≈ NT$ ',
+  }
+};
+let lang='zh';
+function T(k){return (I18N[lang]&&I18N[lang][k])||I18N['zh'][k]||k;}
 
 // ===== 狀態 =====
 let records=[], selCat='food', selCurr='THB', repCatFilter=null, apiUrl='';
@@ -457,6 +576,7 @@ function loadLocal(){
     const dv=localStorage.getItem(DEVICE_KEY);
     if(dv!==null)selectedUserIdx=parseInt(dv);
     const bg=localStorage.getItem('xp_budgets');if(bg)budgets=JSON.parse(bg);
+    const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
   }catch(e){}
   document.getElementById('set-user-0').value=userNames[0];
   document.getElementById('set-user-1').value=userNames[1];
@@ -465,6 +585,95 @@ function loadLocal(){
 function saveLocal(){localStorage.setItem('xp_records',JSON.stringify(records));}
 function saveRates(){const m={};CURRENCIES.forEach(c=>m[c.code]=c.rate);localStorage.setItem('xp_rates',JSON.stringify(m));}
 function saveNoteMemory(){localStorage.setItem('xp_note_memory',JSON.stringify(noteMemory));}
+
+// ===== 語言套用 =====
+function applyLang(){
+  // Nav
+  const navKeys=['add','today','month','report','settings'];
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{
+    const svg=b.querySelector('svg');
+    b.textContent='';if(svg)b.appendChild(svg);
+    b.appendChild(document.createTextNode(T('nav_'+navKeys[i])));
+  });
+  // Topbars
+  const titleMap={add:'title_add',today:'title_today',month:'title_month',report:'title_report',settings:'title_settings'};
+  Object.entries(titleMap).forEach(([screen,key])=>{
+    const el=document.querySelector('#screen-'+screen+' .topbar-left h1');
+    if(el)el.textContent=T(key);
+  });
+  document.querySelector('#screen-settings .topbar-left p').textContent=T('settings_subtitle');
+  document.querySelector('#screen-report .topbar-left p').textContent=T('report_subtitle');
+  // Add screen labels
+  document.querySelector('label[for="inp-amount"], #screen-add .form-label:nth-of-type(3)');
+  const addLabels=document.querySelectorAll('#screen-add .form-label');
+  const addLabelKeys=['who_paid','lbl_cat','lbl_amount','lbl_curr','lbl_note','lbl_date'];
+  addLabels.forEach((el,i)=>{if(addLabelKeys[i])el.textContent=T(addLabelKeys[i]);});
+  document.getElementById('inp-note').placeholder=T('note_placeholder');
+  document.getElementById('inp-custom-cat').placeholder=T('custom_cat_placeholder');
+  document.querySelector('.curr-more-label').textContent=T('curr_other');
+  document.getElementById('save-btn').textContent=T('btn_save');
+  // Today
+  document.querySelector('#today-total').closest('.stat').querySelector('.stat-label').textContent=T('today_total');
+  document.querySelector('#today-total').closest('.stat').querySelector('.stat-sub').textContent=T('today_sub');
+  document.querySelector('#today-count').closest('.stat').querySelector('.stat-sub').textContent=T('count_sub');
+  document.querySelector('#screen-today .section-title').textContent=T('sec_details');
+  // Month
+  document.querySelector('#month-total').closest('.stat').querySelector('.stat-label').textContent=T('month_total');
+  document.querySelector('#month-total').closest('.stat').querySelector('.stat-sub').textContent=T('today_sub');
+  document.querySelector('#month-count').closest('.stat').querySelector('.stat-sub').textContent=T('count_sub');
+  document.querySelectorAll('#screen-month .section-title').forEach((el,i)=>{
+    el.textContent=[T('sec_cat_analysis'),T('sec_details')][i]||el.textContent;
+  });
+  // Report
+  document.querySelectorAll('#screen-report .form-label').forEach((el,i)=>{
+    [T('start_date'),T('end_date'),T('filter_cat')].forEach((v,j)=>{if(i===j)el.textContent=v;});
+  });
+  document.getElementById('rep-run-btn').textContent=T('btn_search');
+  document.querySelector('#rep-total').closest('.card').querySelector('.stat-label').textContent=T('report_total');
+  document.querySelector('#screen-report .section-title') && (document.querySelector('#rep-list').previousElementSibling.textContent=T('sec_details'));
+  // Settings
+  document.querySelectorAll('#screen-settings .section-title').forEach((el,i)=>{
+    [T('sec_users'),T('sec_lang'),T('sec_cloud'),T('sec_rates'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
+  });
+  document.querySelectorAll('#screen-settings .form-label').forEach(el=>{
+    if(el.textContent.includes('1')||el.textContent.includes('User 1'))el.textContent=T('lbl_user1');
+    if(el.textContent.includes('2')||el.textContent.includes('User 2'))el.textContent=T('lbl_user2');
+  });
+  document.getElementById('save-users-btn').textContent=T('btn_save_users');
+  document.getElementById('change-identity-btn').textContent=T('btn_change_identity');
+  document.getElementById('change-api-btn').textContent=T('btn_change_api');
+  document.querySelector('#rate-fetch-btn').textContent=T('btn_update_rate');
+  document.querySelector('#screen-settings .rate-header span').textContent=T('rate_spot');
+  document.querySelector('#screen-settings .rate-hint') && (document.querySelector('#screen-settings .rate-hint').textContent=T('rate_hint'));
+  document.getElementById('refresh-btn').textContent=T('btn_resync');
+  document.getElementById('export-btn').textContent=T('btn_export');
+  document.getElementById('clear-btn').textContent=T('btn_clear');
+  document.querySelector('#screen-settings .data-hint') && (document.querySelector('#screen-settings .data-hint').textContent=T('data_hint'));
+  // Modals
+  document.querySelector('#setup-modal h2').textContent=T('modal_setup_title');
+  document.querySelector('#setup-modal p').textContent=T('modal_setup_desc');
+  const setupSteps=document.querySelectorAll('#setup-modal .step-text');
+  ['step1','step2','step3','step4'].forEach((k,i)=>{if(setupSteps[i])setupSteps[i].textContent=T(k);});
+  document.querySelector('#setup-modal .form-label').textContent=T('lbl_api_url');
+  document.getElementById('api-url-input').placeholder='https://script.google.com/macros/s/.../exec';
+  document.getElementById('save-api-btn').textContent=T('btn_test_conn');
+  document.getElementById('skip-setup-btn').textContent=T('btn_skip');
+  document.querySelector('#edit-modal h2').textContent=T('modal_edit_title');
+  document.querySelectorAll('#edit-modal .form-label').forEach((el,i)=>{
+    [T('lbl_amount'),T('lbl_date'),T('lbl_note')].forEach((v,j)=>{if(i===j)el.textContent=v;});
+  });
+  document.getElementById('edit-save-btn').textContent=T('btn_save_edit');
+  document.getElementById('edit-cancel-btn').textContent=T('btn_cancel');
+  document.querySelector('#budget-modal h2').textContent=T('modal_budget_title');
+  document.getElementById('budget-save-btn').textContent=T('btn_save_budget');
+  document.getElementById('budget-cancel-btn').textContent=T('btn_cancel');
+  document.querySelector('#identity-modal h2').textContent=T('identity_title');
+  document.querySelector('#identity-modal p').textContent=T('identity_desc');
+  // rebuild dynamic UI
+  buildCatGrid();buildCurrUI();
+  refreshAll();
+  updateDeviceIdentityDisplay();
+}
 
 // ===== API =====
 async function apiCall(action,data={}){
@@ -496,11 +705,11 @@ function setSyncStatus(ok,msg=''){
   const dot=document.getElementById('sync-dot-add'),text=document.getElementById('sync-text-add');
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
   if(ok){
-    if(dot){dot.className='sync-dot ok';text.textContent='已連線';}
-    if(cdot){cdot.className='sync-dot ok';ctext.textContent='已連線至 Google Sheets';}
+    if(dot){dot.className='sync-dot ok';text.textContent=T('sync_ok');}
+    if(cdot){cdot.className='sync-dot ok';ctext.textContent=T('conn_ok');}
   }else{
-    if(dot){dot.className='sync-dot err';text.textContent=apiUrl?'離線':'未連線';}
-    if(cdot){cdot.className='sync-dot err';ctext.textContent=msg||'連線失敗';}
+    if(dot){dot.className='sync-dot err';text.textContent=apiUrl?T('sync_off'):T('sync_none');}
+    if(cdot){cdot.className='sync-dot err';ctext.textContent=msg||T('conn_no');}
   }
 }
 
@@ -513,19 +722,19 @@ document.getElementById('save-api-btn').onclick=async()=>{
   const msg=document.getElementById('modal-msg'),btn=document.getElementById('save-api-btn');
   if(!url){msg.className='msg error';msg.textContent='請貼入網址';return;}
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>測試中...';
-  msg.className='msg info';msg.textContent='連線測試中...';
+  msg.className='msg info';msg.textContent=T('conn_testing');
   try{
     const res=await fetch(url+'?action=ping');const json=await res.json();
     if(json.success){
       apiUrl=url;localStorage.setItem('xp_api_url',url);
-      msg.className='msg success';msg.textContent='連線成功！正在同步資料...';
+      msg.className='msg success';msg.textContent=T('conn_success');
       await syncFromCloud();refreshAll();
       setTimeout(()=>hideSetupModal(),800);
     }else throw new Error(json.message);
   }catch(e){
-    msg.className='msg error';msg.textContent='連線失敗：'+e.message+'。請確認「誰可以存取」設為「所有人」。';
+    msg.className='msg error';msg.textContent=T('conn_fail')+e.message+T('conn_fail_hint');
   }
-  btn.disabled=false;btn.innerHTML='測試並儲存連線';
+  btn.disabled=false;btn.innerHTML=T('btn_test_conn');
 };
 document.getElementById('skip-setup-btn').onclick=()=>hideSetupModal();
 document.getElementById('change-api-btn').onclick=()=>showSetupModal();
@@ -539,7 +748,7 @@ function showIdentityModal(){
     const colors=['#4f46e5','#db2777'];
     const b=document.createElement('button');
     b.style.cssText=`padding:20px;border:3px solid ${colors[i]};border-radius:16px;background:#fff;cursor:pointer;font-size:18px;font-weight:900;color:${colors[i]};font-family:'Noto Sans TC',sans-serif;transition:all 0.2s`;
-    b.textContent=(i===0?'💙':'💗')+' 這是 '+name+' 的手機';
+    b.textContent=T('identity_prefix_'+i)+name+T('identity_suffix');
     b.onclick=()=>{
       selectedUserIdx=i;
       localStorage.setItem(DEVICE_KEY,i);
@@ -573,7 +782,7 @@ document.getElementById('save-users-btn').onclick=()=>{
   localStorage.setItem('xp_usernames',JSON.stringify(userNames));
   updateUserToggle();
   refreshAll();
-  alert('使用者名稱已儲存！');
+  alert(T('users_saved'));
 };
 
 // ===== 備註記憶 =====
@@ -607,7 +816,7 @@ document.getElementById('inp-note').onblur=()=>{setTimeout(()=>{document.getElem
 function uid(){return Date.now()+'_'+Math.random().toString(36).slice(2);}
 function getRate(c){return(CURRENCIES.find(x=>x.code===c)||{rate:1}).rate;}
 function toTHB(a,c){return Math.round(a*getRate(c)*100)/100;}
-function getCat(id){return CATS.find(c=>c.id===id)||{id,label:id,icon:'📌',color:'#f5f5f0'};}
+function getCat(id){const c=CATS.find(x=>x.id===id);if(c)return{...c,label:T(c.lkey)};return{id,label:id,icon:'📌',color:'#f5f5f0'};}
 function getCurr(c){return CURRENCIES.find(x=>x.code===c)||CURRENCIES[0];}
 function fmtTHB(v){return '฿ '+Math.round(v).toLocaleString();}
 function fmtAmt(a,c){const x=getCurr(c);return x.symbol+parseFloat(a).toLocaleString(undefined,{maximumFractionDigits:2});}
@@ -632,7 +841,7 @@ function buildCatGrid(){
   const sel=document.getElementById('cat-select-more');
   const secCats=CATS.filter(c=>!PRIMARY_CATS.includes(c.id));
   const isSecSel=secCats.some(c=>c.id===selCat);
-  sel.innerHTML='<option value="">— 更多類別 —</option>';
+  sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
   secCats.forEach(c=>{
     const o=document.createElement('option');o.value=c.id;o.textContent=c.icon+' '+c.label;
     if(selCat===c.id)o.selected=true;sel.appendChild(o);
@@ -659,7 +868,7 @@ function buildCurrUI(){
     qg.appendChild(b);
   });
   const sel=document.getElementById('curr-select');
-  sel.innerHTML='<option value="">— 其他幣別 —</option>';
+  sel.innerHTML=`<option value="">${T('curr_more')}</option>`;
   CURRENCIES.filter(c=>!QUICK_CURR.includes(c.code)).forEach(c=>{
     const o=document.createElement('option');o.value=c.code;o.textContent=c.code+' '+c.name;
     if(selCurr===c.code)o.selected=true;sel.appendChild(o);
@@ -726,7 +935,7 @@ function openBudgetModal(){
 // ===== Render Helpers =====
 function renderEntries(list,cid){
   const el=document.getElementById(cid);
-  if(!list.length){el.innerHTML='<div class="empty">沒有記錄</div>';return;}
+  if(!list.length){el.innerHTML=`<div class="empty">${T('no_records')}</div>`;return;}
   el.innerHTML='';
   const byDate={};list.forEach(r=>{(byDate[r.date]=byDate[r.date]||[]).push(r);});
   Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).forEach(date=>{
@@ -765,7 +974,7 @@ function renderEntries(list,cid){
         </div>`;
       dv.querySelector('.edit-btn').onclick=()=>openEditModal(r.id);
       dv.querySelector('.del-btn').onclick=async()=>{
-        if(!confirm('確定刪除？'))return;
+        if(!confirm(T('confirm_delete')))return;
         const id=r.id;records=records.filter(x=>x.id!==id);saveLocal();refreshAll();
         if(apiUrl){try{await apiCall('delete',{id});}catch(e){}}
       };
@@ -823,17 +1032,17 @@ function renderCompare(list,cid){
   const p0=total>0?(t0/total*100):50;
   const p1=total>0?(t1/total*100):50;
   el.innerHTML=`
-    <div class="section-title">花費比較</div>
+    <div class="section-title">${T('sec_compare')}</div>
     <div class="stat-row">
       <div class="stat" style="border-top:4px solid #4f46e5">
         <div class="stat-label user-color-0">${u0}</div>
         <div class="stat-value" style="font-size:18px">${fmtTHB(t0)}</div>
-        <div class="stat-sub">${l0.length} 筆</div>
+        <div class="stat-sub">${l0.length} ${T('count_sub')}</div>
       </div>
       <div class="stat" style="border-top:4px solid #db2777">
         <div class="stat-label user-color-1">${u1}</div>
         <div class="stat-value" style="font-size:18px">${fmtTHB(t1)}</div>
-        <div class="stat-sub">${l1.length} 筆</div>
+        <div class="stat-sub">${l1.length} ${T('count_sub')}</div>
       </div>
     </div>
     <div class="compare-bar-wrap">
@@ -855,22 +1064,22 @@ function renderMonthBudget(list,m,cid){
   const pct1=bgt1>0?Math.min(spent1/bgt1*100,100):0;
   el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="section-title" style="margin:0">個人預算</div>
-      <button onclick="openBudgetModal()" style="background:#eef2ff;border:none;border-radius:8px;color:#4f46e5;cursor:pointer;font-size:12px;font-weight:800;padding:6px 12px">✎ 設定預算</button>
+      <div class="section-title" style="margin:0">${T('sec_budget')}</div>
+      <button onclick="openBudgetModal()" style="background:#eef2ff;border:none;border-radius:8px;color:#4f46e5;cursor:pointer;font-size:12px;font-weight:800;padding:6px 12px">${T('btn_set_budget')}</button>
     </div>
     <div class="budget-grid">
       <div class="budget-card u0">
         <div style="font-weight:900;color:#4f46e5;font-size:15px;margin-bottom:10px">${u0}</div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px"><span>預算</span><span>${fmtTHB(bgt0)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:6px"><span>已支出</span><span style="color:#ef4444;font-weight:700">${fmtTHB(spent0)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:${rem0>=0?'#10b981':'#ef4444'};padding-top:6px;border-top:1px solid #e2e8f0"><span>結餘</span><span>${fmtTHB(rem0)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px"><span>${T('budget_lbl')}</span><span>${fmtTHB(bgt0)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:6px"><span>${T('spent_lbl')}</span><span style="color:#ef4444;font-weight:700">${fmtTHB(spent0)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:${rem0>=0?'#10b981':'#ef4444'};padding-top:6px;border-top:1px solid #e2e8f0"><span>${T('remain_lbl')}</span><span>${fmtTHB(rem0)}</span></div>
         <div class="bar-track" style="margin-top:8px;height:6px"><div style="height:100%;width:${pct0}%;border-radius:4px;background:${rem0<0?'#ef4444':'#4f46e5'}"></div></div>
       </div>
       <div class="budget-card u1">
         <div style="font-weight:900;color:#db2777;font-size:15px;margin-bottom:10px">${u1}</div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px"><span>預算</span><span>${fmtTHB(bgt1)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:6px"><span>已支出</span><span style="color:#ef4444;font-weight:700">${fmtTHB(spent1)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:${rem1>=0?'#10b981':'#ef4444'};padding-top:6px;border-top:1px solid #e2e8f0"><span>結餘</span><span>${fmtTHB(rem1)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px"><span>${T('budget_lbl')}</span><span>${fmtTHB(bgt1)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:6px"><span>${T('spent_lbl')}</span><span style="color:#ef4444;font-weight:700">${fmtTHB(spent1)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:${rem1>=0?'#10b981':'#ef4444'};padding-top:6px;border-top:1px solid #e2e8f0"><span>${T('remain_lbl')}</span><span>${fmtTHB(rem1)}</span></div>
         <div class="bar-track" style="margin-top:8px;height:6px"><div style="height:100%;width:${pct1}%;border-radius:4px;background:${rem1<0?'#ef4444':'#db2777'}"></div></div>
       </div>
     </div>`;
@@ -878,10 +1087,20 @@ function renderMonthBudget(list,m,cid){
 
 document.getElementById('change-identity-btn').onclick=()=>showIdentityModal();
 
+function setLang(l){
+  lang=l;localStorage.setItem('xp_lang',l);
+  updateLangBtns();applyLang();
+}
+function updateLangBtns(){
+  const z=document.getElementById('lang-zh-btn'),e=document.getElementById('lang-en-btn');
+  if(z){z.style.borderColor=lang==='zh'?'#4f46e5':'#e2e8f0';z.style.background=lang==='zh'?'#eef2ff':'#fff';z.style.color=lang==='zh'?'#4f46e5':'#475569';}
+  if(e){e.style.borderColor=lang==='en'?'#4f46e5':'#e2e8f0';e.style.background=lang==='en'?'#eef2ff':'#fff';e.style.color=lang==='en'?'#4f46e5':'#475569';}
+}
+
 function buildCatFilters(cid,aid,onSel){
   const w=document.getElementById(cid);w.innerHTML='';
   const mk=(lbl,id)=>{const b=document.createElement('button');b.className='cat-filter'+(aid===id?' active':'');b.textContent=lbl;b.onclick=()=>onSel(id);w.appendChild(b);};
-  mk('全部',null);
+  mk(T('all_cats'),null);
   [...new Set([...CATS.map(c=>c.id),...records.map(r=>r.cat)])].forEach(id=>{const c=getCat(id);mk(c.icon+' '+c.label,id);});
 }
 function refreshToday(){
@@ -916,12 +1135,14 @@ function runReport(){
 }
 function refreshSettings(){
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
-  if(apiUrl){cdot.className='sync-dot ok';ctext.textContent='已連線至 Google Sheets';}
-  else{cdot.className='sync-dot err';ctext.textContent='尚未設定 API 網址';}
-  // 顯示此裝置身分
-  const info=document.getElementById('device-identity-info');
-  if(info)info.textContent='此裝置身分：'+(selectedUserIdx===0?'💙':'💗')+' '+userNames[selectedUserIdx];
+  if(apiUrl){cdot.className='sync-dot ok';ctext.textContent=T('conn_ok');}
+  else{cdot.className='sync-dot err';ctext.textContent=T('conn_no');}
+  updateDeviceIdentityDisplay();
   buildRateList();
+}
+function updateDeviceIdentityDisplay(){
+  const info=document.getElementById('device-identity-info');
+  if(info)info.textContent=T('device_identity')+(selectedUserIdx===0?'💙':'💗')+' '+userNames[selectedUserIdx];
 }
 function buildRateList(){
   const el=document.getElementById('rate-list');el.innerHTML='';
@@ -932,8 +1153,7 @@ function buildRateList(){
     el.appendChild(row);
   });
   const twdRate=getRate('TWD');
-  document.getElementById('twd-ref').textContent=twdRate>0?`* 1 ฿ ≈ NT$ ${(1/twdRate).toFixed(4)}`:'';
-}
+  document.getElementById('twd-ref').textContent=twdRate>0?T('twd_ref')+(1/twdRate).toFixed(4):'';}
 function refreshAll(){refreshToday();refreshMonth();}
 
 // ===== Nav =====
@@ -953,8 +1173,8 @@ document.getElementById('save-btn').onclick=async()=>{
   const date=document.getElementById('inp-date').value;
   const msg=document.getElementById('add-msg');
   msg.className='msg';
-  if(!amt||amt<=0){msg.className='msg error';msg.textContent='請輸入有效金額';return;}
-  if(!date){msg.className='msg error';msg.textContent='請選擇日期';return;}
+  if(!amt||amt<=0){msg.className='msg error';msg.textContent=T('err_amount');return;}
+  if(!date){msg.className='msg error';msg.textContent=T('err_date');return;}
   let finalCat=selCat;
   if(selCat==='other'){const c=document.getElementById('inp-custom-cat').value.trim();if(c)finalCat=c;}
   const rec={id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,date:normalizeDate(date),ts:Date.now(),user:userNames[selectedUserIdx]};
@@ -962,7 +1182,7 @@ document.getElementById('save-btn').onclick=async()=>{
   if(noteVal)addNoteMemory(finalCat,noteVal);
   const cat=getCat(finalCat);
   msg.className='msg success';
-  msg.textContent='已儲存：'+cat.icon+' '+fmtAmt(amt,selCurr)+(selCurr!=='THB'?' = '+fmtTHB(toTHB(amt,selCurr)):'')+'（'+userNames[selectedUserIdx]+'）';
+  msg.textContent=T('saved_msg')+cat.icon+' '+fmtAmt(amt,selCurr)+(selCurr!=='THB'?' = '+fmtTHB(toTHB(amt,selCurr)):'')+' ('+userNames[selectedUserIdx]+')';
   document.getElementById('inp-amount').value='';document.getElementById('inp-note').value='';
   document.getElementById('note-suggestions').className='note-suggestions';
   document.getElementById('inp-date').value=today();
@@ -970,14 +1190,14 @@ document.getElementById('save-btn').onclick=async()=>{
   setTimeout(()=>{msg.className='msg';},3000);
   if(apiUrl){
     try{await apiCall('add',rec);}
-    catch(e){const em=document.getElementById('add-msg');em.className='msg error';em.textContent='本機已儲存，雲端同步失敗：'+e.message;}
+    catch(e){const em=document.getElementById('add-msg');em.className='msg error';em.textContent=T('cloud_fail')+e.message;}
   }
 };
 
 // ===== 更新匯率 =====
 document.getElementById('rate-fetch-btn').onclick=async()=>{
   const btn=document.getElementById('rate-fetch-btn');
-  btn.textContent='更新中...';btn.disabled=true;
+  btn.textContent=T('rate_updating');btn.disabled=true;
   try{
     const proxy='https://api.allorigins.win/get?url='+encodeURIComponent('https://rate.bot.com.tw/xrt/flcsv/0/day');
     const res=await fetch(proxy);const data=await res.json();
@@ -996,23 +1216,23 @@ document.getElementById('rate-fetch-btn').onclick=async()=>{
         else if(rawRates[c.code]){c.rate=Math.round((rawRates[c.code]/thbToTwd)*10000)/10000;updated++;}
       });
       saveRates();buildRateList();
-      btn.textContent='✅ 已更新 '+updated+' 種';
+      btn.textContent=T('rate_updated')+updated+T('rate_types');
     }else throw new Error('No THB rate');
-  }catch(e){btn.textContent='❌ 失敗';}
-  setTimeout(()=>{btn.textContent='🔄 更新匯率';btn.disabled=false;},3000);
+  }catch(e){btn.textContent=T('rate_fail');}
+  setTimeout(()=>{btn.textContent=T('btn_update_rate');btn.disabled=false;},3000);
 };
 
 // ===== 其他按鈕 =====
 document.getElementById('rep-run-btn').onclick=runReport;
 document.getElementById('refresh-btn').onclick=async()=>{
   const btn=document.getElementById('refresh-btn');
-  btn.disabled=true;btn.innerHTML='<span class="spinner dark"></span>同步中...';
+  btn.disabled=true;btn.innerHTML='<span class="spinner dark"></span>'+T('syncing');
   await syncFromCloud();refreshAll();
-  btn.disabled=false;btn.textContent='重新同步雲端資料';
+  btn.disabled=false;btn.textContent=T('btn_resync');
 };
 document.getElementById('export-btn').onclick=()=>{
-  if(!records.length){alert('沒有資料可匯出');return;}
-  const rows=[['日期','類別','金額','幣別','泰銖換算','備註','使用者']];
+  if(!records.length){alert(T('no_export'));return;}
+  const rows=[T('csv_headers')];
   [...records].sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>{
     rows.push([r.date,getCat(r.cat).label,r.amount,r.curr,Math.round(toTHB(r.amount,r.curr)),r.note||'',r.user||userNames[0]]);
   });
@@ -1020,7 +1240,7 @@ document.getElementById('export-btn').onclick=()=>{
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='expenses_'+today()+'.csv';a.click();
 };
 document.getElementById('clear-btn').onclick=()=>{
-  if(confirm('確定清除本機快取？Google Sheets 資料不受影響。')){records=[];saveLocal();refreshAll();alert('本機快取已清除。');}
+  if(confirm(T('confirm_clear'))){records=[];saveLocal();refreshAll();alert(T('cleared'));}
 };
 
 // ===== Init =====
@@ -1036,6 +1256,8 @@ document.getElementById('rep-to').value=today();
 
 loadLocal();buildCatGrid();buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
+updateLangBtns();
+applyLang();
 
 // 第一次打開：先選身分，再設定雲端
 const hasDeviceId=localStorage.getItem(DEVICE_KEY)!==null;
