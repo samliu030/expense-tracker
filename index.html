@@ -48,10 +48,25 @@ html,body{height:100%;overflow:hidden;background:#f5f5f0;font-family:'Noto Sans 
 .cat-btn:active{transform:scale(0.96)}
 .cat-btn.selected{border-color:#2563eb;background:#eff6ff;color:#2563eb}
 .cat-icon{font-size:22px}
-.curr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+/* 幣別：快速按鈕列 + 下拉 */
+.curr-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
 .curr-btn{padding:10px 4px;border:1.5px solid #e8e8e4;border-radius:10px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#666;font-family:'Noto Sans TC',sans-serif;text-align:center;transition:all 0.15s}
 .curr-btn:active{transform:scale(0.96)}
 .curr-btn.selected{border-color:#2563eb;background:#eff6ff;color:#2563eb}
+.curr-more-row{display:flex;align-items:center;gap:8px}
+.curr-more-label{font-size:12px;color:#aaa;white-space:nowrap}
+.curr-select{flex:1;padding:10px 12px;border:1.5px solid #e8e8e4;border-radius:10px;font-size:13px;font-weight:700;color:#666;font-family:'Noto Sans TC',sans-serif;background:#fff;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer}
+.curr-select.selected-other{border-color:#2563eb;background:#eff6ff;color:#2563eb}
+/* 備註自動完成 */
+.note-wrap{position:relative}
+.note-suggestions{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #2563eb;border-top:none;border-radius:0 0 12px 12px;z-index:50;display:none;max-height:180px;overflow-y:auto}
+.note-suggestions.show{display:block}
+.note-sug-item{padding:11px 14px;font-size:14px;color:#1a1a1a;cursor:pointer;border-bottom:0.5px solid #f0f0eb}
+.note-sug-item:last-child{border-bottom:none}
+.note-sug-item:active{background:#eff6ff}
+/* 自訂類別輸入 */
+.custom-cat-wrap{margin-top:8px;display:none}
+.custom-cat-wrap.show{display:block}
 .submit-btn{width:100%;padding:16px;background:#2563eb;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:8px;letter-spacing:0.02em;transition:opacity 0.15s}
 .submit-btn:active{opacity:0.8}
 .submit-btn:disabled{opacity:0.5;cursor:not-allowed}
@@ -92,6 +107,8 @@ html,body{height:100%;overflow:hidden;background:#f5f5f0;font-family:'Noto Sans 
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
 .spinner.dark{border-color:rgba(0,0,0,0.15);border-top-color:#2563eb}
 @keyframes spin{to{transform:rotate(360deg)}}
+.rate-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rate-update-btn{padding:7px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
 </style>
 </head>
 <body>
@@ -102,22 +119,10 @@ html,body{height:100%;overflow:hidden;background:#f5f5f0;font-family:'Noto Sans 
     <div class="modal">
       <h2>☁️ 連結雲端資料庫</h2>
       <p>設定一次，記帳資料自動存入你的 Google Sheets，任何裝置都能同步。</p>
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-text">開啟 <a href="https://sheets.new" target="_blank" style="color:#2563eb">sheets.new</a> 建立新試算表，命名為「我的記帳本」</div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-text">點選單「擴充功能」→「Apps Script」，把 <strong>Code.gs</strong> 的內容全部貼進去，按儲存</div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-text">點右上角「部署」→「新增部署作業」→「網頁應用程式」。執行身分選「我」，存取選「所有人」，按「部署」並授權</div>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <div class="step-text">複製部署後的「網頁應用程式網址」貼到下方</div>
-      </div>
+      <div class="step"><div class="step-num">1</div><div class="step-text">開啟 <a href="https://sheets.new" target="_blank" style="color:#2563eb">sheets.new</a> 建立新試算表，命名為「我的記帳本」</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">點選單「擴充功能」→「Apps Script」，把 Code.gs 的內容全部貼進去，按儲存</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">點右上角「部署」→「新增部署作業」→「網頁應用程式」。執行身分選「我」，存取選「所有人」，按「部署」並授權</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">複製部署後的「網頁應用程式網址」貼到下方</div></div>
       <div class="form-group" style="margin-top:4px;margin-bottom:0">
         <label class="form-label">Apps Script 網址</label>
         <input type="url" class="form-input" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec">
@@ -142,6 +147,9 @@ html,body{height:100%;overflow:hidden;background:#f5f5f0;font-family:'Noto Sans 
       <div class="form-group">
         <label class="form-label">類別</label>
         <div class="cat-grid" id="cat-grid"></div>
+        <div class="custom-cat-wrap" id="custom-cat-wrap">
+          <input type="text" class="form-input" id="inp-custom-cat" placeholder="輸入自訂類別名稱" style="margin-top:8px">
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">金額</label>
@@ -149,11 +157,18 @@ html,body{height:100%;overflow:hidden;background:#f5f5f0;font-family:'Noto Sans 
       </div>
       <div class="form-group">
         <label class="form-label">幣別</label>
-        <div class="curr-grid" id="curr-grid"></div>
+        <div class="curr-quick" id="curr-quick"></div>
+        <div class="curr-more-row">
+          <span class="curr-more-label">其他：</span>
+          <select class="curr-select" id="curr-select"></select>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">備註（店家、說明）</label>
-        <input type="text" class="form-input" id="inp-note" placeholder="例：全家、MK火鍋、Grab">
+        <div class="note-wrap">
+          <input type="text" class="form-input" id="inp-note" placeholder="例：全家、MK火鍋、Grab" autocomplete="off">
+          <div class="note-suggestions" id="note-suggestions"></div>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">日期</label>
@@ -224,14 +239,18 @@ html,body{height:100%;overflow:hidden;background:#f5f5f0;font-family:'Noto Sans 
     <div class="content">
       <div class="section-title">雲端連線狀態</div>
       <div class="card">
-        <div class="sync-status" style="margin-bottom:12px">
-          <div class="sync-dot" id="conn-dot"></div>
-          <span id="conn-text">檢查中...</span>
-        </div>
+        <div class="sync-status" style="margin-bottom:12px"><div class="sync-dot" id="conn-dot"></div><span id="conn-text">檢查中...</span></div>
         <button class="secondary-btn" id="change-api-btn" style="margin-bottom:0">重新設定 API 網址</button>
       </div>
       <div class="section-title">幣別匯率（對台幣）</div>
-      <div class="card"><div id="rate-list"></div><p class="rate-note">匯率參考台灣中央銀行牌告即期匯率，可手動更新。修改後自動儲存。</p></div>
+      <div class="card">
+        <div class="rate-header">
+          <span style="font-size:13px;color:#666;font-weight:500">即期匯率</span>
+          <button class="rate-update-btn" id="rate-fetch-btn">🔄 更新匯率</button>
+        </div>
+        <div id="rate-list"></div>
+        <p class="rate-note">點「更新匯率」從台灣銀行取得最新即期匯率，或手動修改。修改後自動儲存。</p>
+      </div>
       <div class="section-title">資料管理</div>
       <div class="card">
         <div style="font-size:13px;color:#999;margin-bottom:14px;line-height:1.6">資料儲存於你的 Google Sheets，本機同時保留快取供離線瀏覽。</div>
@@ -264,38 +283,80 @@ html,body{height:100%;overflow:hidden;background:#f5f5f0;font-family:'Noto Sans 
 
 <script>
 const CATS=[
-  {id:'food',label:'食物',icon:'🍱',color:'#eff6ff'},{id:'drink',label:'飲料',icon:'🧋',color:'#f0fdf4'},
-  {id:'transport',label:'交通',icon:'🚇',color:'#fffbeb'},{id:'shopping',label:'購物',icon:'🛍️',color:'#fdf2f8'},
-  {id:'entertainment',label:'娛樂',icon:'🎮',color:'#f5f3ff'},{id:'accommodation',label:'住宿',icon:'🏨',color:'#ecfdf5'},
-  {id:'medical',label:'醫療',icon:'💊',color:'#fef2f2'},{id:'beauty',label:'美容',icon:'💄',color:'#fdf2f8'},
-  {id:'education',label:'教育',icon:'📚',color:'#eff6ff'},{id:'bills',label:'帳單',icon:'📋',color:'#f9fafb'},
-  {id:'travel',label:'旅遊',icon:'✈️',color:'#ecfdf5'},{id:'other',label:'其他',icon:'💰',color:'#f9fafb'},
+  {id:'food',label:'食物',icon:'🍱',color:'#eff6ff'},
+  {id:'drink',label:'飲料',icon:'🧋',color:'#f0fdf4'},
+  {id:'transport',label:'交通',icon:'🚇',color:'#fffbeb'},
+  {id:'shopping',label:'購物',icon:'🛍️',color:'#fdf2f8'},
+  {id:'entertainment',label:'娛樂',icon:'🎮',color:'#f5f3ff'},
+  {id:'accommodation',label:'住宿',icon:'🏨',color:'#ecfdf5'},
+  {id:'medical',label:'醫療',icon:'💊',color:'#fef2f2'},
+  {id:'beauty',label:'美容',icon:'💄',color:'#fdf2f8'},
+  {id:'education',label:'教育',icon:'📚',color:'#eff6ff'},
+  {id:'bills',label:'帳單',icon:'📋',color:'#f9fafb'},
+  {id:'travel',label:'旅遊',icon:'✈️',color:'#ecfdf5'},
+  {id:'other',label:'其他',icon:'✏️',color:'#f9fafb'},
 ];
+
+// 快速幣別（直接按鈕）
+const QUICK_CURR=['TWD','USD','THB','CNY'];
+
 const CURRENCIES=[
-  {code:'TWD',name:'新台幣',symbol:'NT$',rate:1},{code:'USD',name:'美金',symbol:'$',rate:32.5},
-  {code:'JPY',name:'日圓',symbol:'¥',rate:0.22},{code:'EUR',name:'歐元',symbol:'€',rate:35.2},
-  {code:'GBP',name:'英鎊',symbol:'£',rate:41.5},{code:'THB',name:'泰銖',symbol:'฿',rate:0.92},
-  {code:'HKD',name:'港幣',symbol:'HK$',rate:4.16},{code:'CNY',name:'人民幣',symbol:'¥',rate:4.48},
-  {code:'KRW',name:'韓元',symbol:'₩',rate:0.024},{code:'SGD',name:'新幣',symbol:'S$',rate:24.2},
-  {code:'AUD',name:'澳幣',symbol:'A$',rate:20.8},{code:'CAD',name:'加幣',symbol:'C$',rate:23.5},
-  {code:'MYR',name:'馬幣',symbol:'RM',rate:7.3},{code:'VND',name:'越南盾',symbol:'₫',rate:0.0013},
-  {code:'IDR',name:'印尼盾',symbol:'Rp',rate:0.002},{code:'INR',name:'印度盧比',symbol:'₹',rate:0.39},
-  {code:'CHF',name:'瑞士法郎',symbol:'Fr',rate:36.8},{code:'SEK',name:'瑞典克朗',symbol:'kr',rate:3.1},
-  {code:'NOK',name:'挪威克朗',symbol:'kr',rate:3.0},{code:'NZD',name:'紐西蘭幣',symbol:'NZ$',rate:19.5},
+  {code:'TWD',name:'新台幣',symbol:'NT$',rate:1},
+  {code:'USD',name:'美金',symbol:'$',rate:32.5},
+  {code:'JPY',name:'日圓',symbol:'¥',rate:0.22},
+  {code:'EUR',name:'歐元',symbol:'€',rate:35.2},
+  {code:'GBP',name:'英鎊',symbol:'£',rate:41.5},
+  {code:'THB',name:'泰銖',symbol:'฿',rate:0.92},
+  {code:'HKD',name:'港幣',symbol:'HK$',rate:4.16},
+  {code:'CNY',name:'人民幣',symbol:'¥',rate:4.48},
+  {code:'KRW',name:'韓元',symbol:'₩',rate:0.024},
+  {code:'SGD',name:'新幣',symbol:'S$',rate:24.2},
+  {code:'AUD',name:'澳幣',symbol:'A$',rate:20.8},
+  {code:'CAD',name:'加幣',symbol:'C$',rate:23.5},
+  {code:'MYR',name:'馬幣',symbol:'RM',rate:7.3},
+  {code:'VND',name:'越南盾',symbol:'₫',rate:0.0013},
+  {code:'IDR',name:'印尼盾',symbol:'Rp',rate:0.002},
+  {code:'INR',name:'印度盧比',symbol:'₹',rate:0.39},
+  {code:'CHF',name:'瑞士法郎',symbol:'Fr',rate:36.8},
+  {code:'SEK',name:'瑞典克朗',symbol:'kr',rate:3.1},
+  {code:'NOK',name:'挪威克朗',symbol:'kr',rate:3.0},
+  {code:'NZD',name:'紐西蘭幣',symbol:'NZ$',rate:19.5},
 ];
 
 let records=[],selCat='food',selCurr='TWD',repCatFilter=null,apiUrl='';
+let noteMemory={}; // {catId: [最近10筆備註]}
 
+// ---- Storage ----
 function loadLocal(){
   try{
     const r=localStorage.getItem('xp_records');if(r)records=JSON.parse(r);
     const ra=localStorage.getItem('xp_rates');if(ra){const s=JSON.parse(ra);CURRENCIES.forEach(c=>{if(s[c.code])c.rate=s[c.code];});}
     apiUrl=localStorage.getItem('xp_api_url')||'';
+    const lc=localStorage.getItem('xp_last_curr');if(lc)selCurr=lc;
+    const nm=localStorage.getItem('xp_note_memory');if(nm)noteMemory=JSON.parse(nm);
   }catch(e){}
 }
 function saveLocal(){localStorage.setItem('xp_records',JSON.stringify(records));}
 function saveRates(){const m={};CURRENCIES.forEach(c=>m[c.code]=c.rate);localStorage.setItem('xp_rates',JSON.stringify(m));}
+function saveNoteMemory(){localStorage.setItem('xp_note_memory',JSON.stringify(noteMemory));}
 
+// ---- 備註記憶 ----
+function addNoteMemory(catId,note){
+  if(!note||!note.trim())return;
+  if(!noteMemory[catId])noteMemory[catId]=[];
+  // 移除重複，加到最前面，最多10筆
+  noteMemory[catId]=noteMemory[catId].filter(n=>n!==note.trim());
+  noteMemory[catId].unshift(note.trim());
+  if(noteMemory[catId].length>10)noteMemory[catId]=noteMemory[catId].slice(0,10);
+  saveNoteMemory();
+}
+function getNoteSuggestions(catId,input){
+  const list=noteMemory[catId]||[];
+  if(!input)return list;
+  return list.filter(n=>n.toLowerCase().includes(input.toLowerCase()));
+}
+
+// ---- API ----
 async function apiCall(action,data={}){
   if(!apiUrl)throw new Error('未設定 API 網址');
   const res=await fetch(apiUrl,{method:'POST',body:JSON.stringify({action,...data}),headers:{'Content-Type':'text/plain'}});
@@ -305,23 +366,17 @@ async function apiCall(action,data={}){
 }
 async function syncFromCloud(){
   if(!apiUrl)return;
-  try{
-    const res=await apiCall('getAll');
-    records=res.records||[];saveLocal();setSyncStatus(true);
-  }catch(e){setSyncStatus(false,e.message);}
+  try{const res=await apiCall('getAll');records=res.records||[];saveLocal();setSyncStatus(true);}
+  catch(e){setSyncStatus(false,e.message);}
 }
 function setSyncStatus(ok,msg=''){
   const dot=document.getElementById('sync-dot-add'),text=document.getElementById('sync-text-add');
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
-  if(ok){
-    if(dot){dot.className='sync-dot ok';text.textContent='已連線';}
-    if(cdot){cdot.className='sync-dot ok';ctext.textContent='已連線至 Google Sheets';}
-  }else{
-    if(dot){dot.className='sync-dot err';text.textContent=apiUrl?'離線':'未連線';}
-    if(cdot){cdot.className='sync-dot err';ctext.textContent=msg||'連線失敗';}
-  }
+  if(ok){if(dot){dot.className='sync-dot ok';text.textContent='已連線';}if(cdot){cdot.className='sync-dot ok';ctext.textContent='已連線至 Google Sheets';}}
+  else{if(dot){dot.className='sync-dot err';text.textContent=apiUrl?'離線':'未連線';}if(cdot){cdot.className='sync-dot err';ctext.textContent=msg||'連線失敗';}}
 }
 
+// ---- Setup Modal ----
 function showSetupModal(){document.getElementById('setup-modal').classList.remove('hidden');document.getElementById('api-url-input').value=apiUrl||'';}
 function hideSetupModal(){document.getElementById('setup-modal').classList.add('hidden');}
 
@@ -347,9 +402,15 @@ document.getElementById('save-api-btn').onclick=async()=>{
 document.getElementById('skip-setup-btn').onclick=()=>hideSetupModal();
 document.getElementById('change-api-btn').onclick=()=>showSetupModal();
 
+// ---- Helpers ----
 function getRate(c){return(CURRENCIES.find(x=>x.code===c)||{rate:1}).rate;}
 function toTWD(a,c){return Math.round(a*getRate(c)*10)/10;}
-function getCat(id){return CATS.find(c=>c.id===id)||CATS[11];}
+function getCat(id){
+  const found=CATS.find(c=>c.id===id);
+  if(found)return found;
+  // 自訂類別（id就是名稱）
+  return{id,label:id,icon:'📌',color:'#f5f5f0'};
+}
 function getCurr(c){return CURRENCIES.find(x=>x.code===c)||CURRENCIES[0];}
 function fmtTWD(v){return 'NT$'+Math.round(v).toLocaleString();}
 function fmtAmt(a,c){const x=getCurr(c);return x.symbol+parseFloat(a).toLocaleString(undefined,{maximumFractionDigits:2});}
@@ -357,19 +418,82 @@ function today(){return new Date().toISOString().split('T')[0];}
 function thisMonth(){return new Date().toISOString().slice(0,7);}
 function uid(){return Date.now()+'_'+Math.random().toString(36).slice(2);}
 
+// ---- 類別 Grid ----
 function buildCatGrid(){
   const g=document.getElementById('cat-grid');g.innerHTML='';
-  CATS.forEach(c=>{const b=document.createElement('button');b.className='cat-btn'+(selCat===c.id?' selected':'');b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;b.onclick=()=>{selCat=c.id;buildCatGrid();};g.appendChild(b);});
+  CATS.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='cat-btn'+(selCat===c.id?' selected':'');
+    b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
+    b.onclick=()=>{
+      selCat=c.id;buildCatGrid();
+      // 若點「其他」顯示自訂輸入
+      const wrap=document.getElementById('custom-cat-wrap');
+      wrap.className=c.id==='other'?'custom-cat-wrap show':'custom-cat-wrap';
+      updateNoteSuggestions();
+    };
+    g.appendChild(b);
+  });
 }
-function buildCurrGrid(){
-  const g=document.getElementById('curr-grid');g.innerHTML='';
-  CURRENCIES.forEach(c=>{const b=document.createElement('button');b.className='curr-btn'+(selCurr===c.code?' selected':'');b.textContent=c.code;b.title=c.name;b.onclick=()=>{selCurr=c.code;buildCurrGrid();};g.appendChild(b);});
+
+// ---- 幣別 ----
+function buildCurrUI(){
+  // 快速按鈕
+  const qg=document.getElementById('curr-quick');qg.innerHTML='';
+  QUICK_CURR.forEach(code=>{
+    const c=getCurr(code);
+    const b=document.createElement('button');
+    b.className='curr-btn'+(selCurr===code?' selected':'');
+    b.textContent=code;b.title=c.name;
+    b.onclick=()=>{selCurr=code;localStorage.setItem('xp_last_curr',code);buildCurrUI();};
+    qg.appendChild(b);
+  });
+  // 下拉選單（其他幣別）
+  const sel=document.getElementById('curr-select');
+  sel.innerHTML='<option value="">— 選擇其他幣別 —</option>';
+  const otherCurr=CURRENCIES.filter(c=>!QUICK_CURR.includes(c.code));
+  otherCurr.forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.code;o.textContent=c.code+' '+c.name;
+    if(selCurr===c.code)o.selected=true;
+    sel.appendChild(o);
+  });
+  const isOther=!QUICK_CURR.includes(selCurr);
+  sel.className=isOther?'curr-select selected-other':'curr-select';
 }
+document.getElementById('curr-select').onchange=function(){
+  if(this.value){selCurr=this.value;localStorage.setItem('xp_last_curr',this.value);buildCurrUI();}
+};
+
+// ---- 備註自動完成 ----
+function updateNoteSuggestions(){
+  const input=document.getElementById('inp-note').value;
+  const catId=selCat==='other'?(document.getElementById('inp-custom-cat').value.trim()||'other'):selCat;
+  const sugs=getNoteSuggestions(catId,input);
+  const box=document.getElementById('note-suggestions');
+  if(!sugs.length){box.className='note-suggestions';return;}
+  box.innerHTML='';
+  sugs.forEach(s=>{
+    const d=document.createElement('div');d.className='note-sug-item';d.textContent=s;
+    d.onmousedown=()=>{document.getElementById('inp-note').value=s;box.className='note-suggestions';};
+    box.appendChild(d);
+  });
+  box.className='note-suggestions show';
+}
+document.getElementById('inp-note').oninput=updateNoteSuggestions;
+document.getElementById('inp-note').onfocus=updateNoteSuggestions;
+document.getElementById('inp-note').onblur=()=>{setTimeout(()=>{document.getElementById('note-suggestions').className='note-suggestions';},150);};
+
+// ---- Cat Filters (查詢頁) ----
 function buildCatFilters(cid,aid,onSel){
   const w=document.getElementById(cid);w.innerHTML='';
   const mk=(lbl,id)=>{const b=document.createElement('button');b.className='cat-filter'+(aid===id?' active':'');b.textContent=lbl;b.onclick=()=>onSel(id);w.appendChild(b);};
-  mk('全部',null);CATS.forEach(c=>mk(c.icon+' '+c.label,c.id));
+  mk('全部',null);
+  // 固定類別 + 曾用過的自訂類別
+  const allCatIds=[...new Set([...CATS.map(c=>c.id),...records.map(r=>r.cat)])];
+  allCatIds.forEach(id=>{const c=getCat(id);mk(c.icon+' '+c.label,id);});
 }
+
 function renderEntries(list,cid){
   const el=document.getElementById(cid);
   if(!list.length){el.innerHTML='<div class="empty">沒有記錄</div>';return;}
@@ -433,20 +557,61 @@ function runReport(){
   document.getElementById('rep-sub').textContent=list.length+'筆記錄 · '+from+' 至 '+to;
   renderBars(list,'rep-bars');renderEntries(list,'rep-list');
 }
+
+// ---- Settings ----
 function refreshSettings(){
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
   if(apiUrl){cdot.className='sync-dot ok';ctext.textContent='已連線至 Google Sheets';}
   else{cdot.className='sync-dot err';ctext.textContent='尚未設定 API 網址';}
+  buildRateList();
+}
+function buildRateList(){
   const el=document.getElementById('rate-list');el.innerHTML='';
   CURRENCIES.filter(c=>c.code!=='TWD').forEach(c=>{
     const row=document.createElement('div');row.className='rate-row';
-    row.innerHTML=`<span style="font-size:13px;font-weight:700;min-width:40px;color:#1a1a1a">${c.code}</span><span style="font-size:12px;color:#aaa;flex:1">${c.name}</span><span style="font-size:12px;color:#aaa;margin-right:4px">1=NT$</span><input type="number" value="${c.rate}" step="0.0001" style="width:76px;padding:8px 10px;border:1.5px solid #e8e8e4;border-radius:10px;font-size:13px;background:#fff;color:#1a1a1a;font-family:'Noto Sans TC',sans-serif;outline:none" data-code="${c.code}">`;
+    row.innerHTML=`<span style="font-size:13px;font-weight:700;min-width:40px;color:#1a1a1a">${c.code}</span><span style="font-size:12px;color:#aaa;flex:1">${c.name}</span><span style="font-size:12px;color:#aaa;margin-right:4px">1=NT$</span><input type="number" value="${c.rate}" step="0.0001" style="width:80px;padding:8px 10px;border:1.5px solid #e8e8e4;border-radius:10px;font-size:13px;background:#fff;color:#1a1a1a;font-family:'Noto Sans TC',sans-serif;outline:none" data-code="${c.code}">`;
     row.querySelector('input').onchange=e=>{const val=parseFloat(e.target.value);if(val>0){const cur=CURRENCIES.find(x=>x.code===e.target.dataset.code);if(cur){cur.rate=val;saveRates();}}};
     el.appendChild(row);
   });
 }
+
+// ---- 更新匯率（台灣銀行 via allorigins proxy）----
+document.getElementById('rate-fetch-btn').onclick=async()=>{
+  const btn=document.getElementById('rate-fetch-btn');
+  btn.textContent='更新中...';btn.disabled=true;
+  try{
+    // 使用 allorigins 繞過 CORS，抓台灣銀行牌告匯率 JSON
+    const proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent('https://rate.bot.com.tw/xrt/flcsv/0/day');
+    const res=await fetch(proxyUrl);
+    const data=await res.json();
+    const csv=data.contents;
+    const lines=csv.split('\n');
+    let updated=0;
+    lines.forEach(line=>{
+      const cols=line.split(',');
+      if(cols.length<7)return;
+      const code=cols[0].trim();
+      const cur=CURRENCIES.find(c=>c.code===code);
+      if(!cur)return;
+      const buyRate=parseFloat(cols[2]); // 即期買入
+      const sellRate=parseFloat(cols[3]); // 即期賣出
+      if(buyRate>0&&sellRate>0){
+        cur.rate=Math.round((buyRate+sellRate)/2*10000)/10000;
+        updated++;
+      }
+    });
+    saveRates();buildRateList();
+    btn.textContent='✅ 已更新 '+updated+' 種幣別';
+    setTimeout(()=>{btn.textContent='🔄 更新匯率';btn.disabled=false;},3000);
+  }catch(e){
+    btn.textContent='❌ 更新失敗';
+    setTimeout(()=>{btn.textContent='🔄 更新匯率';btn.disabled=false;},2000);
+  }
+};
+
 function refreshAll(){refreshToday();refreshMonth();}
 
+// ---- Nav ----
 document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
   const id=b.dataset.screen;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -456,21 +621,39 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
   else if(id==='report')refreshReport();else if(id==='settings')refreshSettings();
 });
 
+// ---- 儲存記錄 ----
 document.getElementById('save-btn').onclick=async()=>{
   const amt=parseFloat(document.getElementById('inp-amount').value);
-  const note=document.getElementById('inp-note').value.trim();
+  const noteVal=document.getElementById('inp-note').value.trim();
   const date=document.getElementById('inp-date').value;
-  const msg=document.getElementById('add-msg'),btn=document.getElementById('save-btn');
+  const msg=document.getElementById('add-msg');
   msg.className='msg';
   if(!amt||amt<=0){msg.className='msg error';msg.textContent='請輸入有效金額';return;}
   if(!date){msg.className='msg error';msg.textContent='請選擇日期';return;}
-  const rec={id:uid(),cat:selCat,amount:amt,curr:selCurr,note,date,ts:Date.now()};
+
+  // 決定最終類別 ID
+  let finalCat=selCat;
+  if(selCat==='other'){
+    const customName=document.getElementById('inp-custom-cat').value.trim();
+    if(customName)finalCat=customName;
+  }
+
+  const rec={id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,date,ts:Date.now()};
   records.push(rec);saveLocal();
-  const cat=getCat(selCat);
+
+  // 記憶備註
+  if(noteVal)addNoteMemory(finalCat,noteVal);
+
+  const cat=getCat(finalCat);
   msg.className='msg success';
   msg.textContent='已儲存：'+cat.icon+' '+fmtAmt(amt,selCurr)+(selCurr!=='TWD'?' = '+fmtTWD(toTWD(amt,selCurr)):'');
-  document.getElementById('inp-amount').value='';document.getElementById('inp-note').value='';
+  document.getElementById('inp-amount').value='';
+  document.getElementById('inp-note').value='';
+  document.getElementById('note-suggestions').className='note-suggestions';
+  // 日期維持當天
+  document.getElementById('inp-date').value=today();
   setTimeout(()=>{msg.className='msg';},3000);
+
   if(apiUrl){try{await apiCall('add',rec);}catch(e){const em=document.getElementById('add-msg');em.className='msg error';em.textContent='本機已儲存，雲端同步失敗：'+e.message;}}
 };
 
@@ -492,7 +675,7 @@ document.getElementById('clear-btn').onclick=()=>{
   if(confirm('確定清除本機快取？Google Sheets 資料不受影響。')){records=[];saveLocal();refreshAll();alert('本機快取已清除。');}
 };
 
-// Init
+// ---- Init ----
 const now=new Date();
 const ds=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
 document.getElementById('today-date').textContent=ds;
@@ -502,8 +685,12 @@ document.getElementById('inp-date').value=today();
 const d1=new Date();d1.setDate(1);
 document.getElementById('rep-from').value=d1.toISOString().split('T')[0];
 document.getElementById('rep-to').value=today();
-loadLocal();buildCatGrid();buildCurrGrid();
+
+loadLocal();
+buildCatGrid();
+buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
+
 if(!apiUrl){setTimeout(()=>showSetupModal(),500);}
 else{setSyncStatus(true);syncFromCloud().then(()=>refreshAll());}
 refreshAll();
