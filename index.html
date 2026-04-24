@@ -137,6 +137,15 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 <body>
 <div class="app">
 
+<!-- Device Identity Modal -->
+<div class="modal-overlay hidden" id="identity-modal">
+  <div class="modal">
+    <h2>👤 這是誰的手機？</h2>
+    <p>選擇後會永久記住，不需要每次切換。之後可在設定頁更改。</p>
+    <div id="identity-btns" style="display:flex;flex-direction:column;gap:12px;margin-top:8px"></div>
+  </div>
+</div>
+
 <!-- Setup Modal -->
 <div class="modal-overlay hidden" id="setup-modal">
   <div class="modal">
@@ -317,6 +326,8 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
         <input type="text" class="form-input" id="set-user-1" placeholder="Patty">
       </div>
       <button class="submit-btn" id="save-users-btn" style="margin-top:0">儲存名稱</button>
+      <div id="device-identity-info" style="margin-top:14px;padding:12px 16px;background:#f1f5f9;border-radius:12px;font-size:13px;font-weight:700;color:#475569"></div>
+      <button class="secondary-btn" id="change-identity-btn" style="margin-top:8px;margin-bottom:0">更改此裝置身分</button>
     </div>
     <div class="section-title">雲端連線狀態</div>
     <div class="card">
@@ -407,6 +418,8 @@ const CURRENCIES=[
 let records=[], selCat='food', selCurr='THB', repCatFilter=null, apiUrl='';
 let userNames=['Sam','Patty'], selectedUserIdx=0;
 let noteMemory={}, budgets={}, editingId=null;
+// 裝置身分：存在本機，不隨雲端同步，永遠鎖定這支手機是誰
+const DEVICE_KEY='xp_device_user';
 
 // ===== 日期工具（防呆） =====
 function today(){
@@ -440,6 +453,9 @@ function loadLocal(){
     const nm=localStorage.getItem('xp_note_memory');if(nm)noteMemory=JSON.parse(nm);
     const lu=localStorage.getItem('xp_last_user');if(lu!==null)selectedUserIdx=parseInt(lu);
     const un=localStorage.getItem('xp_usernames');if(un)userNames=JSON.parse(un);
+    // 裝置身分：用 DEVICE_KEY，不受雲端同步影響
+    const dv=localStorage.getItem(DEVICE_KEY);
+    if(dv!==null)selectedUserIdx=parseInt(dv);
     const bg=localStorage.getItem('xp_budgets');if(bg)budgets=JSON.parse(bg);
   }catch(e){}
   document.getElementById('set-user-0').value=userNames[0];
@@ -514,7 +530,28 @@ document.getElementById('save-api-btn').onclick=async()=>{
 document.getElementById('skip-setup-btn').onclick=()=>hideSetupModal();
 document.getElementById('change-api-btn').onclick=()=>showSetupModal();
 
-// ===== 使用者切換 =====
+// ===== 裝置身分選擇 =====
+function showIdentityModal(){
+  const modal=document.getElementById('identity-modal');
+  const btns=document.getElementById('identity-btns');
+  btns.innerHTML='';
+  userNames.forEach((name,i)=>{
+    const colors=['#4f46e5','#db2777'];
+    const b=document.createElement('button');
+    b.style.cssText=`padding:20px;border:3px solid ${colors[i]};border-radius:16px;background:#fff;cursor:pointer;font-size:18px;font-weight:900;color:${colors[i]};font-family:'Noto Sans TC',sans-serif;transition:all 0.2s`;
+    b.textContent=(i===0?'💙':'💗')+' 這是 '+name+' 的手機';
+    b.onclick=()=>{
+      selectedUserIdx=i;
+      localStorage.setItem(DEVICE_KEY,i);
+      updateUserToggle();
+      modal.classList.add('hidden');
+    };
+    btns.appendChild(b);
+  });
+  modal.classList.remove('hidden');
+}
+
+
 function updateUserToggle(){
   const btns=document.querySelectorAll('#user-toggle .segment-btn');
   btns.forEach((b,i)=>{
@@ -526,7 +563,7 @@ function updateUserToggle(){
 document.querySelectorAll('#user-toggle .segment-btn').forEach(b=>{
   b.onclick=function(){
     selectedUserIdx=parseInt(this.dataset.idx);
-    localStorage.setItem('xp_last_user',selectedUserIdx);
+    localStorage.setItem(DEVICE_KEY,selectedUserIdx);
     updateUserToggle();
   };
 });
@@ -839,7 +876,8 @@ function renderMonthBudget(list,m,cid){
     </div>`;
 }
 
-// ===== Screen Refresh =====
+document.getElementById('change-identity-btn').onclick=()=>showIdentityModal();
+
 function buildCatFilters(cid,aid,onSel){
   const w=document.getElementById(cid);w.innerHTML='';
   const mk=(lbl,id)=>{const b=document.createElement('button');b.className='cat-filter'+(aid===id?' active':'');b.textContent=lbl;b.onclick=()=>onSel(id);w.appendChild(b);};
@@ -880,6 +918,9 @@ function refreshSettings(){
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
   if(apiUrl){cdot.className='sync-dot ok';ctext.textContent='已連線至 Google Sheets';}
   else{cdot.className='sync-dot err';ctext.textContent='尚未設定 API 網址';}
+  // 顯示此裝置身分
+  const info=document.getElementById('device-identity-info');
+  if(info)info.textContent='此裝置身分：'+(selectedUserIdx===0?'💙':'💗')+' '+userNames[selectedUserIdx];
   buildRateList();
 }
 function buildRateList(){
@@ -996,8 +1037,17 @@ document.getElementById('rep-to').value=today();
 loadLocal();buildCatGrid();buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
 
-if(!apiUrl){setTimeout(()=>showSetupModal(),500);}
-else{setSyncStatus(true);syncFromCloud().then(ok=>{if(ok)refreshAll();});}
+// 第一次打開：先選身分，再設定雲端
+const hasDeviceId=localStorage.getItem(DEVICE_KEY)!==null;
+if(!hasDeviceId){
+  // 全新裝置，先選身分
+  setTimeout(()=>showIdentityModal(),400);
+} else if(!apiUrl){
+  setTimeout(()=>showSetupModal(),400);
+} else {
+  setSyncStatus(true);
+  syncFromCloud().then(ok=>{if(ok)refreshAll();});
+}
 refreshAll();
 </script>
 </body>
