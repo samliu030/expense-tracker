@@ -132,6 +132,13 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 .budget-card{padding:16px;border-radius:16px;background:#f1f5f9}
 .budget-card.u0{border-top:4px solid #4f46e5}
 .budget-card.u1{border-top:4px solid #db2777}
+.calc-op-btn{flex:1;padding:10px 0;border:2px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;font-size:16px;font-weight:800;color:#475569;font-family:'Noto Sans TC',sans-serif;transition:all 0.15s}
+.calc-op-btn:active{background:#eef2ff;border-color:#4f46e5;color:#4f46e5;transform:scale(0.95)}
+.user-tab-row{display:flex;gap:8px;margin-bottom:12px}
+.user-tab{flex:1;padding:10px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;text-align:center;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
+.user-tab.active-0{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
+.user-tab.active-1{border-color:#db2777;background:#fdf2f8;color:#db2777}
+.user-tab.tab-all.active-all{border-color:#475569;background:#f1f5f9;color:#1e293b}
 </style>
 </head>
 <body>
@@ -170,15 +177,20 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   <div class="modal">
     <h2>✎ 編輯記錄</h2>
     <div class="form-group">
-      <label class="form-label">金額</label>
+      <label class="form-label" id="edit-lbl-cat">類別</label>
+      <div class="cat-grid" id="edit-cat-grid" style="margin-bottom:8px"></div>
+      <select class="curr-select" id="edit-cat-more"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="edit-lbl-amt">金額</label>
       <input type="number" class="form-input" id="edit-amount" inputmode="decimal" step="any">
     </div>
     <div class="form-group">
-      <label class="form-label">日期</label>
+      <label class="form-label" id="edit-lbl-date">日期</label>
       <input type="date" class="form-input" id="edit-date">
     </div>
     <div class="form-group">
-      <label class="form-label">備註</label>
+      <label class="form-label" id="edit-lbl-note">備註</label>
       <input type="text" class="form-input" id="edit-note" placeholder="店家、說明">
     </div>
     <button class="submit-btn" id="edit-save-btn">儲存修改</button>
@@ -227,8 +239,18 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">金額</label>
-      <input type="number" class="form-input" id="inp-amount" placeholder="0" inputmode="decimal" step="any">
+      <label class="form-label" id="lbl-amount">金額</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" class="form-input" id="inp-amount" placeholder="0 或 130+50" inputmode="decimal" style="flex:1" autocomplete="off">
+        <button id="calc-eval-btn" style="padding:0 18px;background:#4f46e5;color:#fff;border:none;border-radius:14px;font-size:18px;font-weight:900;cursor:pointer;flex-shrink:0" title="計算">=</button>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="calc-op-btn" data-op="+">＋</button>
+        <button class="calc-op-btn" data-op="-">－</button>
+        <button class="calc-op-btn" data-op="*">×</button>
+        <button class="calc-op-btn" data-op="/">÷</button>
+        <button class="calc-op-btn" data-op="C" style="background:#fef2f2;color:#dc2626;border-color:#fecaca">C</button>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">幣別</label>
@@ -258,12 +280,13 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   <div class="topbar"><div class="topbar-left"><h1>今日支出</h1><p id="today-label"></p></div></div>
   <div class="content">
     <div class="stat-row">
-      <div class="stat"><div class="stat-label">今日合計 (THB)</div><div class="stat-value" id="today-total">0</div><div class="stat-sub">泰銖</div></div>
-      <div class="stat"><div class="stat-label">筆數</div><div class="stat-value" id="today-count">0</div><div class="stat-sub">筆記錄</div></div>
+      <div class="stat"><div class="stat-label" id="today-stat-lbl">今日合計 (THB)</div><div class="stat-value" id="today-total">0</div><div class="stat-sub" id="today-stat-sub">泰銖</div></div>
+      <div class="stat"><div class="stat-label" id="today-count-lbl">筆數</div><div class="stat-value" id="today-count">0</div><div class="stat-sub" id="today-count-sub">筆記錄</div></div>
     </div>
     <div id="today-compare"></div>
     <div id="today-bars"></div>
-    <div class="section-title">明細</div>
+    <div class="section-title" id="today-detail-title">明細</div>
+    <div class="user-tab-row" id="today-user-tabs"></div>
     <div id="today-list"></div>
   </div>
 </div>
@@ -274,12 +297,13 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   <div class="content">
     <div id="month-budget-section"></div>
     <div class="stat-row">
-      <div class="stat"><div class="stat-label">本月合計 (THB)</div><div class="stat-value" id="month-total">0</div><div class="stat-sub">泰銖</div></div>
-      <div class="stat"><div class="stat-label">筆數</div><div class="stat-value" id="month-count">0</div><div class="stat-sub">筆記錄</div></div>
+      <div class="stat"><div class="stat-label" id="month-stat-lbl">本月合計 (THB)</div><div class="stat-value" id="month-total">0</div><div class="stat-sub">泰銖</div></div>
+      <div class="stat"><div class="stat-label" id="month-count-lbl">筆數</div><div class="stat-value" id="month-count">0</div><div class="stat-sub" id="month-count-sub">筆記錄</div></div>
     </div>
-    <div class="section-title">各類別分析</div>
+    <div class="section-title" id="month-cat-title">各類別分析</div>
     <div id="month-bars"></div>
-    <div class="section-title">明細</div>
+    <div class="section-title" id="month-detail-title">明細</div>
+    <div class="user-tab-row" id="month-user-tabs"></div>
     <div id="month-list"></div>
   </div>
 </div>
@@ -305,7 +329,8 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
       </div>
       <div id="rep-compare"></div>
       <div id="rep-bars" style="margin-bottom:12px"></div>
-      <div class="section-title">明細</div>
+      <div class="section-title" id="rep-detail-title">明細</div>
+      <div class="user-tab-row" id="rep-user-tabs"></div>
       <div id="rep-list"></div>
     </div>
   </div>
@@ -537,6 +562,9 @@ function T(k){return (I18N[lang]&&I18N[lang][k])||I18N['zh'][k]||k;}
 let records=[], selCat='food', selCurr='THB', repCatFilter=null, apiUrl='';
 let userNames=['Sam','Patty'], selectedUserIdx=0;
 let noteMemory={}, budgets={}, editingId=null;
+let editSelCat='food'; // for edit modal
+// Per-screen user filter: null=all, 0=user0, 1=user1
+let todayUserFilter=null, monthUserFilter=null, repUserFilter=null;
 // 裝置身分：存在本機，不隨雲端同步，永遠鎖定這支手機是誰
 const DEVICE_KEY='xp_device_user';
 
@@ -812,6 +840,88 @@ document.getElementById('inp-note').oninput=updateNoteSuggestions;
 document.getElementById('inp-note').onfocus=updateNoteSuggestions;
 document.getElementById('inp-note').onblur=()=>{setTimeout(()=>{document.getElementById('note-suggestions').className='note-suggestions';},150);};
 
+// ===== 計算機 =====
+(function(){
+  const inp=document.getElementById('inp-amount');
+  // 運算子按鈕
+  document.querySelectorAll('.calc-op-btn').forEach(b=>{
+    b.onclick=()=>{
+      const op=b.dataset.op;
+      if(op==='C'){inp.value='';return;}
+      const cur=inp.value.trim();
+      if(!cur)return;
+      // 如果最後一個字元已是運算子，替換它
+      if(['+','-','*','/'].includes(cur.slice(-1))){
+        inp.value=cur.slice(0,-1)+op;
+      } else {
+        inp.value=cur+op;
+      }
+    };
+  });
+  document.getElementById('calc-eval-btn').onclick=()=>{
+    const expr=inp.value.trim().replace(/[^0-9+\-*/.]/g,'');
+    if(!expr)return;
+    try{
+      // safe eval: only allow numbers and operators
+      if(!/^[0-9+\-*/.]+$/.test(expr))return;
+      const result=Function('"use strict";return ('+expr+')')();
+      if(isFinite(result)&&result>=0){
+        inp.value=Math.round(result*100)/100;
+      }
+    }catch(e){}
+  };
+  // 按 Enter 也觸發計算
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){document.getElementById('calc-eval-btn').click();}});
+})();
+
+// ===== 編輯 Modal 類別 Grid =====
+function buildEditCatGrid(){
+  const g=document.getElementById('edit-cat-grid');g.innerHTML='';
+  PRIMARY_CATS.forEach(id=>{
+    const c=getCat(id);
+    const b=document.createElement('button');
+    b.className='cat-btn'+(editSelCat===id?' selected':'');
+    b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
+    b.onclick=()=>{editSelCat=id;document.getElementById('edit-cat-more').value='';buildEditCatGrid();};
+    g.appendChild(b);
+  });
+  const sel=document.getElementById('edit-cat-more');
+  const secCats=CATS.filter(c=>!PRIMARY_CATS.includes(c.id));
+  const isSecSel=secCats.some(c=>c.id===editSelCat);
+  sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
+  secCats.forEach(c=>{
+    const o=document.createElement('option');o.value=c.id;
+    o.textContent=c.icon+' '+T(c.lkey);
+    if(editSelCat===c.id)o.selected=true;
+    sel.appendChild(o);
+  });
+  sel.className=isSecSel?'curr-select selected-other':'curr-select';
+}
+document.getElementById('edit-cat-more').onchange=function(){
+  if(this.value){editSelCat=this.value;buildEditCatGrid();}
+};
+
+// ===== 使用者分頁 Tab =====
+function buildUserTabs(containerId,currentFilter,onChange){
+  const el=document.getElementById(containerId);if(!el)return;
+  el.innerHTML='';
+  const tabs=[
+    {label:T('all_cats'),val:null,cls:'tab-all active-all'},
+    {label:'💙 '+userNames[0],val:0,cls:''},
+    {label:'💗 '+userNames[1],val:1,cls:''},
+  ];
+  tabs.forEach(tab=>{
+    const b=document.createElement('button');
+    b.className='user-tab';
+    if(tab.val===null&&currentFilter===null)b.classList.add('active-all');
+    else if(tab.val===0&&currentFilter===0)b.classList.add('active-0');
+    else if(tab.val===1&&currentFilter===1)b.classList.add('active-1');
+    b.textContent=tab.label;
+    b.onclick=()=>onChange(tab.val);
+    el.appendChild(b);
+  });
+}
+
 // ===== Helpers =====
 function uid(){return Date.now()+'_'+Math.random().toString(36).slice(2);}
 function getRate(c){return(CURRENCIES.find(x=>x.code===c)||{rate:1}).rate;}
@@ -883,15 +993,16 @@ document.getElementById('curr-select').onchange=function(){
 document.getElementById('edit-cancel-btn').onclick=()=>{document.getElementById('edit-modal').classList.add('hidden');editingId=null;};
 document.getElementById('edit-save-btn').onclick=async()=>{
   if(!editingId)return;
-  const amt=parseFloat(document.getElementById('edit-amount').value);
+  const amtRaw=document.getElementById('edit-amount').value.trim();
+  const amt=parseFloat(amtRaw);
   const date=document.getElementById('edit-date').value;
   const note=document.getElementById('edit-note').value.trim();
-  if(!amt||amt<=0){alert('請輸入有效金額');return;}
+  if(!amt||amt<=0){alert(T('err_amount'));return;}
   const btn=document.getElementById('edit-save-btn');
-  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>儲存中...';
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>'+T('saving');
   const idx=records.findIndex(x=>x.id===editingId);
   if(idx>-1){
-    records[idx]={...records[idx],amount:amt,date:normalizeDate(date),note};
+    records[idx]={...records[idx],cat:editSelCat,amount:amt,date:normalizeDate(date),note};
     saveLocal();refreshAll();
     if(apiUrl){
       try{
@@ -900,15 +1011,17 @@ document.getElementById('edit-save-btn').onclick=async()=>{
       }catch(e){console.warn('Cloud edit failed',e);}
     }
   }
-  btn.disabled=false;btn.textContent='儲存修改';
+  btn.disabled=false;btn.textContent=T('btn_save_edit');
   document.getElementById('edit-modal').classList.add('hidden');editingId=null;
 };
 function openEditModal(id){
   const r=records.find(x=>x.id===id);if(!r)return;
   editingId=id;
+  editSelCat=r.cat||'food';
   document.getElementById('edit-amount').value=r.amount;
   document.getElementById('edit-date').value=r.date;
   document.getElementById('edit-note').value=r.note||'';
+  buildEditCatGrid();
   document.getElementById('edit-modal').classList.remove('hidden');
 }
 
@@ -1103,13 +1216,19 @@ function buildCatFilters(cid,aid,onSel){
   mk(T('all_cats'),null);
   [...new Set([...CATS.map(c=>c.id),...records.map(r=>r.cat)])].forEach(id=>{const c=getCat(id);mk(c.icon+' '+c.label,id);});
 }
+function filterByUser(list,userFilter){
+  if(userFilter===null)return list;
+  const name=userNames[userFilter];
+  return list.filter(r=>(r.user||userNames[0])===name);
+}
 function refreshToday(){
   const t=today(),list=records.filter(r=>r.date===t);
   document.getElementById('today-total').textContent=Math.round(list.reduce((s,r)=>s+toTHB(r.amount,r.curr),0)).toLocaleString();
   document.getElementById('today-count').textContent=list.length;
   renderCompare(list,'today-compare');
   renderBars(list,'today-bars');
-  renderEntries(list,'today-list');
+  buildUserTabs('today-user-tabs',todayUserFilter,(f)=>{todayUserFilter=f;refreshToday();});
+  renderEntries(filterByUser(list,todayUserFilter),'today-list');
 }
 function refreshMonth(){
   const m=thisMonth(),list=records.filter(r=>r.date.startsWith(m));
@@ -1117,7 +1236,8 @@ function refreshMonth(){
   document.getElementById('month-count').textContent=list.length;
   renderMonthBudget(list,m,'month-budget-section');
   renderBars(list,'month-bars');
-  renderEntries(list,'month-list');
+  buildUserTabs('month-user-tabs',monthUserFilter,(f)=>{monthUserFilter=f;refreshMonth();});
+  renderEntries(filterByUser(list,monthUserFilter),'month-list');
 }
 function refreshReport(){buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});}
 function runReport(){
@@ -1128,10 +1248,14 @@ function runReport(){
   const total=list.reduce((s,r)=>s+toTHB(r.amount,r.curr),0);
   document.getElementById('rep-result').style.display='block';
   document.getElementById('rep-total').textContent=Math.round(total).toLocaleString();
-  document.getElementById('rep-sub').textContent=list.length+'筆 · '+from+' 至 '+to;
+  document.getElementById('rep-sub').textContent=list.length+T('count_sub')+' · '+from+' ~ '+to;
   renderCompare(list,'rep-compare');
   renderBars(list,'rep-bars');
-  renderEntries(list,'rep-list');
+  buildUserTabs('rep-user-tabs',repUserFilter,(f)=>{repUserFilter=f;
+    buildUserTabs('rep-user-tabs',repUserFilter,()=>{});
+    renderEntries(filterByUser(list,repUserFilter),'rep-list');
+  });
+  renderEntries(filterByUser(list,repUserFilter),'rep-list');
 }
 function refreshSettings(){
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
@@ -1168,7 +1292,17 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
 
 // ===== 儲存記錄 =====
 document.getElementById('save-btn').onclick=async()=>{
-  const amt=parseFloat(document.getElementById('inp-amount').value);
+  // 支援算式：先嘗試 eval，再 parseFloat
+  const rawVal=document.getElementById('inp-amount').value.trim();
+  let amt=0;
+  try{
+    const expr=rawVal.replace(/[^0-9+\-*/.]/g,'');
+    if(expr&&/^[0-9+\-*/.]+$/.test(expr)){
+      const r=Function('"use strict";return ('+expr+')')();
+      if(isFinite(r)&&r>0)amt=Math.round(r*100)/100;
+    }
+  }catch(e){}
+  if(!amt)amt=parseFloat(rawVal);
   const noteVal=document.getElementById('inp-note').value.trim();
   const date=document.getElementById('inp-date').value;
   const msg=document.getElementById('add-msg');
