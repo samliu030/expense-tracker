@@ -413,15 +413,16 @@ const CATS=[
   {id:'drink',lkey:'cat_drink',icon:'🧋',color:'#f0fdf4'},
   {id:'transport',lkey:'cat_transport',icon:'🚇',color:'#fffbeb'},
   {id:'shopping',lkey:'cat_shopping',icon:'🛍️',color:'#fdf2f8'},
-  {id:'entertainment',lkey:'cat_entertainment',icon:'🎮',color:'#f5f3ff'},
+  {id:'home',lkey:'cat_home',icon:'🏠',color:'#f0fdf4'},
   {id:'travel',lkey:'cat_travel',icon:'✈️',color:'#ecfdf5'},
+  {id:'entertainment',lkey:'cat_entertainment',icon:'🎮',color:'#f5f3ff'},
   {id:'medical',lkey:'cat_medical',icon:'💊',color:'#fef2f2'},
   {id:'beauty',lkey:'cat_beauty',icon:'💄',color:'#fdf2f8'},
   {id:'education',lkey:'cat_education',icon:'📚',color:'#eff6ff'},
   {id:'bills',lkey:'cat_bills',icon:'📋',color:'#f9fafb'},
   {id:'other',lkey:'cat_other',icon:'✏️',color:'#f9fafb'},
 ];
-const PRIMARY_CATS=['food','drink','transport','shopping','entertainment','travel'];
+const PRIMARY_CATS=['food','drink','transport','shopping','home','travel'];
 const QUICK_CURR=['THB','TWD','USD','CNY'];
 const CURRENCIES=[
   {code:'THB',name:'泰銖',symbol:'฿',rate:1},
@@ -497,7 +498,7 @@ const I18N={
     csv_headers:['日期','類別','金額','幣別','泰銖換算','備註','使用者'],
     users_saved:'使用者名稱已儲存！',
     cat_food:'食物',cat_drink:'飲料',cat_transport:'交通',cat_shopping:'購物',
-    cat_entertainment:'娛樂',cat_travel:'旅遊',cat_medical:'醫療',cat_beauty:'美容',
+    cat_entertainment:'娛樂',cat_travel:'旅遊',cat_home:'居家',cat_medical:'醫療',cat_beauty:'美容',
     cat_education:'教育',cat_bills:'帳單',cat_other:'其他',
     twd_ref:'* 1 ฿ ≈ NT$ ',
   },
@@ -550,7 +551,7 @@ const I18N={
     csv_headers:['Date','Category','Amount','Currency','THB','Note','User'],
     users_saved:'User names saved!',
     cat_food:'Food',cat_drink:'Drink',cat_transport:'Transport',cat_shopping:'Shopping',
-    cat_entertainment:'Entertain',cat_travel:'Travel',cat_medical:'Medical',cat_beauty:'Beauty',
+    cat_entertainment:'Entertain',cat_travel:'Travel',cat_home:'Home',cat_medical:'Medical',cat_beauty:'Beauty',
     cat_education:'Education',cat_bills:'Bills',cat_other:'Other',
     twd_ref:'* 1 ฿ ≈ NT$ ',
   }
@@ -953,8 +954,9 @@ function buildCatGrid(){
   const isSecSel=secCats.some(c=>c.id===selCat);
   sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
   secCats.forEach(c=>{
-    const o=document.createElement('option');o.value=c.id;o.textContent=c.icon+' '+c.label;
-    if(selCat===c.id)o.selected=true;sel.appendChild(o);
+    const cat=getCat(c.id);
+    const o=document.createElement('option');o.value=cat.id;o.textContent=cat.icon+' '+cat.label;
+    if(selCat===cat.id)o.selected=true;sel.appendChild(o);
   });
   sel.className=isSecSel?'curr-select selected-other':'curr-select';
   document.getElementById('custom-cat-wrap').className=selCat==='other'?'custom-cat-wrap show':'custom-cat-wrap';
