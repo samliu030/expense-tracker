@@ -215,11 +215,66 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   </div>
 </div>
 
+<!-- Scan Modal -->
+<div class="modal-overlay hidden" id="scan-modal">
+  <div class="modal" style="padding:24px">
+    <h2 id="scan-modal-title">📷 掃描收據</h2>
+    <p id="scan-modal-desc" style="margin-bottom:16px">拍攝或選擇收據圖片，AI 會自動識別金額與店家。</p>
+
+    <!-- Step 1: Upload -->
+    <div id="scan-step-upload">
+      <div id="scan-preview-wrap" style="display:none;margin-bottom:14px">
+        <img id="scan-preview-img" style="width:100%;border-radius:12px;max-height:240px;object-fit:contain;background:#f1f5f9">
+      </div>
+      <label id="scan-upload-btn" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:18px;border:2.5px dashed #818cf8;border-radius:16px;cursor:pointer;background:#f8fafc;color:#4f46e5;font-weight:800;font-size:15px;margin-bottom:12px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span id="scan-upload-label">拍照 / 選擇圖片</span>
+        <input type="file" accept="image/*" capture="environment" id="scan-file-input" style="display:none">
+      </label>
+      <button class="submit-btn" id="scan-analyze-btn" disabled style="margin-top:0">🔍 分析收據</button>
+    </div>
+
+    <!-- Step 2: Loading -->
+    <div id="scan-step-loading" style="display:none;text-align:center;padding:24px 0">
+      <div style="width:48px;height:48px;border:4px solid #e0e7ff;border-top-color:#4f46e5;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
+      <div style="font-size:15px;font-weight:700;color:#475569" id="scan-loading-text">AI 分析中...</div>
+    </div>
+
+    <!-- Step 3: Result -->
+    <div id="scan-step-result" style="display:none">
+      <div id="scan-result-msg" class="msg" style="margin-bottom:12px"></div>
+      <div class="form-group">
+        <label class="form-label" id="scan-lbl-amount">識別金額</label>
+        <input type="text" class="form-input" id="scan-amount" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="scan-lbl-note">店家 / 備註</label>
+        <input type="text" class="form-input" id="scan-note">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="scan-lbl-cat">類別</label>
+        <div class="cat-grid" id="scan-cat-grid" style="margin-bottom:8px"></div>
+        <select class="curr-select" id="scan-cat-more"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="scan-lbl-curr">幣別</label>
+        <div class="curr-quick" id="scan-curr-quick"></div>
+      </div>
+      <button class="submit-btn" id="scan-confirm-btn">✅ 確認並記帳</button>
+    </div>
+
+    <button class="secondary-btn" id="scan-cancel-btn" style="margin-top:8px;margin-bottom:0">取消</button>
+  </div>
+</div>
+
 <!-- ADD -->
 <div id="screen-add" class="screen active">
   <div class="topbar">
-    <div class="topbar-left"><h1>新增記錄</h1><p id="today-date"></p></div>
-    <div class="sync-status"><div class="sync-dot" id="sync-dot-add"></div><span id="sync-text-add">---</span></div>
+    <div class="topbar-left"><h1 id="title-add-screen">新增記錄</h1><p id="today-date"></p></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="scan-open-btn" title="掃描收據" style="background:#eef2ff;border:none;border-radius:12px;padding:8px 12px;cursor:pointer;color:#4f46e5;font-size:20px;line-height:1;display:flex;align-items:center">📷</button>
+      <div class="sync-status"><div class="sync-dot" id="sync-dot-add"></div><span id="sync-text-add">---</span></div>
+    </div>
   </div>
   <div class="content">
     <div id="add-msg" class="msg"></div>
@@ -411,6 +466,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 const CATS=[
   {id:'food',lkey:'cat_food',icon:'🍱',color:'#eff6ff'},
   {id:'drink',lkey:'cat_drink',icon:'🧋',color:'#f0fdf4'},
+  {id:'dessert',lkey:'cat_dessert',icon:'🍰',color:'#fdf2f8'},
   {id:'transport',lkey:'cat_transport',icon:'🚇',color:'#fffbeb'},
   {id:'shopping',lkey:'cat_shopping',icon:'🛍️',color:'#fdf2f8'},
   {id:'home',lkey:'cat_home',icon:'🏠',color:'#f0fdf4'},
@@ -497,7 +553,7 @@ const I18N={
     no_records:'沒有記錄',no_export:'沒有資料可匯出',saving:'儲存中...',
     csv_headers:['日期','類別','金額','幣別','泰銖換算','備註','使用者'],
     users_saved:'使用者名稱已儲存！',
-    cat_food:'食物',cat_drink:'飲料',cat_transport:'交通',cat_shopping:'購物',
+    cat_food:'食物',cat_drink:'飲料',cat_dessert:'甜點',cat_transport:'交通',cat_shopping:'購物',
     cat_entertainment:'娛樂',cat_travel:'旅遊',cat_home:'居家',cat_medical:'醫療',cat_beauty:'美容',
     cat_education:'教育',cat_bills:'帳單',cat_other:'其他',
     twd_ref:'* 1 ฿ ≈ NT$ ',
@@ -550,7 +606,7 @@ const I18N={
     no_records:'No records',no_export:'No data to export',saving:'Saving...',
     csv_headers:['Date','Category','Amount','Currency','THB','Note','User'],
     users_saved:'User names saved!',
-    cat_food:'Food',cat_drink:'Drink',cat_transport:'Transport',cat_shopping:'Shopping',
+    cat_food:'Food',cat_drink:'Drink',cat_dessert:'Dessert',cat_transport:'Transport',cat_shopping:'Shopping',
     cat_entertainment:'Entertain',cat_travel:'Travel',cat_home:'Home',cat_medical:'Medical',cat_beauty:'Beauty',
     cat_education:'Education',cat_bills:'Bills',cat_other:'Other',
     twd_ref:'* 1 ฿ ≈ NT$ ',
@@ -1359,6 +1415,176 @@ document.getElementById('rate-fetch-btn').onclick=async()=>{
 };
 
 // ===== 其他按鈕 =====
+// ===== 掃描收據 =====
+(function(){
+  let scanBase64='', scanSelCat='food', scanSelCurr='THB';
+
+  function showScanStep(step){
+    ['upload','loading','result'].forEach(s=>{
+      document.getElementById('scan-step-'+s).style.display=s===step?'block':'none';
+    });
+  }
+
+  // 開啟 modal
+  document.getElementById('scan-open-btn').onclick=()=>{
+    scanBase64=''; scanSelCat='food'; scanSelCurr=selCurr;
+    document.getElementById('scan-preview-wrap').style.display='none';
+    document.getElementById('scan-analyze-btn').disabled=true;
+    document.getElementById('scan-result-msg').className='msg';
+    showScanStep('upload');
+    document.getElementById('scan-modal').classList.remove('hidden');
+    buildScanCatGrid(); buildScanCurrUI();
+  };
+  document.getElementById('scan-cancel-btn').onclick=()=>{
+    document.getElementById('scan-modal').classList.add('hidden');
+    document.getElementById('scan-file-input').value='';
+  };
+
+  // 選圖片
+  document.getElementById('scan-file-input').onchange=function(){
+    const file=this.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      scanBase64=e.target.result.split(',')[1];
+      document.getElementById('scan-preview-img').src=e.target.result;
+      document.getElementById('scan-preview-wrap').style.display='block';
+      document.getElementById('scan-analyze-btn').disabled=false;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 分析按鈕
+  document.getElementById('scan-analyze-btn').onclick=async()=>{
+    if(!scanBase64)return;
+    showScanStep('loading');
+    try{
+      const prompt=`你是一個收據分析助手。請分析這張收據圖片，用 JSON 格式回答（只回 JSON，不要其他文字）：
+{
+  "amount": 數字（總金額，如果有多個數字取最終應付金額）,
+  "currency": "幣別代碼，例如 THB TWD USD JPY，如果看不出來用 THB",
+  "note": "店家名稱或簡短說明（15字以內）",
+  "cat": "最適合的類別ID，只能從這些選：food drink transport shopping home travel entertainment medical beauty education bills other",
+  "confidence": "high 或 low（對類別的信心程度）"
+}
+如果完全看不出金額，amount 填 0。`;
+
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:300,
+          messages:[{
+            role:'user',
+            content:[
+              {type:'image',source:{type:'base64',media_type:'image/jpeg',data:scanBase64}},
+              {type:'text',text:prompt}
+            ]
+          }]
+        })
+      });
+      const data=await res.json();
+      const text=data.content?.[0]?.text||'';
+      const jsonMatch=text.match(/\{[\s\S]*\}/);
+      if(!jsonMatch)throw new Error('無法解析回應');
+      const result=JSON.parse(jsonMatch[0]);
+
+      // 填入結果
+      document.getElementById('scan-amount').value=result.amount>0?result.amount:'';
+      document.getElementById('scan-note').value=result.note||'';
+
+      // 設定幣別
+      const detectedCurr=CURRENCIES.find(c=>c.code===result.currency)?result.currency:'THB';
+      scanSelCurr=detectedCurr;
+      buildScanCurrUI();
+
+      // 設定類別
+      const validCat=CATS.find(c=>c.id===result.cat);
+      scanSelCat=validCat?result.cat:'other';
+      buildScanCatGrid();
+
+      // 如果信心低或類別是 other，顯示提示
+      const msg=document.getElementById('scan-result-msg');
+      if(result.confidence==='low'||!validCat){
+        msg.className='msg info';
+        msg.textContent='AI 無法確定類別，請自行選擇 👇';
+      } else {
+        msg.className='msg success';
+        msg.textContent='✅ 分析完成！請確認資料後記帳。';
+      }
+      if(result.amount===0){
+        msg.className='msg error';
+        msg.textContent='未能識別金額，請手動輸入。';
+      }
+      showScanStep('result');
+    }catch(e){
+      showScanStep('upload');
+      document.getElementById('scan-analyze-btn').disabled=false;
+      alert('分析失敗：'+e.message);
+    }
+  };
+
+  // 確認記帳
+  document.getElementById('scan-confirm-btn').onclick=async()=>{
+    const amt=parseFloat(document.getElementById('scan-amount').value);
+    const note=document.getElementById('scan-note').value.trim();
+    if(!amt||amt<=0){alert(T('err_amount'));return;}
+    // 填入主表單
+    document.getElementById('inp-amount').value=amt;
+    document.getElementById('inp-note').value=note;
+    selCat=scanSelCat; selCurr=scanSelCurr;
+    localStorage.setItem('xp_last_curr',scanSelCurr);
+    buildCatGrid(); buildCurrUI();
+    document.getElementById('scan-modal').classList.add('hidden');
+    document.getElementById('scan-file-input').value='';
+    // 顯示成功提示
+    const msg=document.getElementById('add-msg');
+    msg.className='msg info';
+    msg.textContent='已從收據填入資料，確認後按「儲存記錄」完成。';
+    setTimeout(()=>{msg.className='msg';},5000);
+    // scroll to top of form
+    document.querySelector('#screen-add .content').scrollTop=0;
+  };
+
+  // 掃描用類別 Grid
+  function buildScanCatGrid(){
+    const g=document.getElementById('scan-cat-grid');g.innerHTML='';
+    PRIMARY_CATS.forEach(id=>{
+      const c=getCat(id);
+      const b=document.createElement('button');
+      b.className='cat-btn'+(scanSelCat===id?' selected':'');
+      b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
+      b.onclick=()=>{scanSelCat=id;document.getElementById('scan-cat-more').value='';buildScanCatGrid();};
+      g.appendChild(b);
+    });
+    const sel=document.getElementById('scan-cat-more');
+    const secCats=CATS.filter(c=>!PRIMARY_CATS.includes(c.id));
+    const isSecSel=secCats.some(c=>c.id===scanSelCat);
+    sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
+    secCats.forEach(c=>{
+      const cat=getCat(c.id);
+      const o=document.createElement('option');o.value=cat.id;o.textContent=cat.icon+' '+cat.label;
+      if(scanSelCat===cat.id)o.selected=true;sel.appendChild(o);
+    });
+    sel.className=isSecSel?'curr-select selected-other':'curr-select';
+  }
+  document.getElementById('scan-cat-more').onchange=function(){
+    if(this.value){scanSelCat=this.value;buildScanCatGrid();}
+  };
+
+  // 掃描用幣別快速按鈕
+  function buildScanCurrUI(){
+    const qg=document.getElementById('scan-curr-quick');qg.innerHTML='';
+    QUICK_CURR.forEach(code=>{
+      const b=document.createElement('button');
+      b.className='curr-btn'+(scanSelCurr===code?' selected':'');
+      b.textContent=code;b.title=getCurr(code).name;
+      b.onclick=()=>{scanSelCurr=code;buildScanCurrUI();};
+      qg.appendChild(b);
+    });
+  }
+})();
+
 document.getElementById('rep-run-btn').onclick=runReport;
 document.getElementById('refresh-btn').onclick=async()=>{
   const btn=document.getElementById('refresh-btn');
