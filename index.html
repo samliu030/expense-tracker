@@ -139,6 +139,22 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 .user-tab.active-0{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
 .user-tab.active-1{border-color:#db2777;background:#fdf2f8;color:#db2777}
 .user-tab.tab-all.active-all{border-color:#475569;background:#f1f5f9;color:#1e293b}
+.rec-freq-btn{padding:10px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
+.rec-freq-btn.selected{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
+.rec-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.03);display:flex;align-items:center;gap:12px}
+.rec-card.due{border-left:4px solid #f59e0b}
+.rec-card.overdue{border-left:4px solid #ef4444}
+.rec-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.rec-info{flex:1;min-width:0}
+.rec-name{font-size:15px;font-weight:700;color:#1e293b}
+.rec-meta{font-size:12px;color:#64748b;margin-top:3px;font-weight:600}
+.rec-amt{text-align:right;flex-shrink:0}
+.rec-amt-val{font-size:15px;font-weight:800;color:#0f172a}
+.rec-due{font-size:11px;font-weight:700;margin-top:2px}
+.rec-due.today{color:#f59e0b}
+.rec-due.late{color:#ef4444}
+.rec-due.ok{color:#10b981}
+.rec-actions{display:flex;gap:6px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -264,6 +280,63 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     </div>
 
     <button class="secondary-btn" id="scan-cancel-btn" style="margin-top:8px;margin-bottom:0">取消</button>
+  </div>
+</div>
+
+<!-- Recurring Modal -->
+<div class="modal-overlay hidden" id="recurring-modal">
+  <div class="modal">
+    <h2 id="recurring-modal-title">🔔 新增定期付款</h2>
+    <div class="form-group">
+      <label class="form-label" id="lbl-rec-name">名稱</label>
+      <input type="text" class="form-input" id="rec-name" placeholder="例：Netflix、房租、健身房">
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lbl-rec-cat">類別</label>
+      <div class="cat-grid" id="rec-cat-grid" style="margin-bottom:8px"></div>
+      <select class="curr-select" id="rec-cat-more"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lbl-rec-amt">金額</label>
+      <div style="display:flex;gap:8px">
+        <input type="number" class="form-input" id="rec-amount" inputmode="decimal" step="any" placeholder="0" style="flex:1">
+        <select class="curr-select" id="rec-curr" style="flex:0 0 90px"></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lbl-rec-freq">頻率</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button class="rec-freq-btn selected" data-freq="monthly">每月</button>
+        <button class="rec-freq-btn" data-freq="weekly">每週</button>
+        <button class="rec-freq-btn" data-freq="yearly">每年</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lbl-rec-start">開始 / 下次付款日</label>
+      <input type="date" class="form-input" id="rec-start">
+    </div>
+    <button class="submit-btn" id="rec-save-btn">儲存</button>
+    <button class="secondary-btn" id="rec-cancel-btn" style="margin-top:8px;margin-bottom:0">取消</button>
+  </div>
+</div>
+
+<!-- Due Today Banner -->
+<div id="due-banner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.12);z-index:200;padding:16px;border-left:4px solid #f59e0b">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div style="font-size:14px;font-weight:800;color:#92400e" id="due-banner-title">定期付款提醒</div>
+    <button onclick="document.getElementById('due-banner').style.display='none'" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:20px;line-height:1">×</button>
+  </div>
+  <div id="due-banner-list"></div>
+</div>
+
+<!-- RECURRING -->
+<div id="screen-recurring" class="screen">
+  <div class="topbar">
+    <div class="topbar-left"><h1 id="title-recurring-screen">定期付款</h1><p>管理週期性費用</p></div>
+    <button id="add-recurring-btn" style="background:#eef2ff;border:none;border-radius:12px;padding:8px 14px;cursor:pointer;color:#4f46e5;font-size:13px;font-weight:800;font-family:'Noto Sans TC',sans-serif">＋ 新增</button>
+  </div>
+  <div class="content">
+    <div id="recurring-list"></div>
   </div>
 </div>
 
@@ -455,6 +528,9 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   <button class="nav-btn" data-screen="report">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>查詢
   </button>
+  <button class="nav-btn" data-screen="recurring">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>定期
+  </button>
   <button class="nav-btn" data-screen="settings">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>設定
   </button>
@@ -472,6 +548,7 @@ const CATS=[
   {id:'home',lkey:'cat_home',icon:'🏠',color:'#f0fdf4'},
   {id:'travel',lkey:'cat_travel',icon:'✈️',color:'#ecfdf5'},
   {id:'entertainment',lkey:'cat_entertainment',icon:'🎮',color:'#f5f3ff'},
+  {id:'subscription',lkey:'cat_subscription',icon:'🔔',color:'#fef3c7'},
   {id:'medical',lkey:'cat_medical',icon:'💊',color:'#fef2f2'},
   {id:'beauty',lkey:'cat_beauty',icon:'💄',color:'#fdf2f8'},
   {id:'education',lkey:'cat_education',icon:'📚',color:'#eff6ff'},
@@ -554,9 +631,19 @@ const I18N={
     csv_headers:['日期','類別','金額','幣別','泰銖換算','備註','使用者'],
     users_saved:'使用者名稱已儲存！',
     cat_food:'食物',cat_drink:'飲料',cat_dessert:'甜點',cat_transport:'交通',cat_shopping:'購物',
-    cat_entertainment:'娛樂',cat_travel:'旅遊',cat_home:'居家',cat_medical:'醫療',cat_beauty:'美容',
+    cat_entertainment:'娛樂',cat_travel:'旅遊',cat_home:'居家',cat_subscription:'訂閱',cat_medical:'醫療',cat_beauty:'美容',
     cat_education:'教育',cat_bills:'帳單',cat_other:'其他',
     twd_ref:'* 1 ฿ ≈ NT$ ',
+    nav_recurring:'定期',title_recurring:'定期付款',recurring_subtitle:'管理週期性費用',
+    btn_add_recurring:'＋ 新增定期付款',recurring_name:'名稱',recurring_amount:'金額',
+    recurring_freq:'頻率',recurring_next:'下次付款',recurring_cat:'類別',
+    freq_weekly:'每週',freq_monthly:'每月',freq_yearly:'每年',
+    modal_recurring_title:'新增定期付款',lbl_recurring_name:'名稱（例：Netflix、房租）',
+    lbl_recurring_freq:'付款頻率',lbl_recurring_start:'開始日期',
+    btn_save_recurring:'儲存',btn_del_recurring:'刪除此定期付款',
+    due_today:'今日到期 🔔',due_soon:'即將到期',recurring_empty:'尚無定期付款',
+    confirm_del_recurring:'確定刪除此定期付款？',record_now:'立即記帳',skip_this:'略過本次',
+    due_banner_title:'定期付款提醒',
   },
   en:{
     app_title:'Expense Tracker',
@@ -607,9 +694,19 @@ const I18N={
     csv_headers:['Date','Category','Amount','Currency','THB','Note','User'],
     users_saved:'User names saved!',
     cat_food:'Food',cat_drink:'Drink',cat_dessert:'Dessert',cat_transport:'Transport',cat_shopping:'Shopping',
-    cat_entertainment:'Entertain',cat_travel:'Travel',cat_home:'Home',cat_medical:'Medical',cat_beauty:'Beauty',
+    cat_entertainment:'Entertain',cat_travel:'Travel',cat_home:'Home',cat_subscription:'Subscription',cat_medical:'Medical',cat_beauty:'Beauty',
     cat_education:'Education',cat_bills:'Bills',cat_other:'Other',
     twd_ref:'* 1 ฿ ≈ NT$ ',
+    nav_recurring:'Recurring',title_recurring:'Recurring Payments',recurring_subtitle:'Manage periodic expenses',
+    btn_add_recurring:'＋ Add Recurring',recurring_name:'Name',recurring_amount:'Amount',
+    recurring_freq:'Frequency',recurring_next:'Next Due',recurring_cat:'Category',
+    freq_weekly:'Weekly',freq_monthly:'Monthly',freq_yearly:'Yearly',
+    modal_recurring_title:'Add Recurring Payment',lbl_recurring_name:'Name (e.g. Netflix, Rent)',
+    lbl_recurring_freq:'Frequency',lbl_recurring_start:'Start Date',
+    btn_save_recurring:'Save',btn_del_recurring:'Delete',
+    due_today:'Due Today 🔔',due_soon:'Due Soon',recurring_empty:'No recurring payments',
+    confirm_del_recurring:'Delete this recurring payment?',record_now:'Record Now',skip_this:'Skip',
+    due_banner_title:'Recurring Payment Reminder',
   }
 };
 let lang='zh';
@@ -674,7 +771,7 @@ function saveNoteMemory(){localStorage.setItem('xp_note_memory',JSON.stringify(n
 // ===== 語言套用 =====
 function applyLang(){
   // Nav
-  const navKeys=['add','today','month','report','settings'];
+  const navKeys=['add','today','month','report','recurring','settings'];
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{
     const svg=b.querySelector('svg');
     b.textContent='';if(svg)b.appendChild(svg);
@@ -718,7 +815,7 @@ function applyLang(){
   document.querySelector('#screen-report .section-title') && (document.querySelector('#rep-list').previousElementSibling.textContent=T('sec_details'));
   // Settings
   document.querySelectorAll('#screen-settings .section-title').forEach((el,i)=>{
-    [T('sec_users'),T('sec_lang'),T('sec_cloud'),T('sec_rates'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
+    [T('sec_lang'),T('sec_users'),T('sec_cloud'),T('sec_rates'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
   });
   document.querySelectorAll('#screen-settings .form-label').forEach(el=>{
     if(el.textContent.includes('1')||el.textContent.includes('User 1'))el.textContent=T('lbl_user1');
@@ -1346,6 +1443,7 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x===b));
   if(id==='today')refreshToday();else if(id==='month')refreshMonth();
   else if(id==='report')refreshReport();else if(id==='settings')refreshSettings();
+  else if(id==='recurring')renderRecurringList();
 });
 
 // ===== 儲存記錄 =====
@@ -1605,6 +1703,205 @@ document.getElementById('clear-btn').onclick=()=>{
   if(confirm(T('confirm_clear'))){records=[];saveLocal();refreshAll();alert(T('cleared'));}
 };
 
+// ===== 定期付款 =====
+let recurringList=[];
+let recSelCat='subscription', recSelFreq='monthly', editingRecId=null;
+
+function loadRecurring(){
+  try{const r=localStorage.getItem('xp_recurring');if(r)recurringList=JSON.parse(r);}catch(e){}
+}
+function saveRecurring(){localStorage.setItem('xp_recurring',JSON.stringify(recurringList));}
+
+function getNextDue(startDate, freq){
+  const today_=today();
+  let d=new Date(startDate+'T00:00:00');
+  const t=new Date(today_+'T00:00:00');
+  // Advance until next due >= today
+  while(d<t){
+    if(freq==='weekly')d.setDate(d.getDate()+7);
+    else if(freq==='monthly')d.setMonth(d.getMonth()+1);
+    else if(freq==='yearly')d.setFullYear(d.getFullYear()+1);
+  }
+  return d.toISOString().split('T')[0];
+}
+
+function getDaysUntil(dateStr){
+  const t=new Date(today()+'T00:00:00');
+  const d=new Date(dateStr+'T00:00:00');
+  return Math.round((d-t)/(1000*60*60*24));
+}
+
+function buildRecCatGrid(){
+  const g=document.getElementById('rec-cat-grid');g.innerHTML='';
+  PRIMARY_CATS.forEach(id=>{
+    const c=getCat(id);
+    const b=document.createElement('button');
+    b.className='cat-btn'+(recSelCat===id?' selected':'');
+    b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
+    b.onclick=()=>{recSelCat=id;document.getElementById('rec-cat-more').value='';buildRecCatGrid();};
+    g.appendChild(b);
+  });
+  const sel=document.getElementById('rec-cat-more');
+  const secCats=CATS.filter(c=>!PRIMARY_CATS.includes(c.id));
+  const isSecSel=secCats.some(c=>c.id===recSelCat);
+  sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
+  secCats.forEach(c=>{
+    const cat=getCat(c.id);
+    const o=document.createElement('option');o.value=cat.id;o.textContent=cat.icon+' '+cat.label;
+    if(recSelCat===cat.id)o.selected=true;sel.appendChild(o);
+  });
+  sel.className=isSecSel?'curr-select selected-other':'curr-select';
+}
+document.getElementById('rec-cat-more').onchange=function(){if(this.value){recSelCat=this.value;buildRecCatGrid();}};
+
+function buildRecCurrSelect(){
+  const sel=document.getElementById('rec-curr');sel.innerHTML='';
+  CURRENCIES.forEach(c=>{
+    const o=document.createElement('option');o.value=c.code;o.textContent=c.code;sel.appendChild(o);
+  });
+  sel.value=selCurr;
+}
+
+document.querySelectorAll('.rec-freq-btn').forEach(b=>{
+  b.onclick=function(){
+    recSelFreq=this.dataset.freq;
+    document.querySelectorAll('.rec-freq-btn').forEach(x=>x.classList.toggle('selected',x===b));
+  };
+});
+
+function openRecurringModal(id=null){
+  editingRecId=id;
+  recSelCat='subscription'; recSelFreq='monthly';
+  document.getElementById('rec-name').value='';
+  document.getElementById('rec-amount').value='';
+  document.getElementById('rec-start').value=today();
+  document.querySelectorAll('.rec-freq-btn').forEach(b=>b.classList.toggle('selected',b.dataset.freq==='monthly'));
+  if(id){
+    const r=recurringList.find(x=>x.id===id);
+    if(r){
+      document.getElementById('rec-name').value=r.name;
+      document.getElementById('rec-amount').value=r.amount;
+      document.getElementById('rec-start').value=r.nextDue||r.startDate;
+      recSelCat=r.cat||'subscription';
+      recSelFreq=r.freq||'monthly';
+      document.querySelectorAll('.rec-freq-btn').forEach(b=>b.classList.toggle('selected',b.dataset.freq===recSelFreq));
+      document.getElementById('rec-curr').value=r.curr||'THB';
+    }
+  }
+  buildRecCatGrid(); buildRecCurrSelect();
+  document.getElementById('recurring-modal').classList.remove('hidden');
+}
+document.getElementById('rec-cancel-btn').onclick=()=>document.getElementById('recurring-modal').classList.add('hidden');
+document.getElementById('add-recurring-btn').onclick=()=>openRecurringModal();
+
+document.getElementById('rec-save-btn').onclick=()=>{
+  const name=document.getElementById('rec-name').value.trim();
+  const amount=parseFloat(document.getElementById('rec-amount').value);
+  const startDate=document.getElementById('rec-start').value;
+  const curr=document.getElementById('rec-curr').value||'THB';
+  if(!name){alert(lang==='zh'?'請輸入名稱':'Please enter a name');return;}
+  if(!amount||amount<=0){alert(T('err_amount'));return;}
+  if(!startDate){alert(T('err_date'));return;}
+  const nextDue=getNextDue(startDate,recSelFreq);
+  if(editingRecId){
+    const idx=recurringList.findIndex(x=>x.id===editingRecId);
+    if(idx>-1)recurringList[idx]={...recurringList[idx],name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue};
+  }else{
+    recurringList.push({id:uid(),name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue});
+  }
+  saveRecurring();
+  document.getElementById('recurring-modal').classList.add('hidden');
+  renderRecurringList();
+  checkDueBanner();
+};
+
+function advanceRecurring(id){
+  const r=recurringList.find(x=>x.id===id);if(!r)return;
+  const next=r.nextDue||r.startDate;
+  let d=new Date(next+'T00:00:00');
+  if(r.freq==='weekly')d.setDate(d.getDate()+7);
+  else if(r.freq==='monthly')d.setMonth(d.getMonth()+1);
+  else if(r.freq==='yearly')d.setFullYear(d.getFullYear()+1);
+  r.nextDue=d.toISOString().split('T')[0];
+  saveRecurring();
+}
+
+function recordRecurring(id){
+  const r=recurringList.find(x=>x.id===id);if(!r)return;
+  const rec={id:uid(),cat:r.cat,amount:r.amount,curr:r.curr||'THB',note:r.name,date:today(),ts:Date.now(),user:userNames[selectedUserIdx]};
+  records.push(rec);saveLocal();refreshAll();
+  advanceRecurring(id);renderRecurringList();checkDueBanner();
+  if(apiUrl){apiCall('add',rec).catch(()=>{});}
+  alert((lang==='zh'?'已記帳：':'Recorded: ')+r.name+' '+fmtAmt(r.amount,r.curr||'THB'));
+}
+
+function renderRecurringList(){
+  const el=document.getElementById('recurring-list');
+  if(!recurringList.length){
+    el.innerHTML=`<div class="empty">${T('recurring_empty')}</div>`;return;
+  }
+  el.innerHTML='';
+  // Sort by nextDue
+  const sorted=[...recurringList].sort((a,b)=>(a.nextDue||a.startDate).localeCompare(b.nextDue||b.startDate));
+  sorted.forEach(r=>{
+    const cat=getCat(r.cat);
+    const nextDue=r.nextDue||r.startDate;
+    const days=getDaysUntil(nextDue);
+    let dueClass='ok', dueLabel='';
+    const freqLabel=T('freq_'+r.freq);
+    if(days<=0){dueClass='late';dueLabel=T('due_today');}
+    else if(days<=3){dueClass='today';dueLabel=(lang==='zh'?`${days}天後到期`:`Due in ${days}d`);}
+    else{dueClass='ok';dueLabel=(lang==='zh'?`${days}天後`:`In ${days}d`);}
+
+    const d=document.createElement('div');
+    d.className='rec-card'+(days<=0?' overdue':days<=3?' due':'');
+    d.innerHTML=`
+      <div class="rec-icon" style="background:${cat.color}">${cat.icon}</div>
+      <div class="rec-info">
+        <div class="rec-name">${r.name}</div>
+        <div class="rec-meta">${freqLabel} · ${nextDue}</div>
+      </div>
+      <div class="rec-amt">
+        <div class="rec-amt-val">${fmtAmt(r.amount,r.curr||'THB')}</div>
+        <div class="rec-due ${dueClass}">${dueLabel}</div>
+      </div>
+      <div class="rec-actions">
+        <button class="edit-btn" data-id="${r.id}" title="${lang==='zh'?'編輯':'Edit'}">✎</button>
+        <button class="del-btn" data-id="${r.id}" title="${lang==='zh'?'刪除':'Delete'}">×</button>
+      </div>`;
+    d.querySelector('.edit-btn').onclick=()=>openRecurringModal(r.id);
+    d.querySelector('.del-btn').onclick=()=>{
+      if(confirm(T('confirm_del_recurring'))){
+        recurringList=recurringList.filter(x=>x.id!==r.id);saveRecurring();renderRecurringList();checkDueBanner();
+      }
+    };
+    // Tap card to record
+    d.onclick=(e)=>{
+      if(e.target.closest('button'))return;
+      if(days<=3){
+        const doIt=confirm((lang==='zh'?`立即記帳「${r.name}」${fmtAmt(r.amount,r.curr||'THB')} 嗎？`:`Record "${r.name}" ${fmtAmt(r.amount,r.curr||'THB')} now?`));
+        if(doIt)recordRecurring(r.id);
+      }
+    };
+    el.appendChild(d);
+  });
+}
+
+function checkDueBanner(){
+  const due=recurringList.filter(r=>getDaysUntil(r.nextDue||r.startDate)<=0);
+  const banner=document.getElementById('due-banner');
+  if(!due.length){banner.style.display='none';return;}
+  const list=document.getElementById('due-banner-list');
+  list.innerHTML='';
+  due.slice(0,3).forEach(r=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px';
+    row.innerHTML=`<span style="font-size:13px;font-weight:700;color:#1e293b">${getCat(r.cat).icon} ${r.name}</span><div style="display:flex;gap:6px"><button onclick="recordRecurring('${r.id}');document.getElementById('due-banner').style.display='none'" style="padding:6px 10px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif">${T('record_now')}</button><button onclick="advanceRecurring('${r.id}');checkDueBanner();renderRecurringList()" style="padding:6px 10px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif">${T('skip_this')}</button></div>`;
+    list.appendChild(row);
+  });
+  banner.style.display='block';
+}
+
 // ===== Init =====
 const now=new Date();
 const ds=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
@@ -1616,7 +1913,7 @@ const d1=new Date();d1.setDate(1);
 document.getElementById('rep-from').value=d1.toISOString().split('T')[0];
 document.getElementById('rep-to').value=today();
 
-loadLocal();buildCatGrid();buildCurrUI();
+loadLocal();loadRecurring();buildCatGrid();buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
 updateLangBtns();
 applyLang();
@@ -1633,6 +1930,8 @@ if(!hasDeviceId){
   syncFromCloud().then(ok=>{if(ok)refreshAll();});
 }
 refreshAll();
+// 啟動時檢查定期付款到期
+setTimeout(()=>checkDueBanner(), 1000);
 </script>
 </body>
 </html>
