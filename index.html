@@ -139,7 +139,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 .user-tab.active-0{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
 .user-tab.active-1{border-color:#db2777;background:#fdf2f8;color:#db2777}
 .user-tab.tab-all.active-all{border-color:#475569;background:#f1f5f9;color:#1e293b}
-.rec-freq-btn{padding:10px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
+.rec-freq-btn{padding:10px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s;text-align:center}
 .rec-freq-btn.selected{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
 .rec-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.03);display:flex;align-items:center;gap:12px}
 .rec-card.due{border-left:4px solid #f59e0b}
@@ -163,8 +163,8 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 <!-- Device Identity Modal -->
 <div class="modal-overlay hidden" id="identity-modal">
   <div class="modal">
-    <h2>👤 這是誰的手機？</h2>
-    <p>選擇後會永久記住，不需要每次切換。之後可在設定頁更改。</p>
+    <h2 id="identity-modal-title">👤 這是誰的手機？</h2>
+    <p id="identity-modal-desc">選擇後會永久記住，不需要每次切換。之後可在設定頁更改。</p>
     <div id="identity-btns" style="display:flex;flex-direction:column;gap:12px;margin-top:8px"></div>
   </div>
 </div>
@@ -172,14 +172,14 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 <!-- Setup Modal -->
 <div class="modal-overlay hidden" id="setup-modal">
   <div class="modal">
-    <h2>☁️ 連結雲端資料庫</h2>
-    <p>設定一次，記帳資料自動存入你的 Google Sheets，兩人都能即時同步。</p>
-    <div class="step"><div class="step-num">1</div><div class="step-text">開啟 <a href="https://sheets.new" target="_blank" style="color:#4f46e5">sheets.new</a> 建立新試算表，命名為「我的記帳本」</div></div>
-    <div class="step"><div class="step-num">2</div><div class="step-text">點選單「擴充功能」→「Apps Script」，把 <strong>Code.gs</strong> 的內容全部貼進去，按儲存（Ctrl+S）</div></div>
-    <div class="step"><div class="step-num">3</div><div class="step-text">點右上角「部署」→「新增部署作業」→「網頁應用程式」。執行身分選「我」，存取選「所有人」，按「部署」並授權</div></div>
-    <div class="step"><div class="step-num">4</div><div class="step-text">複製部署後的「網頁應用程式網址」貼到下方</div></div>
+    <h2 id="setup-modal-title">☁️ 連結雲端資料庫</h2>
+    <p id="setup-modal-desc">設定一次，記帳資料自動存入你的 Google Sheets，兩人都能即時同步。</p>
+    <div class="step"><div class="step-num">1</div><div class="step-text" id="setup-step1">開啟 <a href="https://sheets.new" target="_blank" style="color:#4f46e5">sheets.new</a> 建立新試算表，命名為「我的記帳本」</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-text" id="setup-step2">點選單「擴充功能」→「Apps Script」，把 Code.gs 的內容全部貼進去，按儲存（Ctrl+S）</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text" id="setup-step3">點右上角「部署」→「新增部署作業」→「網頁應用程式」。執行身分選「我」，存取選「所有人」，按「部署」並授權</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-text" id="setup-step4">複製部署後的「網頁應用程式網址」貼到下方</div></div>
     <div class="form-group" style="margin-top:4px;margin-bottom:0">
-      <label class="form-label">Apps Script 網址</label>
+      <label class="form-label" id="setup-api-lbl">Apps Script 網址</label>
       <input type="url" class="form-input" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec">
     </div>
     <div id="modal-msg" class="msg" style="margin-top:10px;margin-bottom:0"></div>
@@ -191,7 +191,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 <!-- Edit Modal -->
 <div class="modal-overlay hidden" id="edit-modal">
   <div class="modal">
-    <h2>✎ 編輯記錄</h2>
+    <h2 id="edit-modal-title">✎ 編輯記錄</h2>
     <div class="form-group">
       <label class="form-label" id="edit-lbl-cat">類別</label>
       <div class="cat-grid" id="edit-cat-grid" style="margin-bottom:8px"></div>
@@ -217,7 +217,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 <!-- Budget Modal -->
 <div class="modal-overlay hidden" id="budget-modal">
   <div class="modal">
-    <h2>💰 月份預算設定</h2>
+    <h2 id="budget-modal-title">💰 月份預算設定</h2>
     <div class="form-group">
       <label class="form-label" id="budget-label-0">Sam 的預算 (THB)</label>
       <input type="number" class="form-input" id="budget-input-0" inputmode="decimal" step="any" placeholder="0">
@@ -236,8 +236,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   <div class="modal" style="padding:24px">
     <h2 id="scan-modal-title">📷 掃描收據</h2>
     <p id="scan-modal-desc" style="margin-bottom:16px">拍攝或選擇收據圖片，AI 會自動識別金額與店家。</p>
-
-    <!-- Step 1: Upload -->
     <div id="scan-step-upload">
       <div id="scan-preview-wrap" style="display:none;margin-bottom:14px">
         <img id="scan-preview-img" style="width:100%;border-radius:12px;max-height:240px;object-fit:contain;background:#f1f5f9">
@@ -249,14 +247,10 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
       </label>
       <button class="submit-btn" id="scan-analyze-btn" disabled style="margin-top:0">🔍 分析收據</button>
     </div>
-
-    <!-- Step 2: Loading -->
     <div id="scan-step-loading" style="display:none;text-align:center;padding:24px 0">
       <div style="width:48px;height:48px;border:4px solid #e0e7ff;border-top-color:#4f46e5;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
       <div style="font-size:15px;font-weight:700;color:#475569" id="scan-loading-text">AI 分析中...</div>
     </div>
-
-    <!-- Step 3: Result -->
     <div id="scan-step-result" style="display:none">
       <div id="scan-result-msg" class="msg" style="margin-bottom:12px"></div>
       <div class="form-group">
@@ -278,7 +272,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
       </div>
       <button class="submit-btn" id="scan-confirm-btn">✅ 確認並記帳</button>
     </div>
-
     <button class="secondary-btn" id="scan-cancel-btn" style="margin-top:8px;margin-bottom:0">取消</button>
   </div>
 </div>
@@ -303,12 +296,16 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
         <select class="curr-select" id="rec-curr" style="flex:0 0 90px"></select>
       </div>
     </div>
+    <!-- 頻率：6選項 -->
     <div class="form-group">
       <label class="form-label" id="lbl-rec-freq">頻率</label>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <button class="rec-freq-btn selected" data-freq="monthly">每月</button>
-        <button class="rec-freq-btn" data-freq="weekly">每週</button>
-        <button class="rec-freq-btn" data-freq="yearly">每年</button>
+        <button class="rec-freq-btn" data-freq="daily" id="freq-daily">每日</button>
+        <button class="rec-freq-btn" data-freq="workday" id="freq-workday">工作日</button>
+        <button class="rec-freq-btn" data-freq="weekend" id="freq-weekend">假日</button>
+        <button class="rec-freq-btn selected" data-freq="weekly" id="freq-weekly">每週</button>
+        <button class="rec-freq-btn" data-freq="monthly" id="freq-monthly">每月</button>
+        <button class="rec-freq-btn" data-freq="yearly" id="freq-yearly">每年</button>
       </div>
     </div>
     <div class="form-group">
@@ -332,7 +329,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 <!-- RECURRING -->
 <div id="screen-recurring" class="screen">
   <div class="topbar">
-    <div class="topbar-left"><h1 id="title-recurring-screen">定期付款</h1><p>管理週期性費用</p></div>
+    <div class="topbar-left"><h1 id="title-recurring-screen">定期付款</h1><p id="subtitle-recurring-screen">管理週期性費用</p></div>
     <button id="add-recurring-btn" style="background:#eef2ff;border:none;border-radius:12px;padding:8px 14px;cursor:pointer;color:#4f46e5;font-size:13px;font-weight:800;font-family:'Noto Sans TC',sans-serif">＋ 新增</button>
   </div>
   <div class="content">
@@ -352,14 +349,14 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   <div class="content">
     <div id="add-msg" class="msg"></div>
     <div class="form-group">
-      <label class="form-label">誰支出的？</label>
+      <label class="form-label" id="lbl-who-paid">誰支出的？</label>
       <div class="segmented-control" id="user-toggle">
         <button class="segment-btn active" data-idx="0">Sam</button>
         <button class="segment-btn" data-idx="1">Patty</button>
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">類別</label>
+      <label class="form-label" id="lbl-main-cat">類別</label>
       <div class="cat-grid" id="cat-grid"></div>
       <select class="curr-select" id="cat-select-more" style="margin-top:10px"></select>
       <div class="custom-cat-wrap" id="custom-cat-wrap">
@@ -367,7 +364,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label" id="lbl-amount">金額</label>
+      <label class="form-label" id="lbl-main-amount">金額</label>
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input type="text" class="form-input" id="inp-amount" placeholder="0 或 130+50" inputmode="decimal" style="flex:1" autocomplete="off">
         <button id="calc-eval-btn" style="padding:0 18px;background:#4f46e5;color:#fff;border:none;border-radius:14px;font-size:18px;font-weight:900;cursor:pointer;flex-shrink:0" title="計算">=</button>
@@ -381,22 +378,22 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">幣別</label>
+      <label class="form-label" id="lbl-main-curr">幣別</label>
       <div class="curr-quick" id="curr-quick"></div>
       <div class="curr-more-row">
-        <span class="curr-more-label">其他：</span>
+        <span class="curr-more-label" id="lbl-curr-other">其他：</span>
         <select class="curr-select" id="curr-select"></select>
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">備註（店家、說明）</label>
+      <label class="form-label" id="lbl-main-note">備註（店家、說明）</label>
       <div class="note-wrap">
         <input type="text" class="form-input" id="inp-note" placeholder="例：全家、MK火鍋、Grab" autocomplete="off">
         <div class="note-suggestions" id="note-suggestions"></div>
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">日期</label>
+      <label class="form-label" id="lbl-main-date">日期</label>
       <input type="date" class="form-input" id="inp-date">
     </div>
     <button class="submit-btn" id="save-btn">儲存記錄</button>
@@ -405,7 +402,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 
 <!-- TODAY -->
 <div id="screen-today" class="screen">
-  <div class="topbar"><div class="topbar-left"><h1>今日支出</h1><p id="today-label"></p></div></div>
+  <div class="topbar"><div class="topbar-left"><h1 id="title-today-screen">今日支出</h1><p id="today-label"></p></div></div>
   <div class="content">
     <div class="stat-row">
       <div class="stat"><div class="stat-label" id="today-stat-lbl">今日合計 (THB)</div><div class="stat-value" id="today-total">0</div><div class="stat-sub" id="today-stat-sub">泰銖</div></div>
@@ -421,11 +418,11 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 
 <!-- MONTH -->
 <div id="screen-month" class="screen">
-  <div class="topbar"><div class="topbar-left"><h1>本月總覽</h1><p id="month-label"></p></div></div>
+  <div class="topbar"><div class="topbar-left"><h1 id="title-month-screen">本月總覽</h1><p id="month-label"></p></div></div>
   <div class="content">
     <div id="month-budget-section"></div>
     <div class="stat-row">
-      <div class="stat"><div class="stat-label" id="month-stat-lbl">本月合計 (THB)</div><div class="stat-value" id="month-total">0</div><div class="stat-sub">泰銖</div></div>
+      <div class="stat"><div class="stat-label" id="month-stat-lbl">本月合計 (THB)</div><div class="stat-value" id="month-total">0</div><div class="stat-sub" id="month-stat-sub">泰銖</div></div>
       <div class="stat"><div class="stat-label" id="month-count-lbl">筆數</div><div class="stat-value" id="month-count">0</div><div class="stat-sub" id="month-count-sub">筆記錄</div></div>
     </div>
     <div class="section-title" id="month-cat-title">各類別分析</div>
@@ -438,20 +435,20 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 
 <!-- REPORT -->
 <div id="screen-report" class="screen">
-  <div class="topbar"><div class="topbar-left"><h1>自訂查詢</h1><p>選擇期間與分類</p></div></div>
+  <div class="topbar"><div class="topbar-left"><h1 id="title-report-screen">自訂查詢</h1><p id="subtitle-report-screen">選擇期間與分類</p></div></div>
   <div class="content">
     <div class="date-row">
-      <div><label class="form-label">開始日期</label><input type="date" class="form-input" id="rep-from"></div>
-      <div><label class="form-label">結束日期</label><input type="date" class="form-input" id="rep-to"></div>
+      <div><label class="form-label" id="rep-lbl-from">開始日期</label><input type="date" class="form-input" id="rep-from"></div>
+      <div><label class="form-label" id="rep-lbl-to">結束日期</label><input type="date" class="form-input" id="rep-to"></div>
     </div>
     <div class="form-group">
-      <label class="form-label">類別篩選</label>
+      <label class="form-label" id="rep-lbl-cat">類別篩選</label>
       <div class="cat-filter-wrap" id="rep-cat-filter"></div>
     </div>
     <button class="submit-btn" id="rep-run-btn" style="margin-bottom:18px">查詢</button>
     <div id="rep-result" style="display:none">
       <div class="card">
-        <div class="stat-label">期間合計 (THB)</div>
+        <div class="stat-label" id="rep-total-lbl">期間合計 (THB)</div>
         <div class="total-big" id="rep-total">0</div>
         <div style="font-size:12px;color:#94a3b8;margin-top:4px" id="rep-sub"></div>
       </div>
@@ -466,47 +463,47 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 
 <!-- SETTINGS -->
 <div id="screen-settings" class="screen">
-  <div class="topbar"><div class="topbar-left"><h1>設定 / 匯率</h1><p>依台灣中央銀行牌告匯率</p></div></div>
+  <div class="topbar"><div class="topbar-left"><h1 id="title-settings-screen">設定 / 匯率</h1><p id="subtitle-settings-screen">依台灣中央銀行牌告匯率</p></div></div>
   <div class="content">
-    <div class="section-title">語言 / Language</div>
+    <div class="section-title" id="sec-lang">語言 / Language</div>
     <div class="card">
       <div style="display:flex;gap:10px">
         <button id="lang-zh-btn" onclick="setLang('zh')" style="flex:1;padding:14px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s">🇹🇼 繁體中文</button>
         <button id="lang-en-btn" onclick="setLang('en')" style="flex:1;padding:14px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s">🇬🇧 English</button>
       </div>
     </div>
-    <div class="section-title">使用者名稱</div>
+    <div class="section-title" id="sec-users">使用者名稱</div>
     <div class="card">
       <div class="form-group" style="margin-bottom:12px">
-        <label class="form-label">使用者 1</label>
+        <label class="form-label" id="set-lbl-user0">使用者 1</label>
         <input type="text" class="form-input" id="set-user-0" placeholder="Sam">
       </div>
       <div class="form-group" style="margin-bottom:12px">
-        <label class="form-label">使用者 2</label>
+        <label class="form-label" id="set-lbl-user1">使用者 2</label>
         <input type="text" class="form-input" id="set-user-1" placeholder="Patty">
       </div>
       <button class="submit-btn" id="save-users-btn" style="margin-top:0">儲存名稱</button>
       <div id="device-identity-info" style="margin-top:14px;padding:12px 16px;background:#f1f5f9;border-radius:12px;font-size:13px;font-weight:700;color:#475569"></div>
       <button class="secondary-btn" id="change-identity-btn" style="margin-top:8px;margin-bottom:0">更改此裝置身分</button>
     </div>
-    <div class="section-title">雲端連線狀態</div>
+    <div class="section-title" id="sec-cloud">雲端連線狀態</div>
     <div class="card">
       <div class="sync-status" style="margin-bottom:12px"><div class="sync-dot" id="conn-dot"></div><span id="conn-text">檢查中...</span></div>
       <button class="secondary-btn" id="change-api-btn" style="margin-bottom:0">重新設定 API 網址</button>
     </div>
-    <div class="section-title">幣別匯率（對泰銖）</div>
+    <div class="section-title" id="sec-rates">幣別匯率（對泰銖）</div>
     <div class="card">
       <div class="rate-header">
-        <span style="font-size:13px;color:#64748b;font-weight:700">即期匯率</span>
+        <span style="font-size:13px;color:#64748b;font-weight:700" id="rate-spot-lbl">即期匯率</span>
         <button class="rate-update-btn" id="rate-fetch-btn">🔄 更新匯率</button>
       </div>
       <div id="rate-list"></div>
       <div id="twd-ref" style="font-size:12px;font-weight:800;color:#4f46e5;text-align:right;margin-top:12px"></div>
-      <p style="font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.6">點「更新匯率」從台灣銀行取得最新即期匯率並自動換算為泰銖基準。修改後自動儲存。</p>
+      <p style="font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.6" id="rate-hint-text">點「更新匯率」從台灣銀行取得最新即期匯率並自動換算為泰銖基準。修改後自動儲存。</p>
     </div>
-    <div class="section-title">資料管理</div>
+    <div class="section-title" id="sec-data">資料管理</div>
     <div class="card">
-      <div style="font-size:13px;color:#94a3b8;margin-bottom:14px;line-height:1.6">資料儲存於你的 Google Sheets，本機同時保留快取。</div>
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:14px;line-height:1.6" id="data-hint-text">資料儲存於你的 Google Sheets，本機同時保留快取。</div>
       <button class="secondary-btn" id="refresh-btn">重新同步雲端資料</button>
       <button class="secondary-btn" id="export-btn">匯出 CSV 備份</button>
       <button class="danger-btn" id="clear-btn">清除本機快取</button>
@@ -584,40 +581,33 @@ const CURRENCIES=[
 const I18N={
   zh:{
     app_title:'記帳本',
-    nav_add:'新增',nav_today:'今日',nav_month:'本月',nav_report:'查詢',nav_settings:'設定',
-    title_add:'新增記錄',title_today:'今日支出',title_month:'本月總覽',title_report:'自訂查詢',title_settings:'設定 / 匯率',
-    settings_subtitle:'依台灣中央銀行牌告匯率',
-    report_subtitle:'選擇期間與分類',
+    nav_add:'新增',nav_today:'今日',nav_month:'本月',nav_report:'查詢',nav_recurring:'定期',nav_settings:'設定',
+    title_add:'新增記錄',title_today:'今日支出',title_month:'本月總覽',title_report:'自訂查詢',title_settings:'設定 / 匯率',title_recurring:'定期付款',
+    settings_subtitle:'依台灣中央銀行牌告匯率',report_subtitle:'選擇期間與分類',recurring_subtitle:'管理週期性費用',
     who_paid:'誰支出的？',
     lbl_cat:'類別',lbl_amount:'金額',lbl_curr:'幣別',lbl_note:'備註（店家、說明）',lbl_date:'日期',
     curr_other:'其他：',cat_more:'— 更多類別 —',curr_more:'— 其他幣別 —',
-    note_placeholder:'例：全家、MK火鍋、Grab',
-    custom_cat_placeholder:'輸入自訂類別名稱',
+    note_placeholder:'例：全家、MK火鍋、Grab',custom_cat_placeholder:'輸入自訂類別名稱',
     btn_save:'儲存記錄',btn_save_edit:'儲存修改',btn_cancel:'取消',btn_save_budget:'儲存',
-    today_total:'今日合計 (THB)',today_sub:'泰銖',count_sub:'筆記錄',
-    month_total:'本月合計 (THB)',
-    report_total:'期間合計 (THB)',
+    today_total:'今日合計 (THB)',today_sub:'泰銖',count_lbl:'筆數',count_sub:'筆記錄',
+    month_total:'本月合計 (THB)',report_total:'期間合計 (THB)',
     sec_details:'明細',sec_cat_analysis:'各類別分析',sec_compare:'花費比較',sec_budget:'個人預算',
-    start_date:'開始日期',end_date:'結束日期',filter_cat:'類別篩選',btn_search:'查詢',
-    all_cats:'全部',
-    sec_users:'使用者名稱',lbl_user1:'使用者 1',lbl_user2:'使用者 2',btn_save_users:'儲存名稱',
+    start_date:'開始日期',end_date:'結束日期',filter_cat:'類別篩選',btn_search:'查詢',all_cats:'全部',
+    sec_lang:'語言 / Language',sec_users:'使用者名稱',lbl_user1:'使用者 1',lbl_user2:'使用者 2',btn_save_users:'儲存名稱',
     device_identity:'此裝置身分：',btn_change_identity:'更改此裝置身分',
-    sec_lang:'語言 / Language',
     sec_cloud:'雲端連線狀態',btn_change_api:'重新設定 API 網址',
     sec_rates:'幣別匯率（對泰銖）',rate_spot:'即期匯率',btn_update_rate:'🔄 更新匯率',
     rate_hint:'點「更新匯率」從台灣銀行取得最新即期匯率並自動換算為泰銖基準。修改後自動儲存。',
     sec_data:'資料管理',data_hint:'資料儲存於你的 Google Sheets，本機同時保留快取。',
     btn_resync:'重新同步雲端資料',btn_export:'匯出 CSV 備份',btn_clear:'清除本機快取',
     conn_ok:'已連線至 Google Sheets',conn_no:'尚未設定 API 網址',sync_ok:'已連線',sync_off:'離線',sync_none:'未連線',
-    modal_setup_title:'☁️ 連結雲端資料庫',
-    modal_setup_desc:'設定一次，記帳資料自動存入你的 Google Sheets，兩人都能即時同步。',
+    modal_setup_title:'☁️ 連結雲端資料庫',modal_setup_desc:'設定一次，記帳資料自動存入你的 Google Sheets，兩人都能即時同步。',
     step1:'開啟 sheets.new 建立新試算表，命名為「我的記帳本」',
     step2:'點選單「擴充功能」→「Apps Script」，把 Code.gs 的內容全部貼進去，按儲存（Ctrl+S）',
     step3:'點右上角「部署」→「新增部署作業」→「網頁應用程式」。執行身分選「我」，存取選「所有人」，按「部署」並授權',
     step4:'複製部署後的「網頁應用程式網址」貼到下方',
     lbl_api_url:'Apps Script 網址',btn_test_conn:'測試並儲存連線',btn_skip:'暫時跳過（僅本機儲存）',
-    modal_edit_title:'✎ 編輯記錄',
-    modal_budget_title:'💰 月份預算設定',
+    modal_edit_title:'✎ 編輯記錄',modal_budget_title:'💰 月份預算設定',
     budget_lbl:'預算',spent_lbl:'已支出',remain_lbl:'結餘',btn_set_budget:'✎ 設定預算',
     identity_title:'👤 這是誰的手機？',identity_desc:'選擇後會永久記住，不需要每次切換。之後可在設定頁更改。',
     identity_prefix_0:'💙 這是 ',identity_prefix_1:'💗 這是 ',identity_suffix:' 的手機',
@@ -634,55 +624,58 @@ const I18N={
     cat_entertainment:'娛樂',cat_travel:'旅遊',cat_home:'居家',cat_subscription:'訂閱',cat_medical:'醫療',cat_beauty:'美容',
     cat_education:'教育',cat_bills:'帳單',cat_other:'其他',
     twd_ref:'* 1 ฿ ≈ NT$ ',
-    nav_recurring:'定期',title_recurring:'定期付款',recurring_subtitle:'管理週期性費用',
-    btn_add_recurring:'＋ 新增定期付款',recurring_name:'名稱',recurring_amount:'金額',
-    recurring_freq:'頻率',recurring_next:'下次付款',recurring_cat:'類別',
-    freq_weekly:'每週',freq_monthly:'每月',freq_yearly:'每年',
-    modal_recurring_title:'新增定期付款',lbl_recurring_name:'名稱（例：Netflix、房租）',
-    lbl_recurring_freq:'付款頻率',lbl_recurring_start:'開始日期',
-    btn_save_recurring:'儲存',btn_del_recurring:'刪除此定期付款',
-    due_today:'今日到期 🔔',due_soon:'即將到期',recurring_empty:'尚無定期付款',
-    confirm_del_recurring:'確定刪除此定期付款？',record_now:'立即記帳',skip_this:'略過本次',
-    due_banner_title:'定期付款提醒',
+    // 定期付款
+    btn_add_recurring:'＋ 新增',modal_recurring_title:'🔔 新增定期付款',
+    lbl_rec_name:'名稱',lbl_rec_cat:'類別',lbl_rec_amt:'金額',lbl_rec_freq:'頻率',lbl_rec_start:'開始 / 下次付款日',
+    rec_name_placeholder:'例：Netflix、房租、健身房',
+    freq_daily:'每日',freq_workday:'工作日',freq_weekend:'假日',freq_weekly:'每週',freq_monthly:'每月',freq_yearly:'每年',
+    due_today:'今日到期 🔔',due_not_today:'非適用日',due_in_days:'天後到期',due_in:'天後',
+    record_now:'立即記帳',skip_this:'略過本次',
+    due_banner_title:'定期付款提醒',recurring_empty:'尚無定期付款',
+    confirm_del_recurring:'確定刪除此定期付款？',
+    recorded_alert:'已記帳：',record_confirm_prefix:'立即記帳「',record_confirm_mid:'」',record_confirm_suffix:' 嗎？',
+    // Scan
+    scan_title:'📷 掃描收據',scan_desc:'拍攝或選擇收據圖片，AI 會自動識別金額與店家。',
+    scan_upload_label:'拍照 / 選擇圖片',scan_analyze:'🔍 分析收據',scan_analyzing:'AI 分析中...',
+    scan_lbl_amount:'識別金額',scan_lbl_note:'店家 / 備註',scan_lbl_cat:'類別',scan_lbl_curr:'幣別',
+    scan_confirm:'✅ 確認並記帳',scan_cancel:'取消',
+    scan_success:'✅ 分析完成！請確認資料後記帳。',scan_low_conf:'AI 無法確定類別，請自行選擇 👇',
+    scan_no_amount:'未能識別金額，請手動輸入。',scan_fill_info:'已從收據填入資料，確認後按「儲存記錄」完成。',
+    scan_fail:'分析失敗：',
+    // budget modal labels
+    budget_user_suffix:' 的預算 (THB)',
   },
   en:{
     app_title:'Expense Tracker',
-    nav_add:'Add',nav_today:'Today',nav_month:'Month',nav_report:'Report',nav_settings:'Settings',
-    title_add:'Add Record',title_today:"Today's Expense",title_month:'Monthly Overview',title_report:'Custom Report',title_settings:'Settings / Rates',
-    settings_subtitle:'Taiwan Central Bank Exchange Rates',
-    report_subtitle:'Select period & category',
+    nav_add:'Add',nav_today:'Today',nav_month:'Month',nav_report:'Report',nav_recurring:'Recurring',nav_settings:'Settings',
+    title_add:'Add Record',title_today:"Today's Expenses",title_month:'Monthly Overview',title_report:'Custom Report',title_settings:'Settings / Rates',title_recurring:'Recurring Payments',
+    settings_subtitle:'Taiwan Central Bank Exchange Rates',report_subtitle:'Select period & category',recurring_subtitle:'Manage periodic expenses',
     who_paid:'Who paid?',
     lbl_cat:'Category',lbl_amount:'Amount',lbl_curr:'Currency',lbl_note:'Note (Store, Details)',lbl_date:'Date',
     curr_other:'Other:',cat_more:'— More Categories —',curr_more:'— Other Currency —',
-    note_placeholder:'e.g. 7-11, MK Suki, Grab',
-    custom_cat_placeholder:'Custom category name',
+    note_placeholder:'e.g. 7-11, MK Suki, Grab',custom_cat_placeholder:'Custom category name',
     btn_save:'Save Record',btn_save_edit:'Save Changes',btn_cancel:'Cancel',btn_save_budget:'Save',
-    today_total:'Today Total (THB)',today_sub:'THB',count_sub:'records',
-    month_total:'Monthly Total (THB)',
-    report_total:'Period Total (THB)',
+    today_total:'Today Total (THB)',today_sub:'THB',count_lbl:'Count',count_sub:'records',
+    month_total:'Monthly Total (THB)',report_total:'Period Total (THB)',
     sec_details:'Details',sec_cat_analysis:'Category Analysis',sec_compare:'Expense Comparison',sec_budget:'Personal Budget',
-    start_date:'Start Date',end_date:'End Date',filter_cat:'Category Filter',btn_search:'Search',
-    all_cats:'All',
-    sec_users:'User Names',lbl_user1:'User 1',lbl_user2:'User 2',btn_save_users:'Save Names',
+    start_date:'Start Date',end_date:'End Date',filter_cat:'Category Filter',btn_search:'Search',all_cats:'All',
+    sec_lang:'Language / 語言',sec_users:'User Names',lbl_user1:'User 1',lbl_user2:'User 2',btn_save_users:'Save Names',
     device_identity:'This device: ',btn_change_identity:'Change Device Identity',
-    sec_lang:'Language / 語言',
     sec_cloud:'Cloud Connection',btn_change_api:'Reset API URL',
     sec_rates:'Exchange Rates (to THB)',rate_spot:'Spot Rate',btn_update_rate:'🔄 Update Rates',
-    rate_hint:'Click "Update Rates" to fetch from Bank of Taiwan, auto-converted to THB base.',
+    rate_hint:'Click "Update Rates" to fetch from Bank of Taiwan, auto-converted to THB base. Changes saved automatically.',
     sec_data:'Data Management',data_hint:'Data saved to Google Sheets. Local cache kept for offline access.',
     btn_resync:'Re-sync Cloud Data',btn_export:'Export CSV',btn_clear:'Clear Local Cache',
     conn_ok:'Connected to Google Sheets',conn_no:'API URL not set',sync_ok:'Connected',sync_off:'Offline',sync_none:'No Link',
-    modal_setup_title:'☁️ Connect Google Sheets',
-    modal_setup_desc:'Set up once — data auto-saves to your Google Sheets, synced across both devices.',
+    modal_setup_title:'☁️ Connect Google Sheets',modal_setup_desc:'Set up once — data auto-saves to your Google Sheets, synced across both devices.',
     step1:'Open sheets.new and create a new spreadsheet named "My Expense Book"',
     step2:'Go to Extensions → Apps Script, paste the Code.gs content, and save (Ctrl+S)',
     step3:'Click Deploy → New Deployment → Web App. Execute as "Me", Access "Anyone", then Deploy & Authorize',
     step4:'Copy the Web App URL and paste below',
     lbl_api_url:'Apps Script URL',btn_test_conn:'Test & Save Connection',btn_skip:'Skip for now (Local only)',
-    modal_edit_title:'✎ Edit Record',
-    modal_budget_title:'💰 Monthly Budget',
+    modal_edit_title:'✎ Edit Record',modal_budget_title:'💰 Monthly Budget',
     budget_lbl:'Budget',spent_lbl:'Spent',remain_lbl:'Remaining',btn_set_budget:'✎ Set Budget',
-    identity_title:'👤 Whose phone is this?',identity_desc:'Your choice will be saved permanently. You can change it in Settings.',
+    identity_title:'👤 Whose phone is this?',identity_desc:"Your choice will be saved permanently. You can change it in Settings.",
     identity_prefix_0:'💙 This is ',identity_prefix_1:'💗 This is ',identity_suffix:"'s phone",
     saved_msg:'Saved: ',cloud_fail:'Local saved, cloud sync failed: ',
     err_amount:'Please enter a valid amount',err_date:'Please select a date',err_no_api:'Please paste the URL',
@@ -697,16 +690,26 @@ const I18N={
     cat_entertainment:'Entertain',cat_travel:'Travel',cat_home:'Home',cat_subscription:'Subscription',cat_medical:'Medical',cat_beauty:'Beauty',
     cat_education:'Education',cat_bills:'Bills',cat_other:'Other',
     twd_ref:'* 1 ฿ ≈ NT$ ',
-    nav_recurring:'Recurring',title_recurring:'Recurring Payments',recurring_subtitle:'Manage periodic expenses',
-    btn_add_recurring:'＋ Add Recurring',recurring_name:'Name',recurring_amount:'Amount',
-    recurring_freq:'Frequency',recurring_next:'Next Due',recurring_cat:'Category',
-    freq_weekly:'Weekly',freq_monthly:'Monthly',freq_yearly:'Yearly',
-    modal_recurring_title:'Add Recurring Payment',lbl_recurring_name:'Name (e.g. Netflix, Rent)',
-    lbl_recurring_freq:'Frequency',lbl_recurring_start:'Start Date',
-    btn_save_recurring:'Save',btn_del_recurring:'Delete',
-    due_today:'Due Today 🔔',due_soon:'Due Soon',recurring_empty:'No recurring payments',
-    confirm_del_recurring:'Delete this recurring payment?',record_now:'Record Now',skip_this:'Skip',
-    due_banner_title:'Recurring Payment Reminder',
+    // Recurring
+    btn_add_recurring:'＋ Add',modal_recurring_title:'🔔 Add Recurring Payment',
+    lbl_rec_name:'Name',lbl_rec_cat:'Category',lbl_rec_amt:'Amount',lbl_rec_freq:'Frequency',lbl_rec_start:'Start / Next Due Date',
+    rec_name_placeholder:'e.g. Netflix, Rent, Gym',
+    freq_daily:'Daily',freq_workday:'Workdays',freq_weekend:'Weekends',freq_weekly:'Weekly',freq_monthly:'Monthly',freq_yearly:'Yearly',
+    due_today:'Due Today 🔔',due_not_today:'Not today',due_in_days:'d left',due_in:'d away',
+    record_now:'Record Now',skip_this:'Skip',
+    due_banner_title:'Recurring Payment Reminder',recurring_empty:'No recurring payments',
+    confirm_del_recurring:'Delete this recurring payment?',
+    recorded_alert:'Recorded: ',record_confirm_prefix:'Record "',record_confirm_mid:'" ',record_confirm_suffix:' now?',
+    // Scan
+    scan_title:'📷 Scan Receipt',scan_desc:'Take a photo or select a receipt image. AI will auto-detect the amount and store.',
+    scan_upload_label:'Take Photo / Select Image',scan_analyze:'🔍 Analyze Receipt',scan_analyzing:'AI analyzing...',
+    scan_lbl_amount:'Detected Amount',scan_lbl_note:'Store / Note',scan_lbl_cat:'Category',scan_lbl_curr:'Currency',
+    scan_confirm:'✅ Confirm & Record',scan_cancel:'Cancel',
+    scan_success:'✅ Analysis complete! Please verify before saving.',scan_low_conf:'Category uncertain, please select manually 👇',
+    scan_no_amount:'Could not detect amount. Please enter manually.',scan_fill_info:'Receipt data filled. Confirm and tap "Save Record".',
+    scan_fail:'Analysis failed: ',
+    // budget modal
+    budget_user_suffix:"'s Budget (THB)",
   }
 };
 let lang='zh';
@@ -716,13 +719,11 @@ function T(k){return (I18N[lang]&&I18N[lang][k])||I18N['zh'][k]||k;}
 let records=[], selCat='food', selCurr='THB', repCatFilter=null, apiUrl='';
 let userNames=['Sam','Patty'], selectedUserIdx=0;
 let noteMemory={}, budgets={}, editingId=null;
-let editSelCat='food'; // for edit modal
-// Per-screen user filter: null=all, 0=user0, 1=user1
+let editSelCat='food';
 let todayUserFilter=null, monthUserFilter=null, repUserFilter=null;
-// 裝置身分：存在本機，不隨雲端同步，永遠鎖定這支手機是誰
 const DEVICE_KEY='xp_device_user';
 
-// ===== 日期工具（防呆） =====
+// ===== 日期工具 =====
 function today(){
   const d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -741,22 +742,14 @@ function normalizeDate(raw){
 function loadLocal(){
   try{
     const r=localStorage.getItem('xp_records');
-    if(r){
-      records=JSON.parse(r).map(rec=>{
-        rec.date=normalizeDate(rec.date);
-        if(!rec.user)rec.user=userNames[0];
-        return rec;
-      });
-    }
+    if(r){records=JSON.parse(r).map(rec=>{rec.date=normalizeDate(rec.date);if(!rec.user)rec.user=userNames[0];return rec;});}
     const ra=localStorage.getItem('xp_rates');if(ra){const s=JSON.parse(ra);CURRENCIES.forEach(c=>{if(s[c.code])c.rate=s[c.code];});}
     apiUrl=localStorage.getItem('xp_api_url')||'';
     const lc=localStorage.getItem('xp_last_curr');if(lc)selCurr=lc;
     const nm=localStorage.getItem('xp_note_memory');if(nm)noteMemory=JSON.parse(nm);
     const lu=localStorage.getItem('xp_last_user');if(lu!==null)selectedUserIdx=parseInt(lu);
     const un=localStorage.getItem('xp_usernames');if(un)userNames=JSON.parse(un);
-    // 裝置身分：用 DEVICE_KEY，不受雲端同步影響
-    const dv=localStorage.getItem(DEVICE_KEY);
-    if(dv!==null)selectedUserIdx=parseInt(dv);
+    const dv=localStorage.getItem(DEVICE_KEY);if(dv!==null)selectedUserIdx=parseInt(dv);
     const bg=localStorage.getItem('xp_budgets');if(bg)budgets=JSON.parse(bg);
     const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
   }catch(e){}
@@ -770,91 +763,142 @@ function saveNoteMemory(){localStorage.setItem('xp_note_memory',JSON.stringify(n
 
 // ===== 語言套用 =====
 function applyLang(){
-  // Nav
+  // Nav buttons
   const navKeys=['add','today','month','report','recurring','settings'];
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{
-    const svg=b.querySelector('svg');
-    b.textContent='';if(svg)b.appendChild(svg);
+    const svg=b.querySelector('svg');b.textContent='';if(svg)b.appendChild(svg);
     b.appendChild(document.createTextNode(T('nav_'+navKeys[i])));
   });
-  // Topbars
-  const titleMap={add:'title_add',today:'title_today',month:'title_month',report:'title_report',settings:'title_settings'};
-  Object.entries(titleMap).forEach(([screen,key])=>{
-    const el=document.querySelector('#screen-'+screen+' .topbar-left h1');
-    if(el)el.textContent=T(key);
-  });
-  document.querySelector('#screen-settings .topbar-left p').textContent=T('settings_subtitle');
-  document.querySelector('#screen-report .topbar-left p').textContent=T('report_subtitle');
-  // Add screen labels
-  document.querySelector('label[for="inp-amount"], #screen-add .form-label:nth-of-type(3)');
-  const addLabels=document.querySelectorAll('#screen-add .form-label');
-  const addLabelKeys=['who_paid','lbl_cat','lbl_amount','lbl_curr','lbl_note','lbl_date'];
-  addLabels.forEach((el,i)=>{if(addLabelKeys[i])el.textContent=T(addLabelKeys[i]);});
-  document.getElementById('inp-note').placeholder=T('note_placeholder');
-  document.getElementById('inp-custom-cat').placeholder=T('custom_cat_placeholder');
-  document.querySelector('.curr-more-label').textContent=T('curr_other');
-  document.getElementById('save-btn').textContent=T('btn_save');
-  // Today
-  document.querySelector('#today-total').closest('.stat').querySelector('.stat-label').textContent=T('today_total');
-  document.querySelector('#today-total').closest('.stat').querySelector('.stat-sub').textContent=T('today_sub');
-  document.querySelector('#today-count').closest('.stat').querySelector('.stat-sub').textContent=T('count_sub');
-  document.querySelector('#screen-today .section-title').textContent=T('sec_details');
-  // Month
-  document.querySelector('#month-total').closest('.stat').querySelector('.stat-label').textContent=T('month_total');
-  document.querySelector('#month-total').closest('.stat').querySelector('.stat-sub').textContent=T('today_sub');
-  document.querySelector('#month-count').closest('.stat').querySelector('.stat-sub').textContent=T('count_sub');
-  document.querySelectorAll('#screen-month .section-title').forEach((el,i)=>{
-    el.textContent=[T('sec_cat_analysis'),T('sec_details')][i]||el.textContent;
-  });
-  // Report
-  document.querySelectorAll('#screen-report .form-label').forEach((el,i)=>{
-    [T('start_date'),T('end_date'),T('filter_cat')].forEach((v,j)=>{if(i===j)el.textContent=v;});
-  });
-  document.getElementById('rep-run-btn').textContent=T('btn_search');
-  document.querySelector('#rep-total').closest('.card').querySelector('.stat-label').textContent=T('report_total');
-  document.querySelector('#screen-report .section-title') && (document.querySelector('#rep-list').previousElementSibling.textContent=T('sec_details'));
-  // Settings
-  document.querySelectorAll('#screen-settings .section-title').forEach((el,i)=>{
-    [T('sec_lang'),T('sec_users'),T('sec_cloud'),T('sec_rates'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
-  });
-  document.querySelectorAll('#screen-settings .form-label').forEach(el=>{
-    if(el.textContent.includes('1')||el.textContent.includes('User 1'))el.textContent=T('lbl_user1');
-    if(el.textContent.includes('2')||el.textContent.includes('User 2'))el.textContent=T('lbl_user2');
-  });
-  document.getElementById('save-users-btn').textContent=T('btn_save_users');
-  document.getElementById('change-identity-btn').textContent=T('btn_change_identity');
-  document.getElementById('change-api-btn').textContent=T('btn_change_api');
-  document.querySelector('#rate-fetch-btn').textContent=T('btn_update_rate');
-  document.querySelector('#screen-settings .rate-header span').textContent=T('rate_spot');
-  document.querySelector('#screen-settings .rate-hint') && (document.querySelector('#screen-settings .rate-hint').textContent=T('rate_hint'));
-  document.getElementById('refresh-btn').textContent=T('btn_resync');
-  document.getElementById('export-btn').textContent=T('btn_export');
-  document.getElementById('clear-btn').textContent=T('btn_clear');
-  document.querySelector('#screen-settings .data-hint') && (document.querySelector('#screen-settings .data-hint').textContent=T('data_hint'));
+  // Screen titles & subtitles
+  const titleIds={
+    'title-add-screen':'title_add','title-today-screen':'title_today',
+    'title-month-screen':'title_month','title-report-screen':'title_report',
+    'title-settings-screen':'title_settings','title-recurring-screen':'title_recurring'
+  };
+  Object.entries(titleIds).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.textContent=T(key);});
+  const subIds={
+    'subtitle-settings-screen':'settings_subtitle','subtitle-report-screen':'report_subtitle',
+    'subtitle-recurring-screen':'recurring_subtitle'
+  };
+  Object.entries(subIds).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.textContent=T(key);});
+
+  // Add screen
+  const lbl=document.getElementById('lbl-who-paid');if(lbl)lbl.textContent=T('who_paid');
+  const lblCat=document.getElementById('lbl-main-cat');if(lblCat)lblCat.textContent=T('lbl_cat');
+  const lblAmt=document.getElementById('lbl-main-amount');if(lblAmt)lblAmt.textContent=T('lbl_amount');
+  const lblCurr=document.getElementById('lbl-main-curr');if(lblCurr)lblCurr.textContent=T('lbl_curr');
+  const lblNote=document.getElementById('lbl-main-note');if(lblNote)lblNote.textContent=T('lbl_note');
+  const lblDate=document.getElementById('lbl-main-date');if(lblDate)lblDate.textContent=T('lbl_date');
+  const lblOther=document.getElementById('lbl-curr-other');if(lblOther)lblOther.textContent=T('curr_other');
+  const inpNote=document.getElementById('inp-note');if(inpNote)inpNote.placeholder=T('note_placeholder');
+  const inpCustCat=document.getElementById('inp-custom-cat');if(inpCustCat)inpCustCat.placeholder=T('custom_cat_placeholder');
+  const saveBtn=document.getElementById('save-btn');if(saveBtn)saveBtn.textContent=T('btn_save');
+
+  // Today screen
+  const tsl=document.getElementById('today-stat-lbl');if(tsl)tsl.textContent=T('today_total');
+  const tss=document.getElementById('today-stat-sub');if(tss)tss.textContent=T('today_sub');
+  const tcl=document.getElementById('today-count-lbl');if(tcl)tcl.textContent=T('count_lbl');
+  const tcs=document.getElementById('today-count-sub');if(tcs)tcs.textContent=T('count_sub');
+  const tdt=document.getElementById('today-detail-title');if(tdt)tdt.textContent=T('sec_details');
+
+  // Month screen
+  const msl=document.getElementById('month-stat-lbl');if(msl)msl.textContent=T('month_total');
+  const mss=document.getElementById('month-stat-sub');if(mss)mss.textContent=T('today_sub');
+  const mcl=document.getElementById('month-count-lbl');if(mcl)mcl.textContent=T('count_lbl');
+  const mcs=document.getElementById('month-count-sub');if(mcs)mcs.textContent=T('count_sub');
+  const mct=document.getElementById('month-cat-title');if(mct)mct.textContent=T('sec_cat_analysis');
+  const mdt=document.getElementById('month-detail-title');if(mdt)mdt.textContent=T('sec_details');
+
+  // Report screen
+  const rfl=document.getElementById('rep-lbl-from');if(rfl)rfl.textContent=T('start_date');
+  const rtl=document.getElementById('rep-lbl-to');if(rtl)rtl.textContent=T('end_date');
+  const rcl=document.getElementById('rep-lbl-cat');if(rcl)rcl.textContent=T('filter_cat');
+  const rrb=document.getElementById('rep-run-btn');if(rrb)rrb.textContent=T('btn_search');
+  const rtot=document.getElementById('rep-total-lbl');if(rtot)rtot.textContent=T('report_total');
+  const rdt=document.getElementById('rep-detail-title');if(rdt)rdt.textContent=T('sec_details');
+
+  // Settings screen
+  const secLang=document.getElementById('sec-lang');if(secLang)secLang.textContent=T('sec_lang');
+  const secUsers=document.getElementById('sec-users');if(secUsers)secUsers.textContent=T('sec_users');
+  const secCloud=document.getElementById('sec-cloud');if(secCloud)secCloud.textContent=T('sec_cloud');
+  const secRates=document.getElementById('sec-rates');if(secRates)secRates.textContent=T('sec_rates');
+  const secData=document.getElementById('sec-data');if(secData)secData.textContent=T('sec_data');
+  const slbl0=document.getElementById('set-lbl-user0');if(slbl0)slbl0.textContent=T('lbl_user1');
+  const slbl1=document.getElementById('set-lbl-user1');if(slbl1)slbl1.textContent=T('lbl_user2');
+  const suBtn=document.getElementById('save-users-btn');if(suBtn)suBtn.textContent=T('btn_save_users');
+  const ciBtn=document.getElementById('change-identity-btn');if(ciBtn)ciBtn.textContent=T('btn_change_identity');
+  const caBtn=document.getElementById('change-api-btn');if(caBtn)caBtn.textContent=T('btn_change_api');
+  const rfBtn=document.getElementById('rate-fetch-btn');if(rfBtn)rfBtn.textContent=T('btn_update_rate');
+  const rsLbl=document.getElementById('rate-spot-lbl');if(rsLbl)rsLbl.textContent=T('rate_spot');
+  const rhText=document.getElementById('rate-hint-text');if(rhText)rhText.textContent=T('rate_hint');
+  const dhText=document.getElementById('data-hint-text');if(dhText)dhText.textContent=T('data_hint');
+  const refrBtn=document.getElementById('refresh-btn');if(refrBtn)refrBtn.textContent=T('btn_resync');
+  const expBtn=document.getElementById('export-btn');if(expBtn)expBtn.textContent=T('btn_export');
+  const clrBtn=document.getElementById('clear-btn');if(clrBtn)clrBtn.textContent=T('btn_clear');
+
   // Modals
-  document.querySelector('#setup-modal h2').textContent=T('modal_setup_title');
-  document.querySelector('#setup-modal p').textContent=T('modal_setup_desc');
-  const setupSteps=document.querySelectorAll('#setup-modal .step-text');
-  ['step1','step2','step3','step4'].forEach((k,i)=>{if(setupSteps[i])setupSteps[i].textContent=T(k);});
-  document.querySelector('#setup-modal .form-label').textContent=T('lbl_api_url');
-  document.getElementById('api-url-input').placeholder='https://script.google.com/macros/s/.../exec';
-  document.getElementById('save-api-btn').textContent=T('btn_test_conn');
-  document.getElementById('skip-setup-btn').textContent=T('btn_skip');
-  document.querySelector('#edit-modal h2').textContent=T('modal_edit_title');
-  document.querySelectorAll('#edit-modal .form-label').forEach((el,i)=>{
-    [T('lbl_amount'),T('lbl_date'),T('lbl_note')].forEach((v,j)=>{if(i===j)el.textContent=v;});
+  const smTitle=document.getElementById('setup-modal-title');if(smTitle)smTitle.textContent=T('modal_setup_title');
+  const smDesc=document.getElementById('setup-modal-desc');if(smDesc)smDesc.textContent=T('modal_setup_desc');
+  const ss1=document.getElementById('setup-step1');if(ss1)ss1.textContent=T('step1');
+  const ss2=document.getElementById('setup-step2');if(ss2)ss2.textContent=T('step2');
+  const ss3=document.getElementById('setup-step3');if(ss3)ss3.textContent=T('step3');
+  const ss4=document.getElementById('setup-step4');if(ss4)ss4.textContent=T('step4');
+  const saLbl=document.getElementById('setup-api-lbl');if(saLbl)saLbl.textContent=T('lbl_api_url');
+  const saBtn=document.getElementById('save-api-btn');if(saBtn)saBtn.textContent=T('btn_test_conn');
+  const skipBtn=document.getElementById('skip-setup-btn');if(skipBtn)skipBtn.textContent=T('btn_skip');
+
+  const emTitle=document.getElementById('edit-modal-title');if(emTitle)emTitle.textContent=T('modal_edit_title');
+  const elCat=document.getElementById('edit-lbl-cat');if(elCat)elCat.textContent=T('lbl_cat');
+  const elAmt=document.getElementById('edit-lbl-amt');if(elAmt)elAmt.textContent=T('lbl_amount');
+  const elDate=document.getElementById('edit-lbl-date');if(elDate)elDate.textContent=T('lbl_date');
+  const elNote=document.getElementById('edit-lbl-note');if(elNote)elNote.textContent=T('lbl_note');
+  const esBtn=document.getElementById('edit-save-btn');if(esBtn)esBtn.textContent=T('btn_save_edit');
+  const ecBtn=document.getElementById('edit-cancel-btn');if(ecBtn)ecBtn.textContent=T('btn_cancel');
+
+  const bmTitle=document.getElementById('budget-modal-title');if(bmTitle)bmTitle.textContent=T('modal_budget_title');
+  const bsBtn=document.getElementById('budget-save-btn');if(bsBtn)bsBtn.textContent=T('btn_save_budget');
+  const bcBtn=document.getElementById('budget-cancel-btn');if(bcBtn)bcBtn.textContent=T('btn_cancel');
+
+  const imTitle=document.getElementById('identity-modal-title');if(imTitle)imTitle.textContent=T('identity_title');
+  const imDesc=document.getElementById('identity-modal-desc');if(imDesc)imDesc.textContent=T('identity_desc');
+
+  // Recurring modal
+  const rmTitle=document.getElementById('recurring-modal-title');if(rmTitle)rmTitle.textContent=T('modal_recurring_title');
+  const lrn=document.getElementById('lbl-rec-name');if(lrn)lrn.textContent=T('lbl_rec_name');
+  const lrc=document.getElementById('lbl-rec-cat');if(lrc)lrc.textContent=T('lbl_rec_cat');
+  const lra=document.getElementById('lbl-rec-amt');if(lra)lra.textContent=T('lbl_rec_amt');
+  const lrf=document.getElementById('lbl-rec-freq');if(lrf)lrf.textContent=T('lbl_rec_freq');
+  const lrs=document.getElementById('lbl-rec-start');if(lrs)lrs.textContent=T('lbl_rec_start');
+  const rnp=document.getElementById('rec-name');if(rnp)rnp.placeholder=T('rec_name_placeholder');
+  const rsBtn=document.getElementById('rec-save-btn');if(rsBtn)rsBtn.textContent=T('btn_save_budget');
+  const rcBtn=document.getElementById('rec-cancel-btn');if(rcBtn)rcBtn.textContent=T('btn_cancel');
+  // Freq buttons
+  ['daily','workday','weekend','weekly','monthly','yearly'].forEach(f=>{
+    const b=document.getElementById('freq-'+f);if(b)b.textContent=T('freq_'+f);
   });
-  document.getElementById('edit-save-btn').textContent=T('btn_save_edit');
-  document.getElementById('edit-cancel-btn').textContent=T('btn_cancel');
-  document.querySelector('#budget-modal h2').textContent=T('modal_budget_title');
-  document.getElementById('budget-save-btn').textContent=T('btn_save_budget');
-  document.getElementById('budget-cancel-btn').textContent=T('btn_cancel');
-  document.querySelector('#identity-modal h2').textContent=T('identity_title');
-  document.querySelector('#identity-modal p').textContent=T('identity_desc');
+  // Add recurring btn
+  const arBtn=document.getElementById('add-recurring-btn');if(arBtn)arBtn.textContent=T('btn_add_recurring');
+  // Due banner
+  const dbTitle=document.getElementById('due-banner-title');if(dbTitle)dbTitle.textContent=T('due_banner_title');
+
+  // Scan modal
+  const scTitle=document.getElementById('scan-modal-title');if(scTitle)scTitle.textContent=T('scan_title');
+  const scDesc=document.getElementById('scan-modal-desc');if(scDesc)scDesc.textContent=T('scan_desc');
+  const scUploadLbl=document.getElementById('scan-upload-label');if(scUploadLbl)scUploadLbl.textContent=T('scan_upload_label');
+  const scAnalyzeBtn=document.getElementById('scan-analyze-btn');if(scAnalyzeBtn)scAnalyzeBtn.textContent=T('scan_analyze');
+  const scLoadingTxt=document.getElementById('scan-loading-text');if(scLoadingTxt)scLoadingTxt.textContent=T('scan_analyzing');
+  const scLblAmt=document.getElementById('scan-lbl-amount');if(scLblAmt)scLblAmt.textContent=T('scan_lbl_amount');
+  const scLblNote=document.getElementById('scan-lbl-note');if(scLblNote)scLblNote.textContent=T('scan_lbl_note');
+  const scLblCat=document.getElementById('scan-lbl-cat');if(scLblCat)scLblCat.textContent=T('scan_lbl_cat');
+  const scLblCurr=document.getElementById('scan-lbl-curr');if(scLblCurr)scLblCurr.textContent=T('scan_lbl_curr');
+  const scConfirmBtn=document.getElementById('scan-confirm-btn');if(scConfirmBtn)scConfirmBtn.textContent=T('scan_confirm');
+  const scCancelBtn=document.getElementById('scan-cancel-btn');if(scCancelBtn)scCancelBtn.textContent=T('scan_cancel');
+
   // rebuild dynamic UI
   buildCatGrid();buildCurrUI();
   refreshAll();
   updateDeviceIdentityDisplay();
+  updateLangBtns();
 }
 
 // ===== API =====
@@ -872,13 +916,10 @@ async function syncFromCloud(){
     if(res.records){
       records=res.records.map(r=>{
         r.date=normalizeDate(r.date);
-        // 若雲端沒有 user，歸給使用者 1
         if(!r.user||r.user==='')r.user=userNames[0];
         return r;
       });
-      saveLocal();
-      setSyncStatus(true);
-      return true;
+      saveLocal();setSyncStatus(true);return true;
     }
   }catch(e){setSyncStatus(false,e.message);}
   return false;
@@ -902,8 +943,8 @@ function hideSetupModal(){document.getElementById('setup-modal').classList.add('
 document.getElementById('save-api-btn').onclick=async()=>{
   const url=document.getElementById('api-url-input').value.trim();
   const msg=document.getElementById('modal-msg'),btn=document.getElementById('save-api-btn');
-  if(!url){msg.className='msg error';msg.textContent='請貼入網址';return;}
-  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>測試中...';
+  if(!url){msg.className='msg error';msg.textContent=T('err_no_api');return;}
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>'+T('conn_testing');
   msg.className='msg info';msg.textContent=T('conn_testing');
   try{
     const res=await fetch(url+'?action=ping');const json=await res.json();
@@ -913,15 +954,13 @@ document.getElementById('save-api-btn').onclick=async()=>{
       await syncFromCloud();refreshAll();
       setTimeout(()=>hideSetupModal(),800);
     }else throw new Error(json.message);
-  }catch(e){
-    msg.className='msg error';msg.textContent=T('conn_fail')+e.message+T('conn_fail_hint');
-  }
+  }catch(e){msg.className='msg error';msg.textContent=T('conn_fail')+e.message+T('conn_fail_hint');}
   btn.disabled=false;btn.innerHTML=T('btn_test_conn');
 };
 document.getElementById('skip-setup-btn').onclick=()=>hideSetupModal();
 document.getElementById('change-api-btn').onclick=()=>showSetupModal();
 
-// ===== 裝置身分選擇 =====
+// ===== 裝置身分 =====
 function showIdentityModal(){
   const modal=document.getElementById('identity-modal');
   const btns=document.getElementById('identity-btns');
@@ -931,18 +970,11 @@ function showIdentityModal(){
     const b=document.createElement('button');
     b.style.cssText=`padding:20px;border:3px solid ${colors[i]};border-radius:16px;background:#fff;cursor:pointer;font-size:18px;font-weight:900;color:${colors[i]};font-family:'Noto Sans TC',sans-serif;transition:all 0.2s`;
     b.textContent=T('identity_prefix_'+i)+name+T('identity_suffix');
-    b.onclick=()=>{
-      selectedUserIdx=i;
-      localStorage.setItem(DEVICE_KEY,i);
-      updateUserToggle();
-      modal.classList.add('hidden');
-    };
+    b.onclick=()=>{selectedUserIdx=i;localStorage.setItem(DEVICE_KEY,i);updateUserToggle();modal.classList.add('hidden');};
     btns.appendChild(b);
   });
   modal.classList.remove('hidden');
 }
-
-
 function updateUserToggle(){
   const btns=document.querySelectorAll('#user-toggle .segment-btn');
   btns.forEach((b,i)=>{
@@ -962,10 +994,10 @@ document.getElementById('save-users-btn').onclick=()=>{
   userNames[0]=document.getElementById('set-user-0').value.trim()||'Sam';
   userNames[1]=document.getElementById('set-user-1').value.trim()||'Patty';
   localStorage.setItem('xp_usernames',JSON.stringify(userNames));
-  updateUserToggle();
-  refreshAll();
+  updateUserToggle();refreshAll();
   alert(T('users_saved'));
 };
+document.getElementById('change-identity-btn').onclick=()=>showIdentityModal();
 
 // ===== 備註記憶 =====
 function addNoteMemory(catId,note){
@@ -997,38 +1029,29 @@ document.getElementById('inp-note').onblur=()=>{setTimeout(()=>{document.getElem
 // ===== 計算機 =====
 (function(){
   const inp=document.getElementById('inp-amount');
-  // 運算子按鈕
   document.querySelectorAll('.calc-op-btn').forEach(b=>{
     b.onclick=()=>{
       const op=b.dataset.op;
       if(op==='C'){inp.value='';return;}
       const cur=inp.value.trim();
       if(!cur)return;
-      // 如果最後一個字元已是運算子，替換它
-      if(['+','-','*','/'].includes(cur.slice(-1))){
-        inp.value=cur.slice(0,-1)+op;
-      } else {
-        inp.value=cur+op;
-      }
+      if(['+','-','*','/'].includes(cur.slice(-1))){inp.value=cur.slice(0,-1)+op;}
+      else{inp.value=cur+op;}
     };
   });
   document.getElementById('calc-eval-btn').onclick=()=>{
     const expr=inp.value.trim().replace(/[^0-9+\-*/.]/g,'');
     if(!expr)return;
     try{
-      // safe eval: only allow numbers and operators
       if(!/^[0-9+\-*/.]+$/.test(expr))return;
       const result=Function('"use strict";return ('+expr+')')();
-      if(isFinite(result)&&result>=0){
-        inp.value=Math.round(result*100)/100;
-      }
+      if(isFinite(result)&&result>=0)inp.value=Math.round(result*100)/100;
     }catch(e){}
   };
-  // 按 Enter 也觸發計算
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){document.getElementById('calc-eval-btn').click();}});
 })();
 
-// ===== 編輯 Modal 類別 Grid =====
+// ===== Edit Modal Cat Grid =====
 function buildEditCatGrid(){
   const g=document.getElementById('edit-cat-grid');g.innerHTML='';
   PRIMARY_CATS.forEach(id=>{
@@ -1051,22 +1074,15 @@ function buildEditCatGrid(){
   });
   sel.className=isSecSel?'curr-select selected-other':'curr-select';
 }
-document.getElementById('edit-cat-more').onchange=function(){
-  if(this.value){editSelCat=this.value;buildEditCatGrid();}
-};
+document.getElementById('edit-cat-more').onchange=function(){if(this.value){editSelCat=this.value;buildEditCatGrid();}};
 
-// ===== 使用者分頁 Tab =====
+// ===== User Tabs =====
 function buildUserTabs(containerId,currentFilter,onChange){
   const el=document.getElementById(containerId);if(!el)return;
   el.innerHTML='';
-  const tabs=[
-    {label:T('all_cats'),val:null,cls:'tab-all active-all'},
-    {label:'💙 '+userNames[0],val:0,cls:''},
-    {label:'💗 '+userNames[1],val:1,cls:''},
-  ];
+  const tabs=[{label:T('all_cats'),val:null},{label:'💙 '+userNames[0],val:0},{label:'💗 '+userNames[1],val:1}];
   tabs.forEach(tab=>{
-    const b=document.createElement('button');
-    b.className='user-tab';
+    const b=document.createElement('button');b.className='user-tab';
     if(tab.val===null&&currentFilter===null)b.classList.add('active-all');
     else if(tab.val===0&&currentFilter===0)b.classList.add('active-0');
     else if(tab.val===1&&currentFilter===1)b.classList.add('active-1');
@@ -1085,7 +1101,7 @@ function getCurr(c){return CURRENCIES.find(x=>x.code===c)||CURRENCIES[0];}
 function fmtTHB(v){return '฿ '+Math.round(v).toLocaleString();}
 function fmtAmt(a,c){const x=getCurr(c);return x.symbol+parseFloat(a).toLocaleString(undefined,{maximumFractionDigits:2});}
 
-// ===== 類別 UI =====
+// ===== Cat UI =====
 function buildCatGrid(){
   const g=document.getElementById('cat-grid');g.innerHTML='';
   PRIMARY_CATS.forEach(id=>{
@@ -1093,13 +1109,7 @@ function buildCatGrid(){
     const b=document.createElement('button');
     b.className='cat-btn'+(selCat===id?' selected':'');
     b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
-    b.onclick=()=>{
-      selCat=id;
-      document.getElementById('cat-select-more').value='';
-      buildCatGrid();
-      document.getElementById('custom-cat-wrap').className='custom-cat-wrap';
-      updateNoteSuggestions();
-    };
+    b.onclick=()=>{selCat=id;document.getElementById('cat-select-more').value='';buildCatGrid();document.getElementById('custom-cat-wrap').className='custom-cat-wrap';updateNoteSuggestions();};
     g.appendChild(b);
   });
   const sel=document.getElementById('cat-select-more');
@@ -1115,13 +1125,10 @@ function buildCatGrid(){
   document.getElementById('custom-cat-wrap').className=selCat==='other'?'custom-cat-wrap show':'custom-cat-wrap';
 }
 document.getElementById('cat-select-more').onchange=function(){
-  if(this.value){
-    selCat=this.value;buildCatGrid();updateNoteSuggestions();
-    document.getElementById('custom-cat-wrap').className=selCat==='other'?'custom-cat-wrap show':'custom-cat-wrap';
-  }
+  if(this.value){selCat=this.value;buildCatGrid();updateNoteSuggestions();document.getElementById('custom-cat-wrap').className=selCat==='other'?'custom-cat-wrap show':'custom-cat-wrap';}
 };
 
-// ===== 幣別 UI =====
+// ===== Currency UI =====
 function buildCurrUI(){
   const qg=document.getElementById('curr-quick');qg.innerHTML='';
   QUICK_CURR.forEach(code=>{
@@ -1144,12 +1151,11 @@ document.getElementById('curr-select').onchange=function(){
   if(this.value){selCurr=this.value;localStorage.setItem('xp_last_curr',this.value);buildCurrUI();}
 };
 
-// ===== 編輯 Modal =====
+// ===== Edit Modal =====
 document.getElementById('edit-cancel-btn').onclick=()=>{document.getElementById('edit-modal').classList.add('hidden');editingId=null;};
 document.getElementById('edit-save-btn').onclick=async()=>{
   if(!editingId)return;
-  const amtRaw=document.getElementById('edit-amount').value.trim();
-  const amt=parseFloat(amtRaw);
+  const amt=parseFloat(document.getElementById('edit-amount').value.trim());
   const date=document.getElementById('edit-date').value;
   const note=document.getElementById('edit-note').value.trim();
   if(!amt||amt<=0){alert(T('err_amount'));return;}
@@ -1159,20 +1165,14 @@ document.getElementById('edit-save-btn').onclick=async()=>{
   if(idx>-1){
     records[idx]={...records[idx],cat:editSelCat,amount:amt,date:normalizeDate(date),note};
     saveLocal();refreshAll();
-    if(apiUrl){
-      try{
-        await apiCall('delete',{id:editingId});
-        await apiCall('add',records[idx]);
-      }catch(e){console.warn('Cloud edit failed',e);}
-    }
+    if(apiUrl){try{await apiCall('delete',{id:editingId});await apiCall('add',records[idx]);}catch(e){console.warn('Cloud edit failed',e);}}
   }
   btn.disabled=false;btn.textContent=T('btn_save_edit');
   document.getElementById('edit-modal').classList.add('hidden');editingId=null;
 };
 function openEditModal(id){
   const r=records.find(x=>x.id===id);if(!r)return;
-  editingId=id;
-  editSelCat=r.cat||'food';
+  editingId=id;editSelCat=r.cat||'food';
   document.getElementById('edit-amount').value=r.amount;
   document.getElementById('edit-date').value=r.date;
   document.getElementById('edit-note').value=r.note||'';
@@ -1180,7 +1180,7 @@ function openEditModal(id){
   document.getElementById('edit-modal').classList.remove('hidden');
 }
 
-// ===== 預算 Modal =====
+// ===== Budget Modal =====
 document.getElementById('budget-cancel-btn').onclick=()=>document.getElementById('budget-modal').classList.add('hidden');
 document.getElementById('budget-save-btn').onclick=()=>{
   const m=thisMonth();
@@ -1193,8 +1193,9 @@ document.getElementById('budget-save-btn').onclick=()=>{
 };
 function openBudgetModal(){
   const m=thisMonth();
-  document.getElementById('budget-label-0').textContent=userNames[0]+' 的預算 (THB)';
-  document.getElementById('budget-label-1').textContent=userNames[1]+' 的預算 (THB)';
+  const suffix=T('budget_user_suffix');
+  document.getElementById('budget-label-0').textContent=userNames[0]+suffix;
+  document.getElementById('budget-label-1').textContent=userNames[1]+suffix;
   document.getElementById('budget-input-0').value=budgets[m+'_0']||'';
   document.getElementById('budget-input-1').value=budgets[m+'_1']||'';
   document.getElementById('budget-modal').classList.remove('hidden');
@@ -1221,7 +1222,6 @@ function renderEntries(list,cid){
       if(r.curr==='THB')auxHTML=`≈ NT$ ${Math.round(twdAmt).toLocaleString()}`;
       else if(r.curr==='TWD')auxHTML=`≈ ฿ ${Math.round(thbAmt).toLocaleString()}`;
       else auxHTML=`≈ ฿ ${Math.round(thbAmt).toLocaleString()} / NT$ ${Math.round(twdAmt).toLocaleString()}`;
-      // 判斷 user badge
       const recUser=r.user||userNames[0];
       const isU1=recUser===userNames[1];
       const badgeClass=isU1?'user-badge u1':'user-badge';
@@ -1237,8 +1237,8 @@ function renderEntries(list,cid){
           <div class="entry-aux">${auxHTML}</div>
         </div>
         <div class="entry-actions">
-          <button class="edit-btn" data-id="${r.id}" title="編輯">✎</button>
-          <button class="del-btn" data-id="${r.id}" title="刪除">×</button>
+          <button class="edit-btn" data-id="${r.id}" title="${T('modal_edit_title')}">✎</button>
+          <button class="del-btn" data-id="${r.id}" title="${T('confirm_delete')}">×</button>
         </div>`;
       dv.querySelector('.edit-btn').onclick=()=>openEditModal(r.id);
       dv.querySelector('.del-btn').onclick=async()=>{
@@ -1260,8 +1260,7 @@ function renderBars(list,cid){
     if(!bycat[r.cat])bycat[r.cat]={total:0,u0:0,u1:0};
     const amt=toTHB(r.amount,r.curr);
     bycat[r.cat].total+=amt;
-    if((r.user||u0)===u0)bycat[r.cat].u0+=amt;
-    else bycat[r.cat].u1+=amt;
+    if((r.user||u0)===u0)bycat[r.cat].u0+=amt;else bycat[r.cat].u1+=amt;
   });
   const max=Math.max(...Object.values(bycat).map(v=>v.total));
   el.innerHTML='';
@@ -1330,6 +1329,7 @@ function renderMonthBudget(list,m,cid){
   const rem0=bgt0-spent0;const rem1=bgt1-spent1;
   const pct0=bgt0>0?Math.min(spent0/bgt0*100,100):0;
   const pct1=bgt1>0?Math.min(spent1/bgt1*100,100):0;
+  const suffix=T('budget_user_suffix');
   el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div class="section-title" style="margin:0">${T('sec_budget')}</div>
@@ -1353,12 +1353,7 @@ function renderMonthBudget(list,m,cid){
     </div>`;
 }
 
-document.getElementById('change-identity-btn').onclick=()=>showIdentityModal();
-
-function setLang(l){
-  lang=l;localStorage.setItem('xp_lang',l);
-  updateLangBtns();applyLang();
-}
+function setLang(l){lang=l;localStorage.setItem('xp_lang',l);applyLang();}
 function updateLangBtns(){
   const z=document.getElementById('lang-zh-btn'),e=document.getElementById('lang-en-btn');
   if(z){z.style.borderColor=lang==='zh'?'#4f46e5':'#e2e8f0';z.style.background=lang==='zh'?'#eef2ff':'#fff';z.style.color=lang==='zh'?'#4f46e5':'#475569';}
@@ -1397,16 +1392,17 @@ function refreshMonth(){
 function refreshReport(){buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});}
 function runReport(){
   const from=document.getElementById('rep-from').value,to=document.getElementById('rep-to').value;
-  if(!from||!to){alert('請選擇日期範圍');return;}
+  if(!from||!to){alert(T('err_date'));return;}
   let list=records.filter(r=>r.date>=from&&r.date<=to);
   if(repCatFilter)list=list.filter(r=>r.cat===repCatFilter);
   const total=list.reduce((s,r)=>s+toTHB(r.amount,r.curr),0);
   document.getElementById('rep-result').style.display='block';
   document.getElementById('rep-total').textContent=Math.round(total).toLocaleString();
-  document.getElementById('rep-sub').textContent=list.length+T('count_sub')+' · '+from+' ~ '+to;
+  document.getElementById('rep-sub').textContent=list.length+' '+T('count_sub')+' · '+from+' ~ '+to;
   renderCompare(list,'rep-compare');
   renderBars(list,'rep-bars');
-  buildUserTabs('rep-user-tabs',repUserFilter,(f)=>{repUserFilter=f;
+  buildUserTabs('rep-user-tabs',repUserFilter,(f)=>{
+    repUserFilter=f;
     buildUserTabs('rep-user-tabs',repUserFilter,()=>{});
     renderEntries(filterByUser(list,repUserFilter),'rep-list');
   });
@@ -1416,8 +1412,7 @@ function refreshSettings(){
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
   if(apiUrl){cdot.className='sync-dot ok';ctext.textContent=T('conn_ok');}
   else{cdot.className='sync-dot err';ctext.textContent=T('conn_no');}
-  updateDeviceIdentityDisplay();
-  buildRateList();
+  updateDeviceIdentityDisplay();buildRateList();
 }
 function updateDeviceIdentityDisplay(){
   const info=document.getElementById('device-identity-info');
@@ -1432,7 +1427,8 @@ function buildRateList(){
     el.appendChild(row);
   });
   const twdRate=getRate('TWD');
-  document.getElementById('twd-ref').textContent=twdRate>0?T('twd_ref')+(1/twdRate).toFixed(4):'';}
+  document.getElementById('twd-ref').textContent=twdRate>0?T('twd_ref')+(1/twdRate).toFixed(4):'';
+}
 function refreshAll(){refreshToday();refreshMonth();}
 
 // ===== Nav =====
@@ -1448,15 +1444,11 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
 
 // ===== 儲存記錄 =====
 document.getElementById('save-btn').onclick=async()=>{
-  // 支援算式：先嘗試 eval，再 parseFloat
   const rawVal=document.getElementById('inp-amount').value.trim();
   let amt=0;
   try{
     const expr=rawVal.replace(/[^0-9+\-*/.]/g,'');
-    if(expr&&/^[0-9+\-*/.]+$/.test(expr)){
-      const r=Function('"use strict";return ('+expr+')')();
-      if(isFinite(r)&&r>0)amt=Math.round(r*100)/100;
-    }
+    if(expr&&/^[0-9+\-*/.]+$/.test(expr)){const r=Function('"use strict";return ('+expr+')')();if(isFinite(r)&&r>0)amt=Math.round(r*100)/100;}
   }catch(e){}
   if(!amt)amt=parseFloat(rawVal);
   const noteVal=document.getElementById('inp-note').value.trim();
@@ -1513,176 +1505,6 @@ document.getElementById('rate-fetch-btn').onclick=async()=>{
 };
 
 // ===== 其他按鈕 =====
-// ===== 掃描收據 =====
-(function(){
-  let scanBase64='', scanSelCat='food', scanSelCurr='THB';
-
-  function showScanStep(step){
-    ['upload','loading','result'].forEach(s=>{
-      document.getElementById('scan-step-'+s).style.display=s===step?'block':'none';
-    });
-  }
-
-  // 開啟 modal
-  document.getElementById('scan-open-btn').onclick=()=>{
-    scanBase64=''; scanSelCat='food'; scanSelCurr=selCurr;
-    document.getElementById('scan-preview-wrap').style.display='none';
-    document.getElementById('scan-analyze-btn').disabled=true;
-    document.getElementById('scan-result-msg').className='msg';
-    showScanStep('upload');
-    document.getElementById('scan-modal').classList.remove('hidden');
-    buildScanCatGrid(); buildScanCurrUI();
-  };
-  document.getElementById('scan-cancel-btn').onclick=()=>{
-    document.getElementById('scan-modal').classList.add('hidden');
-    document.getElementById('scan-file-input').value='';
-  };
-
-  // 選圖片
-  document.getElementById('scan-file-input').onchange=function(){
-    const file=this.files[0]; if(!file)return;
-    const reader=new FileReader();
-    reader.onload=e=>{
-      scanBase64=e.target.result.split(',')[1];
-      document.getElementById('scan-preview-img').src=e.target.result;
-      document.getElementById('scan-preview-wrap').style.display='block';
-      document.getElementById('scan-analyze-btn').disabled=false;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // 分析按鈕
-  document.getElementById('scan-analyze-btn').onclick=async()=>{
-    if(!scanBase64)return;
-    showScanStep('loading');
-    try{
-      const prompt=`你是一個收據分析助手。請分析這張收據圖片，用 JSON 格式回答（只回 JSON，不要其他文字）：
-{
-  "amount": 數字（總金額，如果有多個數字取最終應付金額）,
-  "currency": "幣別代碼，例如 THB TWD USD JPY，如果看不出來用 THB",
-  "note": "店家名稱或簡短說明（15字以內）",
-  "cat": "最適合的類別ID，只能從這些選：food drink transport shopping home travel entertainment medical beauty education bills other",
-  "confidence": "high 或 low（對類別的信心程度）"
-}
-如果完全看不出金額，amount 填 0。`;
-
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-20250514',
-          max_tokens:300,
-          messages:[{
-            role:'user',
-            content:[
-              {type:'image',source:{type:'base64',media_type:'image/jpeg',data:scanBase64}},
-              {type:'text',text:prompt}
-            ]
-          }]
-        })
-      });
-      const data=await res.json();
-      const text=data.content?.[0]?.text||'';
-      const jsonMatch=text.match(/\{[\s\S]*\}/);
-      if(!jsonMatch)throw new Error('無法解析回應');
-      const result=JSON.parse(jsonMatch[0]);
-
-      // 填入結果
-      document.getElementById('scan-amount').value=result.amount>0?result.amount:'';
-      document.getElementById('scan-note').value=result.note||'';
-
-      // 設定幣別
-      const detectedCurr=CURRENCIES.find(c=>c.code===result.currency)?result.currency:'THB';
-      scanSelCurr=detectedCurr;
-      buildScanCurrUI();
-
-      // 設定類別
-      const validCat=CATS.find(c=>c.id===result.cat);
-      scanSelCat=validCat?result.cat:'other';
-      buildScanCatGrid();
-
-      // 如果信心低或類別是 other，顯示提示
-      const msg=document.getElementById('scan-result-msg');
-      if(result.confidence==='low'||!validCat){
-        msg.className='msg info';
-        msg.textContent='AI 無法確定類別，請自行選擇 👇';
-      } else {
-        msg.className='msg success';
-        msg.textContent='✅ 分析完成！請確認資料後記帳。';
-      }
-      if(result.amount===0){
-        msg.className='msg error';
-        msg.textContent='未能識別金額，請手動輸入。';
-      }
-      showScanStep('result');
-    }catch(e){
-      showScanStep('upload');
-      document.getElementById('scan-analyze-btn').disabled=false;
-      alert('分析失敗：'+e.message);
-    }
-  };
-
-  // 確認記帳
-  document.getElementById('scan-confirm-btn').onclick=async()=>{
-    const amt=parseFloat(document.getElementById('scan-amount').value);
-    const note=document.getElementById('scan-note').value.trim();
-    if(!amt||amt<=0){alert(T('err_amount'));return;}
-    // 填入主表單
-    document.getElementById('inp-amount').value=amt;
-    document.getElementById('inp-note').value=note;
-    selCat=scanSelCat; selCurr=scanSelCurr;
-    localStorage.setItem('xp_last_curr',scanSelCurr);
-    buildCatGrid(); buildCurrUI();
-    document.getElementById('scan-modal').classList.add('hidden');
-    document.getElementById('scan-file-input').value='';
-    // 顯示成功提示
-    const msg=document.getElementById('add-msg');
-    msg.className='msg info';
-    msg.textContent='已從收據填入資料，確認後按「儲存記錄」完成。';
-    setTimeout(()=>{msg.className='msg';},5000);
-    // scroll to top of form
-    document.querySelector('#screen-add .content').scrollTop=0;
-  };
-
-  // 掃描用類別 Grid
-  function buildScanCatGrid(){
-    const g=document.getElementById('scan-cat-grid');g.innerHTML='';
-    PRIMARY_CATS.forEach(id=>{
-      const c=getCat(id);
-      const b=document.createElement('button');
-      b.className='cat-btn'+(scanSelCat===id?' selected':'');
-      b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
-      b.onclick=()=>{scanSelCat=id;document.getElementById('scan-cat-more').value='';buildScanCatGrid();};
-      g.appendChild(b);
-    });
-    const sel=document.getElementById('scan-cat-more');
-    const secCats=CATS.filter(c=>!PRIMARY_CATS.includes(c.id));
-    const isSecSel=secCats.some(c=>c.id===scanSelCat);
-    sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
-    secCats.forEach(c=>{
-      const cat=getCat(c.id);
-      const o=document.createElement('option');o.value=cat.id;o.textContent=cat.icon+' '+cat.label;
-      if(scanSelCat===cat.id)o.selected=true;sel.appendChild(o);
-    });
-    sel.className=isSecSel?'curr-select selected-other':'curr-select';
-  }
-  document.getElementById('scan-cat-more').onchange=function(){
-    if(this.value){scanSelCat=this.value;buildScanCatGrid();}
-  };
-
-  // 掃描用幣別快速按鈕
-  function buildScanCurrUI(){
-    const qg=document.getElementById('scan-curr-quick');qg.innerHTML='';
-    QUICK_CURR.forEach(code=>{
-      const b=document.createElement('button');
-      b.className='curr-btn'+(scanSelCurr===code?' selected':'');
-      b.textContent=code;b.title=getCurr(code).name;
-      b.onclick=()=>{scanSelCurr=code;buildScanCurrUI();};
-      qg.appendChild(b);
-    });
-  }
-})();
-
 document.getElementById('rep-run-btn').onclick=runReport;
 document.getElementById('refresh-btn').onclick=async()=>{
   const btn=document.getElementById('refresh-btn');
@@ -1703,26 +1525,147 @@ document.getElementById('clear-btn').onclick=()=>{
   if(confirm(T('confirm_clear'))){records=[];saveLocal();refreshAll();alert(T('cleared'));}
 };
 
+// ===== 掃描收據 =====
+(function(){
+  let scanBase64='', scanSelCat='food', scanSelCurr='THB';
+  function showScanStep(step){['upload','loading','result'].forEach(s=>{document.getElementById('scan-step-'+s).style.display=s===step?'block':'none';});}
+  document.getElementById('scan-open-btn').onclick=()=>{
+    scanBase64='';scanSelCat='food';scanSelCurr=selCurr;
+    document.getElementById('scan-preview-wrap').style.display='none';
+    document.getElementById('scan-analyze-btn').disabled=true;
+    document.getElementById('scan-result-msg').className='msg';
+    showScanStep('upload');
+    document.getElementById('scan-modal').classList.remove('hidden');
+    buildScanCatGrid();buildScanCurrUI();
+  };
+  document.getElementById('scan-cancel-btn').onclick=()=>{document.getElementById('scan-modal').classList.add('hidden');document.getElementById('scan-file-input').value='';};
+  document.getElementById('scan-file-input').onchange=function(){
+    const file=this.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=e=>{scanBase64=e.target.result.split(',')[1];document.getElementById('scan-preview-img').src=e.target.result;document.getElementById('scan-preview-wrap').style.display='block';document.getElementById('scan-analyze-btn').disabled=false;};
+    reader.readAsDataURL(file);
+  };
+  document.getElementById('scan-analyze-btn').onclick=async()=>{
+    if(!scanBase64)return;
+    showScanStep('loading');
+    try{
+      const prompt=`你是一個收據分析助手。請分析這張收據圖片，用 JSON 格式回答（只回 JSON，不要其他文字）：{"amount":數字,"currency":"幣別代碼THB/TWD/USD等","note":"店家名稱15字內","cat":"food/drink/transport/shopping/home/travel/entertainment/medical/beauty/education/bills/other","confidence":"high或low"}`;
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:scanBase64}},{type:'text',text:prompt}]}]})});
+      const data=await res.json();
+      const text=data.content?.[0]?.text||'';
+      const jsonMatch=text.match(/\{[\s\S]*\}/);
+      if(!jsonMatch)throw new Error('Parse error');
+      const result=JSON.parse(jsonMatch[0]);
+      document.getElementById('scan-amount').value=result.amount>0?result.amount:'';
+      document.getElementById('scan-note').value=result.note||'';
+      const detectedCurr=CURRENCIES.find(c=>c.code===result.currency)?result.currency:'THB';
+      scanSelCurr=detectedCurr;buildScanCurrUI();
+      const validCat=CATS.find(c=>c.id===result.cat);
+      scanSelCat=validCat?result.cat:'other';buildScanCatGrid();
+      const msg=document.getElementById('scan-result-msg');
+      if(result.amount===0){msg.className='msg error';msg.textContent=T('scan_no_amount');}
+      else if(result.confidence==='low'||!validCat){msg.className='msg info';msg.textContent=T('scan_low_conf');}
+      else{msg.className='msg success';msg.textContent=T('scan_success');}
+      showScanStep('result');
+    }catch(e){showScanStep('upload');document.getElementById('scan-analyze-btn').disabled=false;alert(T('scan_fail')+e.message);}
+  };
+  document.getElementById('scan-confirm-btn').onclick=async()=>{
+    const amt=parseFloat(document.getElementById('scan-amount').value);
+    const note=document.getElementById('scan-note').value.trim();
+    if(!amt||amt<=0){alert(T('err_amount'));return;}
+    document.getElementById('inp-amount').value=amt;document.getElementById('inp-note').value=note;
+    selCat=scanSelCat;selCurr=scanSelCurr;localStorage.setItem('xp_last_curr',scanSelCurr);
+    buildCatGrid();buildCurrUI();
+    document.getElementById('scan-modal').classList.add('hidden');document.getElementById('scan-file-input').value='';
+    const msg=document.getElementById('add-msg');msg.className='msg info';msg.textContent=T('scan_fill_info');
+    setTimeout(()=>{msg.className='msg';},5000);
+    document.querySelector('#screen-add .content').scrollTop=0;
+  };
+  function buildScanCatGrid(){
+    const g=document.getElementById('scan-cat-grid');g.innerHTML='';
+    PRIMARY_CATS.forEach(id=>{
+      const c=getCat(id);const b=document.createElement('button');
+      b.className='cat-btn'+(scanSelCat===id?' selected':'');
+      b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
+      b.onclick=()=>{scanSelCat=id;document.getElementById('scan-cat-more').value='';buildScanCatGrid();};
+      g.appendChild(b);
+    });
+    const sel=document.getElementById('scan-cat-more');
+    const secCats=CATS.filter(c=>!PRIMARY_CATS.includes(c.id));
+    const isSecSel=secCats.some(c=>c.id===scanSelCat);
+    sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
+    secCats.forEach(c=>{const cat=getCat(c.id);const o=document.createElement('option');o.value=cat.id;o.textContent=cat.icon+' '+cat.label;if(scanSelCat===cat.id)o.selected=true;sel.appendChild(o);});
+    sel.className=isSecSel?'curr-select selected-other':'curr-select';
+  }
+  document.getElementById('scan-cat-more').onchange=function(){if(this.value){scanSelCat=this.value;buildScanCatGrid();}};
+  function buildScanCurrUI(){
+    const qg=document.getElementById('scan-curr-quick');qg.innerHTML='';
+    QUICK_CURR.forEach(code=>{
+      const b=document.createElement('button');b.className='curr-btn'+(scanSelCurr===code?' selected':'');
+      b.textContent=code;b.title=getCurr(code).name;
+      b.onclick=()=>{scanSelCurr=code;buildScanCurrUI();};
+      qg.appendChild(b);
+    });
+  }
+})();
+
 // ===== 定期付款 =====
+// 新版頻率：daily / workday / weekend / weekly / monthly / yearly
+// daily    = 每日（一到日）
+// workday  = 工作日（一到五）
+// weekend  = 假日（六日）
+// weekly   = 每週（同一天）
+// monthly  = 每月（同一日）
+// yearly   = 每年（同一天）
+
 let recurringList=[];
 let recSelCat='subscription', recSelFreq='monthly', editingRecId=null;
 
-function loadRecurring(){
-  try{const r=localStorage.getItem('xp_recurring');if(r)recurringList=JSON.parse(r);}catch(e){}
-}
+function loadRecurring(){try{const r=localStorage.getItem('xp_recurring');if(r)recurringList=JSON.parse(r);}catch(e){}}
 function saveRecurring(){localStorage.setItem('xp_recurring',JSON.stringify(recurringList));}
 
+// 判斷今天的 DOW（0=Sun,1=Mon,...,6=Sat）
+function todayDOW(){return new Date(today()+'T00:00:00').getDay();}
+function isWorkday(){const d=todayDOW();return d>=1&&d<=5;}
+function isWeekend(){const d=todayDOW();return d===0||d===6;}
+
+// 根據 freq 判斷今天是否為「應該觸發的日子」
+function isFreqMatchToday(freq, nextDue){
+  // nextDue 為計算好的下次到期日
+  const days=getDaysUntil(nextDue);
+  if(days>0)return false; // 還未到期
+
+  // 到期（days<=0），再按 freq 判斷今日是否適用
+  if(freq==='workday')return isWorkday();
+  if(freq==='weekend')return isWeekend();
+  // daily / weekly / monthly / yearly：到期即提醒，不分星期
+  return true;
+}
+
+// 計算下一個到期日（從 startDate 或上次到期後推進）
 function getNextDue(startDate, freq){
   const today_=today();
   let d=new Date(startDate+'T00:00:00');
   const t=new Date(today_+'T00:00:00');
-  // Advance until next due >= today
+  // 先推進到 >= today
   while(d<t){
-    if(freq==='weekly')d.setDate(d.getDate()+7);
-    else if(freq==='monthly')d.setMonth(d.getMonth()+1);
-    else if(freq==='yearly')d.setFullYear(d.getFullYear()+1);
+    d=advanceByFreq(d, freq);
   }
   return d.toISOString().split('T')[0];
+}
+
+// 推進一個週期
+function advanceByFreq(d, freq){
+  const nd=new Date(d);
+  if(freq==='daily'||freq==='workday'||freq==='weekend'){
+    // 逐日推進直到下一個符合條件的日子
+    nd.setDate(nd.getDate()+1);
+    if(freq==='workday'){while(nd.getDay()===0||nd.getDay()===6)nd.setDate(nd.getDate()+1);}
+    if(freq==='weekend'){while(nd.getDay()>=1&&nd.getDay()<=5)nd.setDate(nd.getDate()+1);}
+  }else if(freq==='weekly'){nd.setDate(nd.getDate()+7);}
+  else if(freq==='monthly'){nd.setMonth(nd.getMonth()+1);}
+  else if(freq==='yearly'){nd.setFullYear(nd.getFullYear()+1);}
+  return nd;
 }
 
 function getDaysUntil(dateStr){
@@ -1734,8 +1677,7 @@ function getDaysUntil(dateStr){
 function buildRecCatGrid(){
   const g=document.getElementById('rec-cat-grid');g.innerHTML='';
   PRIMARY_CATS.forEach(id=>{
-    const c=getCat(id);
-    const b=document.createElement('button');
+    const c=getCat(id);const b=document.createElement('button');
     b.className='cat-btn'+(recSelCat===id?' selected':'');
     b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
     b.onclick=()=>{recSelCat=id;document.getElementById('rec-cat-more').value='';buildRecCatGrid();};
@@ -1746,8 +1688,8 @@ function buildRecCatGrid(){
   const isSecSel=secCats.some(c=>c.id===recSelCat);
   sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
   secCats.forEach(c=>{
-    const cat=getCat(c.id);
-    const o=document.createElement('option');o.value=cat.id;o.textContent=cat.icon+' '+cat.label;
+    const cat=getCat(c.id);const o=document.createElement('option');o.value=cat.id;
+    o.textContent=cat.icon+' '+cat.label;
     if(recSelCat===cat.id)o.selected=true;sel.appendChild(o);
   });
   sel.className=isSecSel?'curr-select selected-other':'curr-select';
@@ -1756,26 +1698,25 @@ document.getElementById('rec-cat-more').onchange=function(){if(this.value){recSe
 
 function buildRecCurrSelect(){
   const sel=document.getElementById('rec-curr');sel.innerHTML='';
-  CURRENCIES.forEach(c=>{
-    const o=document.createElement('option');o.value=c.code;o.textContent=c.code;sel.appendChild(o);
-  });
+  CURRENCIES.forEach(c=>{const o=document.createElement('option');o.value=c.code;o.textContent=c.code;sel.appendChild(o);});
   sel.value=selCurr;
 }
 
-document.querySelectorAll('.rec-freq-btn').forEach(b=>{
+// Freq button click handlers
+document.querySelectorAll('.rec-freq-btn[data-freq]').forEach(b=>{
   b.onclick=function(){
     recSelFreq=this.dataset.freq;
-    document.querySelectorAll('.rec-freq-btn').forEach(x=>x.classList.toggle('selected',x===b));
+    document.querySelectorAll('.rec-freq-btn[data-freq]').forEach(x=>x.classList.toggle('selected',x===this));
   };
 });
 
 function openRecurringModal(id=null){
   editingRecId=id;
-  recSelCat='subscription'; recSelFreq='monthly';
+  recSelCat='subscription';recSelFreq='monthly';
   document.getElementById('rec-name').value='';
   document.getElementById('rec-amount').value='';
   document.getElementById('rec-start').value=today();
-  document.querySelectorAll('.rec-freq-btn').forEach(b=>b.classList.toggle('selected',b.dataset.freq==='monthly'));
+  document.querySelectorAll('.rec-freq-btn[data-freq]').forEach(b=>b.classList.toggle('selected',b.dataset.freq==='monthly'));
   if(id){
     const r=recurringList.find(x=>x.id===id);
     if(r){
@@ -1784,11 +1725,15 @@ function openRecurringModal(id=null){
       document.getElementById('rec-start').value=r.nextDue||r.startDate;
       recSelCat=r.cat||'subscription';
       recSelFreq=r.freq||'monthly';
-      document.querySelectorAll('.rec-freq-btn').forEach(b=>b.classList.toggle('selected',b.dataset.freq===recSelFreq));
+      document.querySelectorAll('.rec-freq-btn[data-freq]').forEach(b=>b.classList.toggle('selected',b.dataset.freq===recSelFreq));
       document.getElementById('rec-curr').value=r.curr||'THB';
     }
   }
-  buildRecCatGrid(); buildRecCurrSelect();
+  // Refresh freq button labels (for lang)
+  ['daily','workday','weekend','weekly','monthly','yearly'].forEach(f=>{
+    const b=document.getElementById('freq-'+f);if(b)b.textContent=T('freq_'+f);
+  });
+  buildRecCatGrid();buildRecCurrSelect();
   document.getElementById('recurring-modal').classList.remove('hidden');
 }
 document.getElementById('rec-cancel-btn').onclick=()=>document.getElementById('recurring-modal').classList.add('hidden');
@@ -1799,7 +1744,7 @@ document.getElementById('rec-save-btn').onclick=()=>{
   const amount=parseFloat(document.getElementById('rec-amount').value);
   const startDate=document.getElementById('rec-start').value;
   const curr=document.getElementById('rec-curr').value||'THB';
-  if(!name){alert(lang==='zh'?'請輸入名稱':'Please enter a name');return;}
+  if(!name){alert(T('lbl_rec_name')+': ?');return;}
   if(!amount||amount<=0){alert(T('err_amount'));return;}
   if(!startDate){alert(T('err_date'));return;}
   const nextDue=getNextDue(startDate,recSelFreq);
@@ -1811,18 +1756,14 @@ document.getElementById('rec-save-btn').onclick=()=>{
   }
   saveRecurring();
   document.getElementById('recurring-modal').classList.add('hidden');
-  renderRecurringList();
-  checkDueBanner();
+  renderRecurringList();checkDueBanner();
 };
 
 function advanceRecurring(id){
   const r=recurringList.find(x=>x.id===id);if(!r)return;
-  const next=r.nextDue||r.startDate;
-  let d=new Date(next+'T00:00:00');
-  if(r.freq==='weekly')d.setDate(d.getDate()+7);
-  else if(r.freq==='monthly')d.setMonth(d.getMonth()+1);
-  else if(r.freq==='yearly')d.setFullYear(d.getFullYear()+1);
-  r.nextDue=d.toISOString().split('T')[0];
+  const nextDate=new Date((r.nextDue||r.startDate)+'T00:00:00');
+  const advanced=advanceByFreq(nextDate, r.freq||'monthly');
+  r.nextDue=advanced.toISOString().split('T')[0];
   saveRecurring();
 }
 
@@ -1832,29 +1773,27 @@ function recordRecurring(id){
   records.push(rec);saveLocal();refreshAll();
   advanceRecurring(id);renderRecurringList();checkDueBanner();
   if(apiUrl){apiCall('add',rec).catch(()=>{});}
-  alert((lang==='zh'?'已記帳：':'Recorded: ')+r.name+' '+fmtAmt(r.amount,r.curr||'THB'));
+  alert(T('recorded_alert')+r.name+' '+fmtAmt(r.amount,r.curr||'THB'));
 }
 
 function renderRecurringList(){
   const el=document.getElementById('recurring-list');
-  if(!recurringList.length){
-    el.innerHTML=`<div class="empty">${T('recurring_empty')}</div>`;return;
-  }
+  if(!recurringList.length){el.innerHTML=`<div class="empty">${T('recurring_empty')}</div>`;return;}
   el.innerHTML='';
-  // Sort by nextDue
   const sorted=[...recurringList].sort((a,b)=>(a.nextDue||a.startDate).localeCompare(b.nextDue||b.startDate));
   sorted.forEach(r=>{
     const cat=getCat(r.cat);
     const nextDue=r.nextDue||r.startDate;
     const days=getDaysUntil(nextDue);
+    const freqLabel=T('freq_'+(r.freq||'monthly'));
+    const isDue=isFreqMatchToday(r.freq||'monthly', nextDue);
     let dueClass='ok', dueLabel='';
-    const freqLabel=T('freq_'+r.freq);
-    if(days<=0){dueClass='late';dueLabel=T('due_today');}
-    else if(days<=3){dueClass='today';dueLabel=(lang==='zh'?`${days}天後到期`:`Due in ${days}d`);}
-    else{dueClass='ok';dueLabel=(lang==='zh'?`${days}天後`:`In ${days}d`);}
-
+    if(isDue){dueClass='late';dueLabel=T('due_today');}
+    else if(days<=0&&!isDue){dueClass='ok';dueLabel=T('due_not_today');}
+    else if(days<=3){dueClass='today';dueLabel=days+T('due_in_days');}
+    else{dueClass='ok';dueLabel=days+T('due_in');}
     const d=document.createElement('div');
-    d.className='rec-card'+(days<=0?' overdue':days<=3?' due':'');
+    d.className='rec-card'+(isDue?' overdue':days<=3&&days>0?' due':'');
     d.innerHTML=`
       <div class="rec-icon" style="background:${cat.color}">${cat.icon}</div>
       <div class="rec-info">
@@ -1866,21 +1805,18 @@ function renderRecurringList(){
         <div class="rec-due ${dueClass}">${dueLabel}</div>
       </div>
       <div class="rec-actions">
-        <button class="edit-btn" data-id="${r.id}" title="${lang==='zh'?'編輯':'Edit'}">✎</button>
-        <button class="del-btn" data-id="${r.id}" title="${lang==='zh'?'刪除':'Delete'}">×</button>
+        <button class="edit-btn" data-id="${r.id}" title="${T('modal_edit_title')}">✎</button>
+        <button class="del-btn" data-id="${r.id}" title="${T('confirm_delete')}">×</button>
       </div>`;
     d.querySelector('.edit-btn').onclick=()=>openRecurringModal(r.id);
     d.querySelector('.del-btn').onclick=()=>{
-      if(confirm(T('confirm_del_recurring'))){
-        recurringList=recurringList.filter(x=>x.id!==r.id);saveRecurring();renderRecurringList();checkDueBanner();
-      }
+      if(confirm(T('confirm_del_recurring'))){recurringList=recurringList.filter(x=>x.id!==r.id);saveRecurring();renderRecurringList();checkDueBanner();}
     };
-    // Tap card to record
     d.onclick=(e)=>{
       if(e.target.closest('button'))return;
-      if(days<=3){
-        const doIt=confirm((lang==='zh'?`立即記帳「${r.name}」${fmtAmt(r.amount,r.curr||'THB')} 嗎？`:`Record "${r.name}" ${fmtAmt(r.amount,r.curr||'THB')} now?`));
-        if(doIt)recordRecurring(r.id);
+      if(isDue){
+        if(confirm(T('record_confirm_prefix')+r.name+T('record_confirm_mid')+fmtAmt(r.amount,r.curr||'THB')+T('record_confirm_suffix')))
+          recordRecurring(r.id);
       }
     };
     el.appendChild(d);
@@ -1888,15 +1824,26 @@ function renderRecurringList(){
 }
 
 function checkDueBanner(){
-  const due=recurringList.filter(r=>getDaysUntil(r.nextDue||r.startDate)<=0);
+  const due=recurringList.filter(r=>isFreqMatchToday(r.freq||'monthly', r.nextDue||r.startDate));
   const banner=document.getElementById('due-banner');
   if(!due.length){banner.style.display='none';return;}
-  const list=document.getElementById('due-banner-list');
-  list.innerHTML='';
+  const list=document.getElementById('due-banner-list');list.innerHTML='';
   due.slice(0,3).forEach(r=>{
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px';
-    row.innerHTML=`<span style="font-size:13px;font-weight:700;color:#1e293b">${getCat(r.cat).icon} ${r.name}</span><div style="display:flex;gap:6px"><button onclick="recordRecurring('${r.id}');document.getElementById('due-banner').style.display='none'" style="padding:6px 10px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif">${T('record_now')}</button><button onclick="advanceRecurring('${r.id}');checkDueBanner();renderRecurringList()" style="padding:6px 10px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif">${T('skip_this')}</button></div>`;
+    const recBtn=document.createElement('button');
+    recBtn.style.cssText='padding:6px 10px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;margin-right:4px';
+    recBtn.textContent=T('record_now');
+    recBtn.onclick=()=>{recordRecurring(r.id);document.getElementById('due-banner').style.display='none';};
+    const skipBtn=document.createElement('button');
+    skipBtn.style.cssText='padding:6px 10px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif';
+    skipBtn.textContent=T('skip_this');
+    skipBtn.onclick=()=>{advanceRecurring(r.id);checkDueBanner();renderRecurringList();};
+    const nameSpan=document.createElement('span');
+    nameSpan.style.cssText='font-size:13px;font-weight:700;color:#1e293b;flex:1';
+    nameSpan.textContent=getCat(r.cat).icon+' '+r.name;
+    const btnWrap=document.createElement('div');btnWrap.style.display='flex';btnWrap.appendChild(recBtn);btnWrap.appendChild(skipBtn);
+    row.appendChild(nameSpan);row.appendChild(btnWrap);
     list.appendChild(row);
   });
   banner.style.display='block';
@@ -1915,23 +1862,14 @@ document.getElementById('rep-to').value=today();
 
 loadLocal();loadRecurring();buildCatGrid();buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
-updateLangBtns();
-applyLang();
+updateLangBtns();applyLang();
 
-// 第一次打開：先選身分，再設定雲端
 const hasDeviceId=localStorage.getItem(DEVICE_KEY)!==null;
-if(!hasDeviceId){
-  // 全新裝置，先選身分
-  setTimeout(()=>showIdentityModal(),400);
-} else if(!apiUrl){
-  setTimeout(()=>showSetupModal(),400);
-} else {
-  setSyncStatus(true);
-  syncFromCloud().then(ok=>{if(ok)refreshAll();});
-}
+if(!hasDeviceId){setTimeout(()=>showIdentityModal(),400);}
+else if(!apiUrl){setTimeout(()=>showSetupModal(),400);}
+else{setSyncStatus(true);syncFromCloud().then(ok=>{if(ok)refreshAll();});}
 refreshAll();
-// 啟動時檢查定期付款到期
-setTimeout(()=>checkDueBanner(), 1000);
+setTimeout(()=>checkDueBanner(),1000);
 </script>
 </body>
 </html>
