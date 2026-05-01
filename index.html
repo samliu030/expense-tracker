@@ -728,13 +728,17 @@ function today(){
   const d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+function toYMD(d){
+  if(isNaN(d.getTime())) return today();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function thisMonth(){return today().slice(0,7);}
 function normalizeDate(raw){
   if(!raw)return today();
   const s=String(raw).trim();
   if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
   const d=new Date(s);
-  if(!isNaN(d.getTime()))return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(!isNaN(d.getTime()))return toYMD(d);
   return today();
 }
 
@@ -1651,7 +1655,7 @@ function getNextDue(startDate, freq){
   while(d<t){
     d=advanceByFreq(d, freq);
   }
-  return d.toISOString().split('T')[0];
+  return toYMD(d); // FIXED timezone bug
 }
 
 // 推進一個週期
@@ -1763,7 +1767,7 @@ function advanceRecurring(id){
   const r=recurringList.find(x=>x.id===id);if(!r)return;
   const nextDate=new Date((r.nextDue||r.startDate)+'T00:00:00');
   const advanced=advanceByFreq(nextDate, r.freq||'monthly');
-  r.nextDue=advanced.toISOString().split('T')[0];
+  r.nextDue=toYMD(advanced); // FIXED timezone bug
   saveRecurring();
 }
 
@@ -1857,8 +1861,7 @@ document.getElementById('today-label').textContent=ds;
 document.getElementById('month-label').textContent=now.getFullYear()+'年'+(now.getMonth()+1)+'月';
 document.getElementById('inp-date').value=today();
 const d1=new Date();d1.setDate(1);
-document.getElementById('rep-from').value=d1.toISOString().split('T')[0];
-document.getElementById('rep-to').value=today();
+document.getElementById('rep-from').value=toYMD(d1); // FIXED timezone bug
 
 loadLocal();loadRecurring();buildCatGrid();buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
