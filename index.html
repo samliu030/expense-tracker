@@ -6,7 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="記帳本">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#4f46e5">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE4MCAxODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxODAiIHJ4PSIzNiIgZmlsbD0idXJsKCNnKSIvPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzYzNjZmMSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0ZjQ2ZTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gV2FsbGV0IHNoYXBlIC0tPgogIDxyZWN0IHg9IjMyIiB5PSI1NSIgd2lkdGg9IjExNiIgaGVpZ2h0PSI3OCIgcng9IjEyIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMjUpIi8+CiAgPHJlY3QgeD0iMzIiIHk9IjQ4IiB3aWR0aD0iODAiIGhlaWdodD0iMTYiIHJ4PSI2IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuNCkiLz4KICA8IS0tIENvaW4gc2xvdCAtLT4KICA8cmVjdCB4PSIxMDQiIHk9Ijg0IiB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHJ4PSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+CiAgPGNpcmNsZSBjeD0iMTIwIiBjeT0iOTQiIHI9IjYiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC42KSIvPgogIDwhLS0gTGluZXMgLS0+CiAgPHJlY3QgeD0iNDgiIHk9Ijg0IiB3aWR0aD0iNDQiIGhlaWdodD0iNiIgcng9IjMiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC42KSIvPgogIDxyZWN0IHg9IjQ4IiB5PSI5OCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjYiIHJ4PSIzIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuNCkiLz4KPC9zdmc+">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Crect x='6' y='10' width='20' height='14' rx='3' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='6' y='8' width='14' height='4' rx='2' fill='rgba(255,255,255,0.4)'/%3E%3Crect x='19' y='15' width='6' height='4' rx='2' fill='rgba(255,255,255,0.4)'/%3E%3Ccircle cx='22' cy='17' r='1.5' fill='rgba(255,255,255,0.8)'/%3E%3C/svg%3E">
 <title>記帳本</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap');
@@ -761,6 +763,40 @@ function saveLocal(){localStorage.setItem('xp_records',JSON.stringify(records));
 function saveRates(){const m={};CURRENCIES.forEach(c=>m[c.code]=c.rate);localStorage.setItem('xp_rates',JSON.stringify(m));}
 function saveNoteMemory(){localStorage.setItem('xp_note_memory',JSON.stringify(noteMemory));}
 
+// ===== 雲端同步：預算 & 定期付款 =====
+async function syncBudgetsToCloud(){
+  if(!apiUrl)return;
+  try{await apiCall('setBudgets',{budgets});}catch(e){console.warn('Budget sync failed',e);}
+}
+async function syncRecurringToCloud(){
+  if(!apiUrl)return;
+  try{await apiCall('setRecurring',{recurring:recurringList});}catch(e){console.warn('Recurring sync failed',e);}
+}
+async function loadBudgetsFromCloud(){
+  if(!apiUrl)return false;
+  try{
+    const res=await apiCall('getBudgets');
+    if(res.budgets&&Object.keys(res.budgets).length){
+      budgets=res.budgets;
+      localStorage.setItem('xp_budgets',JSON.stringify(budgets));
+      return true;
+    }
+  }catch(e){console.warn('Budget load failed',e);}
+  return false;
+}
+async function loadRecurringFromCloud(){
+  if(!apiUrl)return false;
+  try{
+    const res=await apiCall('getRecurring');
+    if(res.recurring&&res.recurring.length){
+      recurringList=res.recurring;
+      localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
+      return true;
+    }
+  }catch(e){console.warn('Recurring load failed',e);}
+  return false;
+}
+
 // ===== 語言套用 =====
 function applyLang(){
   // Nav buttons
@@ -1188,6 +1224,7 @@ document.getElementById('budget-save-btn').onclick=()=>{
   const b1=parseFloat(document.getElementById('budget-input-1').value)||0;
   budgets[m+'_0']=b0;budgets[m+'_1']=b1;
   localStorage.setItem('xp_budgets',JSON.stringify(budgets));
+  syncBudgetsToCloud();
   refreshMonth();
   document.getElementById('budget-modal').classList.add('hidden');
 };
@@ -1622,7 +1659,10 @@ let recurringList=[];
 let recSelCat='subscription', recSelFreq='monthly', editingRecId=null;
 
 function loadRecurring(){try{const r=localStorage.getItem('xp_recurring');if(r)recurringList=JSON.parse(r);}catch(e){}}
-function saveRecurring(){localStorage.setItem('xp_recurring',JSON.stringify(recurringList));}
+function saveRecurring(){
+  localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
+  syncRecurringToCloud();
+}
 
 // 判斷今天的 DOW（0=Sun,1=Mon,...,6=Sat）
 function todayDOW(){return new Date(today()+'T00:00:00').getDay();}
@@ -1838,7 +1878,12 @@ function checkDueBanner(){
     const skipBtn=document.createElement('button');
     skipBtn.style.cssText='padding:6px 10px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif';
     skipBtn.textContent=T('skip_this');
-    skipBtn.onclick=()=>{advanceRecurring(r.id);checkDueBanner();renderRecurringList();};
+    skipBtn.onclick=()=>{
+      advanceRecurring(r.id);
+      saveRecurring();
+      checkDueBanner();
+      renderRecurringList();
+    };
     const nameSpan=document.createElement('span');
     nameSpan.style.cssText='font-size:13px;font-weight:700;color:#1e293b;flex:1';
     nameSpan.textContent=getCat(r.cat).icon+' '+r.name;
@@ -1867,7 +1912,16 @@ updateLangBtns();applyLang();
 const hasDeviceId=localStorage.getItem(DEVICE_KEY)!==null;
 if(!hasDeviceId){setTimeout(()=>showIdentityModal(),400);}
 else if(!apiUrl){setTimeout(()=>showSetupModal(),400);}
-else{setSyncStatus(true);syncFromCloud().then(ok=>{if(ok)refreshAll();});}
+else{
+  setSyncStatus(true);
+  Promise.all([
+    syncFromCloud(),
+    loadBudgetsFromCloud(),
+    loadRecurringFromCloud()
+  ]).then(([recordsOk,budgetsOk,recurringOk])=>{
+    if(recordsOk||budgetsOk||recurringOk){refreshAll();renderRecurringList();}
+  });
+}
 refreshAll();
 setTimeout(()=>checkDueBanner(),1000);
 </script>
