@@ -7,9 +7,75 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="記帳本">
 <meta name="theme-color" content="#4f46e5">
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE4MCAxODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxODAiIHJ4PSIzNiIgZmlsbD0idXJsKCNnKSIvPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzYzNjZmMSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0ZjQ2ZTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gV2FsbGV0IHNoYXBlIC0tPgogIDxyZWN0IHg9IjMyIiB5PSI1NSIgd2lkdGg9IjExNiIgaGVpZ2h0PSI3OCIgcng9IjEyIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMjUpIi8+CiAgPHJlY3QgeD0iMzIiIHk9IjQ4IiB3aWR0aD0iODAiIGhlaWdodD0iMTYiIHJ4PSI2IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuNCkiLz4KICA8IS0tIENvaW4gc2xvdCAtLT4KICA8cmVjdCB4PSIxMDQiIHk9Ijg0IiB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHJ4PSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+CiAgPGNpcmNsZSBjeD0iMTIwIiBjeT0iOTQiIHI9IjYiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC42KSIvPgogIDwhLS0gTGluZXMgLS0+CiAgPHJlY3QgeD0iNDgiIHk9Ijg0IiB3aWR0aD0iNDQiIGhlaWdodD0iNiIgcng9IjMiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC42KSIvPgogIDxyZWN0IHg9IjQ4IiB5PSI5OCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjYiIHJ4PSIzIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuNCkiLz4KPC9zdmc+">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Crect x='6' y='10' width='20' height='14' rx='3' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='6' y='8' width='14' height='4' rx='2' fill='rgba(255,255,255,0.4)'/%3E%3Crect x='19' y='15' width='6' height='4' rx='2' fill='rgba(255,255,255,0.4)'/%3E%3Ccircle cx='22' cy='17' r='1.5' fill='rgba(255,255,255,0.8)'/%3E%3C/svg%3E">
 <title>記帳本</title>
+<script>
+// 動態產生 180x180 錢包 icon 並注入 apple-touch-icon
+(function(){
+  try{
+    const c=document.createElement('canvas');
+    c.width=180;c.height=180;
+    const ctx=c.getContext('2d');
+    // 圓角背景漸層
+    const r=36;
+    ctx.beginPath();
+    ctx.moveTo(r,0);ctx.lineTo(180-r,0);ctx.quadraticCurveTo(180,0,180,r);
+    ctx.lineTo(180,180-r);ctx.quadraticCurveTo(180,180,180-r,180);
+    ctx.lineTo(r,180);ctx.quadraticCurveTo(0,180,0,180-r);
+    ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();
+    const g=ctx.createLinearGradient(0,0,180,180);
+    g.addColorStop(0,'#6366f1');g.addColorStop(1,'#4338ca');
+    ctx.fillStyle=g;ctx.fill();
+    // 錢包主體
+    ctx.fillStyle='rgba(255,255,255,0.22)';
+    ctx.beginPath();
+    ctx.roundRect(30,68,120,76,12);
+    ctx.fill();
+    // 錢包蓋子
+    ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.roundRect(30,52,76,22,8);
+    ctx.fill();
+    // 卡片槽
+    ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.roundRect(108,88,32,22,10);
+    ctx.fill();
+    // 硬幣圓
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    ctx.beginPath();
+    ctx.arc(124,99,7,0,Math.PI*2);
+    ctx.fill();
+    // 內線條
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.beginPath();ctx.roundRect(46,91,50,7,3.5);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.beginPath();ctx.roundRect(46,106,34,6,3);ctx.fill();
+    // 注入 link tag
+    const url=c.toDataURL('image/png');
+    const lnk=document.createElement('link');
+    lnk.rel='apple-touch-icon';lnk.href=url;
+    document.head.appendChild(lnk);
+    // favicon
+    const fc=document.createElement('canvas');fc.width=32;fc.height=32;
+    const fx=fc.getContext('2d');
+    const fg=fx.createLinearGradient(0,0,32,32);
+    fg.addColorStop(0,'#6366f1');fg.addColorStop(1,'#4338ca');
+    fx.fillStyle=fg;
+    fx.beginPath();fx.roundRect(0,0,32,32,7);fx.fill();
+    fx.fillStyle='rgba(255,255,255,0.25)';
+    fx.beginPath();fx.roundRect(5,12,22,14,3);fx.fill();
+    fx.fillStyle='rgba(255,255,255,0.4)';
+    fx.beginPath();fx.roundRect(5,9,14,5,2);fx.fill();
+    fx.fillStyle='rgba(255,255,255,0.4)';
+    fx.beginPath();fx.roundRect(20,15,6,5,2.5);fx.fill();
+    fx.fillStyle='rgba(255,255,255,0.8)';
+    fx.beginPath();fx.arc(23,17.5,2,0,Math.PI*2);fx.fill();
+    const fl=document.createElement('link');
+    fl.rel='icon';fl.type='image/png';fl.href=fc.toDataURL();
+    document.head.appendChild(fl);
+  }catch(e){}
+})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -320,10 +386,34 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
 </div>
 
 <!-- Due Today Banner -->
-<div id="due-banner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.12);z-index:200;padding:16px;border-left:4px solid #f59e0b">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <div style="font-size:14px;font-weight:800;color:#92400e" id="due-banner-title">定期付款提醒</div>
-    <button onclick="document.getElementById('due-banner').style.display='none'" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:20px;line-height:1">×</button>
+<style>
+#due-banner{
+  display:none;
+  position:fixed;
+  top:0; left:50%;
+  transform:translateX(-50%) translateY(-100%);
+  width:calc(100% - 0px);
+  max-width:430px;
+  background:#fff;
+  border-radius:0 0 20px 20px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.15);
+  z-index:300;
+  padding:calc(56px + env(safe-area-inset-top,0px)) 16px 16px;
+  border-bottom:4px solid #f59e0b;
+  transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+#due-banner.show{
+  display:block;
+  transform:translateX(-50%) translateY(0);
+}
+</style>
+<div id="due-banner">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:14px;font-weight:800;color:#92400e;display:flex;align-items:center;gap:6px">
+      <span style="font-size:18px">🔔</span>
+      <span id="due-banner-title">定期付款提醒</span>
+    </div>
+    <button id="due-banner-close" style="background:#f1f5f9;border:none;cursor:pointer;color:#475569;font-size:16px;line-height:1;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center">×</button>
   </div>
   <div id="due-banner-list"></div>
 </div>
@@ -1866,17 +1956,21 @@ function renderRecurringList(){
 function checkDueBanner(){
   const due=recurringList.filter(r=>isFreqMatchToday(r.freq||'monthly', r.nextDue||r.startDate));
   const banner=document.getElementById('due-banner');
-  if(!due.length){banner.style.display='none';return;}
+  if(!due.length){
+    banner.classList.remove('show');
+    setTimeout(()=>{if(!banner.classList.contains('show'))banner.style.display='none';},350);
+    return;
+  }
   const list=document.getElementById('due-banner-list');list.innerHTML='';
   due.slice(0,3).forEach(r=>{
     const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px';
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px';
     const recBtn=document.createElement('button');
-    recBtn.style.cssText='padding:6px 10px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;margin-right:4px';
+    recBtn.style.cssText='padding:8px 14px;background:#f59e0b;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;white-space:nowrap;flex-shrink:0';
     recBtn.textContent=T('record_now');
-    recBtn.onclick=()=>{recordRecurring(r.id);document.getElementById('due-banner').style.display='none';};
+    recBtn.onclick=()=>{recordRecurring(r.id);checkDueBanner();};
     const skipBtn=document.createElement('button');
-    skipBtn.style.cssText='padding:6px 10px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif';
+    skipBtn.style.cssText='padding:8px 14px;background:#f1f5f9;color:#475569;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;white-space:nowrap;flex-shrink:0';
     skipBtn.textContent=T('skip_this');
     skipBtn.onclick=()=>{
       advanceRecurring(r.id);
@@ -1885,13 +1979,18 @@ function checkDueBanner(){
       renderRecurringList();
     };
     const nameSpan=document.createElement('span');
-    nameSpan.style.cssText='font-size:13px;font-weight:700;color:#1e293b;flex:1';
+    nameSpan.style.cssText='font-size:13px;font-weight:700;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
     nameSpan.textContent=getCat(r.cat).icon+' '+r.name;
-    const btnWrap=document.createElement('div');btnWrap.style.display='flex';btnWrap.appendChild(recBtn);btnWrap.appendChild(skipBtn);
+    const btnWrap=document.createElement('div');
+    btnWrap.style.cssText='display:flex;gap:6px;flex-shrink:0';
+    btnWrap.appendChild(recBtn);btnWrap.appendChild(skipBtn);
     row.appendChild(nameSpan);row.appendChild(btnWrap);
     list.appendChild(row);
   });
   banner.style.display='block';
+  // 強制 reflow 讓 transition 生效
+  banner.offsetHeight;
+  banner.classList.add('show');
 }
 
 // ===== Init =====
@@ -1908,6 +2007,13 @@ document.getElementById('rep-to').value=today();
 loadLocal();loadRecurring();buildCatGrid();buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
 updateLangBtns();applyLang();
+
+// Banner 關閉按鈕
+document.getElementById('due-banner-close').onclick=()=>{
+  const banner=document.getElementById('due-banner');
+  banner.classList.remove('show');
+  setTimeout(()=>{banner.style.display='none';},350);
+};
 
 const hasDeviceId=localStorage.getItem(DEVICE_KEY)!==null;
 if(!hasDeviceId){setTimeout(()=>showIdentityModal(),400);}
