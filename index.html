@@ -1798,6 +1798,37 @@ function advanceByFreq(d, freq){
   return nd;
 }
 
+// ===== 今日已處理記憶 =====
+// 格式：{ '2026-05-01': ['id1','id2'] }
+// 每天自動清空舊日期
+let dismissedToday = {};
+
+function loadDismissed(){
+  try{
+    const raw = localStorage.getItem('xp_dismissed');
+    if(raw) dismissedToday = JSON.parse(raw);
+    // 清除非今天的記錄
+    const t = today();
+    Object.keys(dismissedToday).forEach(d=>{ if(d!==t) delete dismissedToday[d]; });
+  }catch(e){ dismissedToday={}; }
+}
+
+function saveDismissed(){
+  localStorage.setItem('xp_dismissed', JSON.stringify(dismissedToday));
+}
+
+function dismissToday(id){
+  const t = today();
+  if(!dismissedToday[t]) dismissedToday[t] = [];
+  if(!dismissedToday[t].includes(id)) dismissedToday[t].push(id);
+  saveDismissed();
+}
+
+function isDismissedToday(id){
+  const t = today();
+  return (dismissedToday[t]||[]).includes(id);
+}
+
 function getDaysUntil(dateStr){
   const t=new Date(today()+'T00:00:00');
   const d=new Date(dateStr+'T00:00:00');
@@ -1954,42 +1985,55 @@ function renderRecurringList(){
 }
 
 function checkDueBanner(){
-  const due=recurringList.filter(r=>isFreqMatchToday(r.freq||'monthly', r.nextDue||r.startDate));
-  const banner=document.getElementById('due-banner');
+  // 只顯示「今天到期 且 今天還沒處理過」的項目
+  const due = recurringList.filter(r =>
+    isFreqMatchToday(r.freq||'monthly', r.nextDue||r.startDate) &&
+    !isDismissedToday(r.id)
+  );
+  const banner = document.getElementById('due-banner');
   if(!due.length){
     banner.classList.remove('show');
-    setTimeout(()=>{if(!banner.classList.contains('show'))banner.style.display='none';},350);
+    setTimeout(()=>{ if(!banner.classList.contains('show')) banner.style.display='none'; }, 350);
     return;
   }
-  const list=document.getElementById('due-banner-list');list.innerHTML='';
+  const list = document.getElementById('due-banner-list');
+  list.innerHTML = '';
   due.slice(0,3).forEach(r=>{
-    const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px';
-    const recBtn=document.createElement('button');
-    recBtn.style.cssText='padding:8px 14px;background:#f59e0b;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;white-space:nowrap;flex-shrink:0';
-    recBtn.textContent=T('record_now');
-    recBtn.onclick=()=>{recordRecurring(r.id);checkDueBanner();};
-    const skipBtn=document.createElement('button');
-    skipBtn.style.cssText='padding:8px 14px;background:#f1f5f9;color:#475569;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;white-space:nowrap;flex-shrink:0';
-    skipBtn.textContent=T('skip_this');
-    skipBtn.onclick=()=>{
-      advanceRecurring(r.id);
-      saveRecurring();
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.style.cssText = 'font-size:13px;font-weight:700;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    nameSpan.textContent = getCat(r.cat).icon+' '+r.name;
+
+    const recBtn = document.createElement('button');
+    recBtn.style.cssText = 'padding:8px 14px;background:#f59e0b;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;white-space:nowrap;flex-shrink:0';
+    recBtn.textContent = T('record_now');
+    recBtn.onclick = ()=>{
+      recordRecurring(r.id);   // 記帳並推進 nextDue
+      dismissToday(r.id);      // 同時標記今天已處理
+      checkDueBanner();
+    };
+
+    const skipBtn = document.createElement('button');
+    skipBtn.style.cssText = 'padding:8px 14px;background:#f1f5f9;color:#475569;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;white-space:nowrap;flex-shrink:0';
+    skipBtn.textContent = T('skip_this');
+    skipBtn.onclick = ()=>{
+      dismissToday(r.id);   // 只記今天不提醒，nextDue 不動
       checkDueBanner();
       renderRecurringList();
     };
-    const nameSpan=document.createElement('span');
-    nameSpan.style.cssText='font-size:13px;font-weight:700;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-    nameSpan.textContent=getCat(r.cat).icon+' '+r.name;
-    const btnWrap=document.createElement('div');
-    btnWrap.style.cssText='display:flex;gap:6px;flex-shrink:0';
-    btnWrap.appendChild(recBtn);btnWrap.appendChild(skipBtn);
-    row.appendChild(nameSpan);row.appendChild(btnWrap);
+
+    const btnWrap = document.createElement('div');
+    btnWrap.style.cssText = 'display:flex;gap:6px;flex-shrink:0';
+    btnWrap.appendChild(recBtn);
+    btnWrap.appendChild(skipBtn);
+    row.appendChild(nameSpan);
+    row.appendChild(btnWrap);
     list.appendChild(row);
   });
-  banner.style.display='block';
-  // 強制 reflow 讓 transition 生效
-  banner.offsetHeight;
+  banner.style.display = 'block';
+  banner.offsetHeight; // force reflow
   banner.classList.add('show');
 }
 
@@ -2004,7 +2048,7 @@ const d1=new Date();d1.setDate(1);
 document.getElementById('rep-from').value=d1.toISOString().split('T')[0];
 document.getElementById('rep-to').value=today();
 
-loadLocal();loadRecurring();buildCatGrid();buildCurrUI();
+loadLocal();loadRecurring();loadDismissed();buildCatGrid();buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
 updateLangBtns();applyLang();
 
