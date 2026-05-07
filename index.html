@@ -1,233 +1,6 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="記帳本">
-<meta name="theme-color" content="#4f46e5">
-<title>記帳本</title>
-<script>
-// 動態產生 180x180 錢包 icon 並注入 apple-touch-icon
-(function(){
-  try{
-    const c=document.createElement('canvas');
-    c.width=180;c.height=180;
-    const ctx=c.getContext('2d');
-    // 圓角背景漸層
-    const r=36;
-    ctx.beginPath();
-    ctx.moveTo(r,0);ctx.lineTo(180-r,0);ctx.quadraticCurveTo(180,0,180,r);
-    ctx.lineTo(180,180-r);ctx.quadraticCurveTo(180,180,180-r,180);
-    ctx.lineTo(r,180);ctx.quadraticCurveTo(0,180,0,180-r);
-    ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();
-    const g=ctx.createLinearGradient(0,0,180,180);
-    g.addColorStop(0,'#6366f1');g.addColorStop(1,'#4338ca');
-    ctx.fillStyle=g;ctx.fill();
-    // 錢包主體
-    ctx.fillStyle='rgba(255,255,255,0.22)';
-    ctx.beginPath();
-    ctx.roundRect(30,68,120,76,12);
-    ctx.fill();
-    // 錢包蓋子
-    ctx.fillStyle='rgba(255,255,255,0.35)';
-    ctx.beginPath();
-    ctx.roundRect(30,52,76,22,8);
-    ctx.fill();
-    // 卡片槽
-    ctx.fillStyle='rgba(255,255,255,0.35)';
-    ctx.beginPath();
-    ctx.roundRect(108,88,32,22,10);
-    ctx.fill();
-    // 硬幣圓
-    ctx.fillStyle='rgba(255,255,255,0.75)';
-    ctx.beginPath();
-    ctx.arc(124,99,7,0,Math.PI*2);
-    ctx.fill();
-    // 內線條
-    ctx.fillStyle='rgba(255,255,255,0.55)';
-    ctx.beginPath();ctx.roundRect(46,91,50,7,3.5);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.35)';
-    ctx.beginPath();ctx.roundRect(46,106,34,6,3);ctx.fill();
-    // 注入 link tag
-    const url=c.toDataURL('image/png');
-    const lnk=document.createElement('link');
-    lnk.rel='apple-touch-icon';lnk.href=url;
-    document.head.appendChild(lnk);
-    // favicon
-    const fc=document.createElement('canvas');fc.width=32;fc.height=32;
-    const fx=fc.getContext('2d');
-    const fg=fx.createLinearGradient(0,0,32,32);
-    fg.addColorStop(0,'#6366f1');fg.addColorStop(1,'#4338ca');
-    fx.fillStyle=fg;
-    fx.beginPath();fx.roundRect(0,0,32,32,7);fx.fill();
-    fx.fillStyle='rgba(255,255,255,0.25)';
-    fx.beginPath();fx.roundRect(5,12,22,14,3);fx.fill();
-    fx.fillStyle='rgba(255,255,255,0.4)';
-    fx.beginPath();fx.roundRect(5,9,14,5,2);fx.fill();
-    fx.fillStyle='rgba(255,255,255,0.4)';
-    fx.beginPath();fx.roundRect(20,15,6,5,2.5);fx.fill();
-    fx.fillStyle='rgba(255,255,255,0.8)';
-    fx.beginPath();fx.arc(23,17.5,2,0,Math.PI*2);fx.fill();
-    const fl=document.createElement('link');
-    fl.rel='icon';fl.type='image/png';fl.href=fc.toDataURL();
-    document.head.appendChild(fl);
-  }catch(e){}
-})();
-</script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans TC',sans-serif}
-.app{max-width:430px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:#f8fafc;position:relative;box-shadow:0 0 24px rgba(0,0,0,0.08)}
-.screen{display:none;flex:1;flex-direction:column;overflow:hidden}
-.screen.active{display:flex;animation:fadeSlideUp 0.25s cubic-bezier(0.16,1,0.3,1)}
-@keyframes fadeSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.topbar{padding:56px 24px 16px;background:rgba(248,250,252,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);flex-shrink:0;display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,0.04);z-index:10}
-.topbar-left h1{font-size:26px;font-weight:900;color:#0f172a;letter-spacing:-0.5px}
-.topbar-left p{font-size:13px;color:#64748b;margin-top:4px;font-weight:600}
-.content{flex:1;overflow-y:auto;padding:16px 20px 20px;-webkit-overflow-scrolling:touch}
-.nav{flex-shrink:0;background:#fff;box-shadow:0 -4px 24px rgba(0,0,0,0.05);display:flex;padding:10px 8px calc(10px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0;position:relative;z-index:10}
-.nav-btn{flex:1;padding:8px 4px;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#94a3b8;font-size:11px;font-weight:700;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
-.nav-btn.active{color:#4f46e5}
-.nav-icon{width:24px;height:24px;transition:all 0.3s cubic-bezier(0.175,0.885,0.32,1.275)}
-.nav-btn.active .nav-icon{transform:translateY(-2px) scale(1.1);stroke-width:2.5}
-.card{background:#fff;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,0.03)}
-.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.stat{background:#f1f5f9;border-radius:16px;padding:16px}
-.stat-label{font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:0.02em}
-.stat-value{font-size:24px;font-weight:900;color:#0f172a;letter-spacing:-0.5px}
-.stat-sub{font-size:11px;color:#94a3b8;margin-top:4px;font-weight:600}
-.section-title{font-size:12px;font-weight:700;color:#64748b;margin:20px 0 12px;letter-spacing:0.08em;text-transform:uppercase}
-.entry{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;border-radius:16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.03)}
-.entry:active{transform:scale(0.98)}
-.entry-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.entry-info{flex:1;min-width:0}
-.entry-name{font-size:15px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.entry-meta{font-size:12px;color:#64748b;margin-top:3px;font-weight:600}
-.entry-amt{text-align:right;flex-shrink:0}
-.entry-orig{font-size:16px;font-weight:800;color:#0f172a}
-.entry-aux{font-size:11px;color:#64748b;margin-top:3px;font-weight:600}
-.entry-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}
-.edit-btn,.del-btn{background:#f1f5f9;border:none;cursor:pointer;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:16px}
-.edit-btn{color:#4f46e5}
-.del-btn{color:#ef4444;font-size:20px;font-weight:bold}
-.edit-btn:active{background:#e0e7ff;transform:scale(0.9)}
-.del-btn:active{background:#fee2e2;transform:scale(0.9)}
-.segmented-control{display:flex;background:#e2e8f0;border-radius:14px;padding:4px;margin-bottom:20px}
-.segment-btn{flex:1;padding:12px;border-radius:10px;border:none;background:transparent;color:#64748b;font-weight:800;font-size:14px;cursor:pointer;transition:all 0.2s;font-family:'Noto Sans TC',sans-serif}
-.segment-btn.active{background:#fff;color:#4f46e5;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-.segment-btn.active.u1{color:#db2777}
-.compare-bar-wrap{height:14px;background:#e2e8f0;border-radius:7px;display:flex;overflow:hidden;margin-top:12px}
-.cmp-fill-0{height:100%;background:linear-gradient(90deg,#818cf8,#4f46e5);transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}
-.cmp-fill-1{height:100%;background:linear-gradient(90deg,#f472b6,#db2777);transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}
-.user-color-0{color:#4f46e5}
-.user-color-1{color:#db2777}
-.user-badge{font-size:10px;padding:2px 6px;border-radius:6px;background:#eef2ff;color:#4f46e5;font-weight:800;margin-left:5px;vertical-align:middle;display:inline-block;line-height:1.4}
-.user-badge.u1{background:#fdf2f8;color:#db2777}
-.form-group{margin-bottom:20px}
-.form-label{font-size:12px;font-weight:700;color:#64748b;margin-bottom:8px;display:block;letter-spacing:0.04em;text-transform:uppercase}
-.form-input{width:100%;padding:14px 16px;border:2px solid #e2e8f0;border-radius:14px;font-size:16px;background:#f8fafc;color:#0f172a;font-weight:600;font-family:'Noto Sans TC',sans-serif;outline:none;transition:all 0.2s}
-.form-input:focus{border-color:#818cf8;background:#fff;box-shadow:0 0 0 4px rgba(99,102,241,0.1)}
-.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.cat-btn{padding:14px 8px;border:2px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.15s}
-.cat-btn:active{transform:scale(0.96)}
-.cat-btn.selected{border-color:#4f46e5;background:#eef2ff;color:#4f46e5;box-shadow:0 4px 12px rgba(79,70,229,0.1)}
-.cat-icon{font-size:24px}
-.curr-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
-.curr-btn{padding:12px 4px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;font-family:'Noto Sans TC',sans-serif;text-align:center;transition:all 0.15s}
-.curr-btn:active{transform:scale(0.96)}
-.curr-btn.selected{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
-.curr-more-row{display:flex;align-items:center;gap:10px}
-.curr-more-label{font-size:13px;font-weight:700;color:#64748b;white-space:nowrap}
-.curr-select{flex:1;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;font-weight:700;color:#475569;font-family:'Noto Sans TC',sans-serif;background:#f8fafc;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;transition:all 0.2s}
-.curr-select:focus{border-color:#818cf8}
-.curr-select.selected-other{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
-.note-wrap{position:relative}
-.note-suggestions{position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #818cf8;border-top:none;border-radius:0 0 14px 14px;z-index:50;display:none;max-height:180px;overflow-y:auto;box-shadow:0 10px 15px rgba(0,0,0,0.1)}
-.note-suggestions.show{display:block}
-.note-sug-item{padding:12px 16px;font-size:14px;font-weight:600;color:#1e293b;cursor:pointer;border-bottom:1px solid #f1f5f9}
-.note-sug-item:last-child{border-bottom:none}
-.note-sug-item:active{background:#eef2ff;color:#4f46e5}
-.custom-cat-wrap{margin-top:10px;display:none}
-.custom-cat-wrap.show{display:block}
-.submit-btn{width:100%;padding:16px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;border-radius:16px;font-size:16px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:10px;box-shadow:0 4px 16px rgba(79,70,229,0.3);transition:all 0.2s}
-.submit-btn:active{transform:translateY(2px);box-shadow:0 2px 8px rgba(79,70,229,0.2)}
-.submit-btn:disabled{background:#cbd5e1;box-shadow:none;cursor:not-allowed;transform:none}
-.empty{text-align:center;padding:60px 20px;color:#94a3b8;font-size:14px;font-weight:600}
-.msg{padding:14px 16px;border-radius:14px;font-size:13px;font-weight:700;margin-bottom:16px;display:none}
-.msg.success{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;display:block}
-.msg.error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;display:block}
-.msg.info{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;display:block}
-.total-big{font-size:36px;font-weight:900;color:#4f46e5;margin-bottom:4px;letter-spacing:-1px}
-.cat-filter-wrap{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-.cat-filter{padding:8px 14px;border:2px solid #e2e8f0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
-.cat-filter.active{background:#4f46e5;color:#fff;border-color:#4f46e5}
-.bar-wrap{margin-bottom:12px}
-.bar-label{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#475569;margin-bottom:4px}
-.bar-track{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
-.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#818cf8,#4f46e5);transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}
-.date-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.day-group{margin-bottom:8px}
-.day-header{font-size:13px;font-weight:800;color:#64748b;padding:16px 4px 8px}
-.rate-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:#f1f5f9;border-radius:14px}
-.secondary-btn{width:100%;padding:16px;background:#f1f5f9;color:#475569;border:none;border-radius:16px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:10px;transition:all 0.2s}
-.secondary-btn:active{background:#e2e8f0;transform:translateY(2px)}
-.danger-btn{width:100%;padding:16px;background:#fef2f2;color:#dc2626;border:none;border-radius:16px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
-.danger-btn:active{background:#fee2e2}
-.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.hidden{display:none}
-.modal{background:#fff;border-radius:24px;padding:32px 24px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,0.12)}
-.modal h2{font-size:22px;font-weight:900;color:#0f172a;margin-bottom:12px}
-.modal p{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:20px;font-weight:500}
-.modal .step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
-.modal .step-num{width:26px;height:26px;border-radius:13px;background:#eef2ff;color:#4f46e5;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.modal .step-text{font-size:14px;color:#334155;line-height:1.6;font-weight:500}
-.sync-status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#94a3b8;padding:8px 0}
-.sync-dot{width:8px;height:8px;border-radius:4px;background:#cbd5e1;flex-shrink:0}
-.sync-dot.ok{background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.4)}
-.sync-dot.err{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.4)}
-.sync-dot.loading{background:#f59e0b;animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
-.spinner.dark{border-color:rgba(79,70,229,0.2);border-top-color:#4f46e5}
-@keyframes spin{to{transform:rotate(360deg)}}
-.rate-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.rate-update-btn{padding:8px 14px;background:#eef2ff;color:#4f46e5;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
-.rate-update-btn:active{background:#e0e7ff;transform:scale(0.95)}
-.budget-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.budget-card{padding:16px;border-radius:16px;background:#f1f5f9}
-.budget-card.u0{border-top:4px solid #4f46e5}
-.budget-card.u1{border-top:4px solid #db2777}
-.calc-op-btn{flex:1;padding:10px 0;border:2px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;font-size:16px;font-weight:800;color:#475569;font-family:'Noto Sans TC',sans-serif;transition:all 0.15s}
-.calc-op-btn:active{background:#eef2ff;border-color:#4f46e5;color:#4f46e5;transform:scale(0.95)}
-.user-tab-row{display:flex;gap:8px;margin-bottom:12px}
-.user-tab{flex:1;padding:10px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;text-align:center;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
-.user-tab.active-0{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
-.user-tab.active-1{border-color:#db2777;background:#fdf2f8;color:#db2777}
-.user-tab.tab-all.active-all{border-color:#475569;background:#f1f5f9;color:#1e293b}
-.rec-freq-btn{padding:10px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s;text-align:center}
-.rec-freq-btn.selected{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}
-.rec-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.03);display:flex;align-items:center;gap:12px}
-.rec-card.due{border-left:4px solid #f59e0b}
-.rec-card.overdue{border-left:4px solid #ef4444}
-.rec-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.rec-info{flex:1;min-width:0}
-.rec-name{font-size:15px;font-weight:700;color:#1e293b}
-.rec-meta{font-size:12px;color:#64748b;margin-top:3px;font-weight:600}
-.rec-amt{text-align:right;flex-shrink:0}
-.rec-amt-val{font-size:15px;font-weight:800;color:#0f172a}
-.rec-due{font-size:11px;font-weight:700;margin-top:2px}
-.rec-due.today{color:#f59e0b}
-.rec-due.late{color:#ef4444}
-.rec-due.ok{color:#10b981}
-.rec-actions{display:flex;gap:6px;flex-shrink:0}
-</style>
-</head>
-<body>
-<div class="app">
-
+<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="記帳本"><meta name="theme-color" content="#4f46e5"><title>記帳本</title><script>(function(){try{const c=document.createElement('canvas');c.width=180;c.height=180;const ctx=c.getContext('2d');const r=36;ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(180-r,0);ctx.quadraticCurveTo(180,0,180,r);ctx.lineTo(180,180-r);ctx.quadraticCurveTo(180,180,180-r,180);ctx.lineTo(r,180);ctx.quadraticCurveTo(0,180,0,180-r);ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();const g=ctx.createLinearGradient(0,0,180,180);g.addColorStop(0,'#6366f1');g.addColorStop(1,'#4338ca');ctx.fillStyle=g;ctx.fill();ctx.fillStyle='rgba(255,255,255,0.22)';ctx.beginPath();ctx.roundRect(30,68,120,76,12);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.roundRect(30,52,76,22,8);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.roundRect(108,88,32,22,10);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.75)';ctx.beginPath();ctx.arc(124,99,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.55)';ctx.beginPath();ctx.roundRect(46,91,50,7,3.5);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.roundRect(46,106,34,6,3);ctx.fill();const url=c.toDataURL('image/png');const lnk=document.createElement('link');lnk.rel='apple-touch-icon';lnk.href=url;document.head.appendChild(lnk);const fc=document.createElement('canvas');fc.width=32;fc.height=32;const fx=fc.getContext('2d');const fg=fx.createLinearGradient(0,0,32,32);fg.addColorStop(0,'#6366f1');fg.addColorStop(1,'#4338ca');fx.fillStyle=fg;fx.beginPath();fx.roundRect(0,0,32,32,7);fx.fill();fx.fillStyle='rgba(255,255,255,0.25)';fx.beginPath();fx.roundRect(5,12,22,14,3);fx.fill();fx.fillStyle='rgba(255,255,255,0.4)';fx.beginPath();fx.roundRect(5,9,14,5,2);fx.fill();fx.fillStyle='rgba(255,255,255,0.4)';fx.beginPath();fx.roundRect(20,15,6,5,2.5);fx.fill();fx.fillStyle='rgba(255,255,255,0.8)';fx.beginPath();fx.arc(23,17.5,2,0,Math.PI*2);fx.fill();const fl=document.createElement('link');fl.rel='icon';fl.type='image/png';fl.href=fc.toDataURL();document.head.appendChild(fl);}catch(e){}})();</script>
+<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap');*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans TC',sans-serif}.app{max-width:430px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:#f8fafc;position:relative;box-shadow:0 0 24px rgba(0,0,0,0.08)}.screen{display:none;flex:1;flex-direction:column;overflow:hidden}.screen.active{display:flex;animation:fadeSlideUp 0.25s cubic-bezier(0.16,1,0.3,1)}@keyframes fadeSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.topbar{padding:56px 24px 16px;background:rgba(248,250,252,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);flex-shrink:0;display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,0.04);z-index:10}.topbar-left h1{font-size:26px;font-weight:900;color:#0f172a;letter-spacing:-0.5px}.topbar-left p{font-size:13px;color:#64748b;margin-top:4px;font-weight:600}.content{flex:1;overflow-y:auto;padding:16px 20px 20px;-webkit-overflow-scrolling:touch}.nav{flex-shrink:0;background:#fff;box-shadow:0 -4px 24px rgba(0,0,0,0.05);display:flex;padding:10px 8px calc(10px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0;position:relative;z-index:10}.nav-btn{flex:1;padding:8px 4px;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#94a3b8;font-size:11px;font-weight:700;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}.nav-btn.active{color:#4f46e5}.nav-icon{width:24px;height:24px;transition:all 0.3s cubic-bezier(0.175,0.885,0.32,1.275)}.nav-btn.active .nav-icon{transform:translateY(-2px) scale(1.1);stroke-width:2.5}.card{background:#fff;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,0.03)}.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}.stat{background:#f1f5f9;border-radius:16px;padding:16px}.stat-label{font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:0.02em}.stat-value{font-size:24px;font-weight:900;color:#0f172a;letter-spacing:-0.5px}.stat-sub{font-size:11px;color:#94a3b8;margin-top:4px;font-weight:600}.section-title{font-size:12px;font-weight:700;color:#64748b;margin:20px 0 12px;letter-spacing:0.08em;text-transform:uppercase}.entry{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;border-radius:16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.03)}.entry:active{transform:scale(0.98)}.entry-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}.entry-info{flex:1;min-width:0}.entry-name{font-size:15px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.entry-meta{font-size:12px;color:#64748b;margin-top:3px;font-weight:600}.entry-amt{text-align:right;flex-shrink:0}.entry-orig{font-size:16px;font-weight:800;color:#0f172a}.entry-aux{font-size:11px;color:#64748b;margin-top:3px;font-weight:600}.entry-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}.edit-btn,.del-btn{background:#f1f5f9;border:none;cursor:pointer;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:16px}.edit-btn{color:#4f46e5}.del-btn{color:#ef4444;font-size:20px;font-weight:bold}.edit-btn:active{background:#e0e7ff;transform:scale(0.9)}.del-btn:active{background:#fee2e2;transform:scale(0.9)}.segmented-control{display:flex;background:#e2e8f0;border-radius:14px;padding:4px;margin-bottom:20px}.segment-btn{flex:1;padding:12px;border-radius:10px;border:none;background:transparent;color:#64748b;font-weight:800;font-size:14px;cursor:pointer;transition:all 0.2s;font-family:'Noto Sans TC',sans-serif}.segment-btn.active{background:#fff;color:#4f46e5;box-shadow:0 2px 8px rgba(0,0,0,0.06)}.segment-btn.active.u1{color:#db2777}.compare-bar-wrap{height:14px;background:#e2e8f0;border-radius:7px;display:flex;overflow:hidden;margin-top:12px}.cmp-fill-0{height:100%;background:linear-gradient(90deg,#818cf8,#4f46e5);transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}.cmp-fill-1{height:100%;background:linear-gradient(90deg,#f472b6,#db2777);transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}.user-color-0{color:#4f46e5}.user-color-1{color:#db2777}.user-badge{font-size:10px;padding:2px 6px;border-radius:6px;background:#eef2ff;color:#4f46e5;font-weight:800;margin-left:5px;vertical-align:middle;display:inline-block;line-height:1.4}.user-badge.u1{background:#fdf2f8;color:#db2777}.form-group{margin-bottom:20px}.form-label{font-size:12px;font-weight:700;color:#64748b;margin-bottom:8px;display:block;letter-spacing:0.04em;text-transform:uppercase}.form-input{width:100%;padding:14px 16px;border:2px solid #e2e8f0;border-radius:14px;font-size:16px;background:#f8fafc;color:#0f172a;font-weight:600;font-family:'Noto Sans TC',sans-serif;outline:none;transition:all 0.2s}.form-input:focus{border-color:#818cf8;background:#fff;box-shadow:0 0 0 4px rgba(99,102,241,0.1)}.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.cat-btn{padding:14px 8px;border:2px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.15s}.cat-btn:active{transform:scale(0.96)}.cat-btn.selected{border-color:#4f46e5;background:#eef2ff;color:#4f46e5;box-shadow:0 4px 12px rgba(79,70,229,0.1)}.cat-icon{font-size:24px}.curr-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}.curr-btn{padding:12px 4px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;font-family:'Noto Sans TC',sans-serif;text-align:center;transition:all 0.15s}.curr-btn:active{transform:scale(0.96)}.curr-btn.selected{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}.curr-more-row{display:flex;align-items:center;gap:10px}.curr-more-label{font-size:13px;font-weight:700;color:#64748b;white-space:nowrap}.curr-select{flex:1;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;font-weight:700;color:#475569;font-family:'Noto Sans TC',sans-serif;background:#f8fafc;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;transition:all 0.2s}.curr-select:focus{border-color:#818cf8}.curr-select.selected-other{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}.note-wrap{position:relative}.note-suggestions{position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #818cf8;border-top:none;border-radius:0 0 14px 14px;z-index:50;display:none;max-height:180px;overflow-y:auto;box-shadow:0 10px 15px rgba(0,0,0,0.1)}.note-suggestions.show{display:block}.note-sug-item{padding:12px 16px;font-size:14px;font-weight:600;color:#1e293b;cursor:pointer;border-bottom:1px solid #f1f5f9}.note-sug-item:last-child{border-bottom:none}.note-sug-item:active{background:#eef2ff;color:#4f46e5}.custom-cat-wrap{margin-top:10px;display:none}.custom-cat-wrap.show{display:block}.submit-btn{width:100%;padding:16px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;border-radius:16px;font-size:16px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:10px;box-shadow:0 4px 16px rgba(79,70,229,0.3);transition:all 0.2s}.submit-btn:active{transform:translateY(2px);box-shadow:0 2px 8px rgba(79,70,229,0.2)}.submit-btn:disabled{background:#cbd5e1;box-shadow:none;cursor:not-allowed;transform:none}.empty{text-align:center;padding:60px 20px;color:#94a3b8;font-size:14px;font-weight:600}.msg{padding:14px 16px;border-radius:14px;font-size:13px;font-weight:700;margin-bottom:16px;display:none}.msg.success{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;display:block}.msg.error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;display:block}.msg.info{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;display:block}.total-big{font-size:36px;font-weight:900;color:#4f46e5;margin-bottom:4px;letter-spacing:-1px}.cat-filter-wrap{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.cat-filter{padding:8px 14px;border:2px solid #e2e8f0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}.cat-filter.active{background:#4f46e5;color:#fff;border-color:#4f46e5}.bar-wrap{margin-bottom:12px}.bar-label{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#475569;margin-bottom:4px}.bar-track{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#818cf8,#4f46e5);transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}.date-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}.day-group{margin-bottom:8px}.day-header{font-size:13px;font-weight:800;color:#64748b;padding:16px 4px 8px}.rate-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:#f1f5f9;border-radius:14px}.secondary-btn{width:100%;padding:16px;background:#f1f5f9;color:#475569;border:none;border-radius:16px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:10px;transition:all 0.2s}.secondary-btn:active{background:#e2e8f0;transform:translateY(2px)}.danger-btn{width:100%;padding:16px;background:#fef2f2;color:#dc2626;border:none;border-radius:16px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}.danger-btn:active{background:#fee2e2}.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}.modal-overlay.hidden{display:none}.modal{background:#fff;border-radius:24px;padding:32px 24px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,0.12)}.modal h2{font-size:22px;font-weight:900;color:#0f172a;margin-bottom:12px}.modal p{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:20px;font-weight:500}.modal .step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}.modal .step-num{width:26px;height:26px;border-radius:13px;background:#eef2ff;color:#4f46e5;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}.modal .step-text{font-size:14px;color:#334155;line-height:1.6;font-weight:500}.sync-status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#94a3b8;padding:8px 0}.sync-dot{width:8px;height:8px;border-radius:4px;background:#cbd5e1;flex-shrink:0}.sync-dot.ok{background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.4)}.sync-dot.err{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.4)}.sync-dot.loading{background:#f59e0b;animation:pulse 1s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}.spinner.dark{border-color:rgba(79,70,229,0.2);border-top-color:#4f46e5}@keyframes spin{to{transform:rotate(360deg)}}.rate-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.rate-update-btn{padding:8px 14px;background:#eef2ff;color:#4f46e5;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}.rate-update-btn:active{background:#e0e7ff;transform:scale(0.95)}.budget-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}.budget-card{padding:16px;border-radius:16px;background:#f1f5f9}.budget-card.u0{border-top:4px solid #4f46e5}.budget-card.u1{border-top:4px solid #db2777}.calc-op-btn{flex:1;padding:10px 0;border:2px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;font-size:16px;font-weight:800;color:#475569;font-family:'Noto Sans TC',sans-serif;transition:all 0.15s}.calc-op-btn:active{background:#eef2ff;border-color:#4f46e5;color:#4f46e5;transform:scale(0.95)}.user-tab-row{display:flex;gap:8px;margin-bottom:12px}.user-tab{flex:1;padding:10px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;text-align:center;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}.user-tab.active-0{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}.user-tab.active-1{border-color:#db2777;background:#fdf2f8;color:#db2777}.user-tab.tab-all.active-all{border-color:#475569;background:#f1f5f9;color:#1e293b}.rec-freq-btn{padding:10px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;color:#64748b;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s;text-align:center}.rec-freq-btn.selected{border-color:#4f46e5;background:#eef2ff;color:#4f46e5}.rec-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.03);display:flex;align-items:center;gap:12px}.rec-card.due{border-left:4px solid #f59e0b}.rec-card.overdue{border-left:4px solid #ef4444}.rec-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}.rec-info{flex:1;min-width:0}.rec-name{font-size:15px;font-weight:700;color:#1e293b}.rec-meta{font-size:12px;color:#64748b;margin-top:3px;font-weight:600}.rec-amt{text-align:right;flex-shrink:0}.rec-amt-val{font-size:15px;font-weight:800;color:#0f172a}.rec-due{font-size:11px;font-weight:700;margin-top:2px}.rec-due.today{color:#f59e0b}.rec-due.late{color:#ef4444}.rec-due.ok{color:#10b981}.rec-actions{display:flex;gap:6px;flex-shrink:0}</style></head>
+<body><div class="app">
 <!-- Device Identity Modal -->
 <div class="modal-overlay hidden" id="identity-modal">
   <div class="modal">
@@ -236,7 +9,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <div id="identity-btns" style="display:flex;flex-direction:column;gap:12px;margin-top:8px"></div>
   </div>
 </div>
-
 <!-- Setup Modal -->
 <div class="modal-overlay hidden" id="setup-modal">
   <div class="modal">
@@ -255,7 +27,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <button class="secondary-btn" id="skip-setup-btn" style="margin-top:8px;margin-bottom:0">暫時跳過（僅本機儲存）</button>
   </div>
 </div>
-
 <!-- Edit Modal -->
 <div class="modal-overlay hidden" id="edit-modal">
   <div class="modal">
@@ -281,7 +52,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <button class="secondary-btn" id="edit-cancel-btn" style="margin-top:8px;margin-bottom:0">取消</button>
   </div>
 </div>
-
 <!-- Budget Modal -->
 <div class="modal-overlay hidden" id="budget-modal">
   <div class="modal">
@@ -298,52 +68,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <button class="secondary-btn" id="budget-cancel-btn" style="margin-top:8px;margin-bottom:0">取消</button>
   </div>
 </div>
-
-<!-- Scan Modal -->
-<div class="modal-overlay hidden" id="scan-modal">
-  <div class="modal" style="padding:24px">
-    <h2 id="scan-modal-title">📷 掃描收據</h2>
-    <p id="scan-modal-desc" style="margin-bottom:16px">拍攝或選擇收據圖片，AI 會自動識別金額與店家。</p>
-    <div id="scan-step-upload">
-      <div id="scan-preview-wrap" style="display:none;margin-bottom:14px">
-        <img id="scan-preview-img" style="width:100%;border-radius:12px;max-height:240px;object-fit:contain;background:#f1f5f9">
-      </div>
-      <label id="scan-upload-btn" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:18px;border:2.5px dashed #818cf8;border-radius:16px;cursor:pointer;background:#f8fafc;color:#4f46e5;font-weight:800;font-size:15px;margin-bottom:12px">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        <span id="scan-upload-label">拍照 / 選擇圖片</span>
-        <input type="file" accept="image/*" capture="environment" id="scan-file-input" style="display:none">
-      </label>
-      <button class="submit-btn" id="scan-analyze-btn" disabled style="margin-top:0">🔍 分析收據</button>
-    </div>
-    <div id="scan-step-loading" style="display:none;text-align:center;padding:24px 0">
-      <div style="width:48px;height:48px;border:4px solid #e0e7ff;border-top-color:#4f46e5;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
-      <div style="font-size:15px;font-weight:700;color:#475569" id="scan-loading-text">AI 分析中...</div>
-    </div>
-    <div id="scan-step-result" style="display:none">
-      <div id="scan-result-msg" class="msg" style="margin-bottom:12px"></div>
-      <div class="form-group">
-        <label class="form-label" id="scan-lbl-amount">識別金額</label>
-        <input type="text" class="form-input" id="scan-amount" inputmode="decimal">
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="scan-lbl-note">店家 / 備註</label>
-        <input type="text" class="form-input" id="scan-note">
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="scan-lbl-cat">類別</label>
-        <div class="cat-grid" id="scan-cat-grid" style="margin-bottom:8px"></div>
-        <select class="curr-select" id="scan-cat-more"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="scan-lbl-curr">幣別</label>
-        <div class="curr-quick" id="scan-curr-quick"></div>
-      </div>
-      <button class="submit-btn" id="scan-confirm-btn">✅ 確認並記帳</button>
-    </div>
-    <button class="secondary-btn" id="scan-cancel-btn" style="margin-top:8px;margin-bottom:0">取消</button>
-  </div>
-</div>
-
 <!-- Recurring Modal -->
 <div class="modal-overlay hidden" id="recurring-modal">
   <div class="modal">
@@ -364,7 +88,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
         <select class="curr-select" id="rec-curr" style="flex:0 0 90px"></select>
       </div>
     </div>
-    <!-- 頻率：6選項 -->
     <div class="form-group">
       <label class="form-label" id="lbl-rec-freq">頻率</label>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -384,29 +107,8 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <button class="secondary-btn" id="rec-cancel-btn" style="margin-top:8px;margin-bottom:0">取消</button>
   </div>
 </div>
-
 <!-- Due Today Banner -->
-<style>
-#due-banner{
-  display:none;
-  position:fixed;
-  top:0; left:50%;
-  transform:translateX(-50%) translateY(-100%);
-  width:calc(100% - 0px);
-  max-width:430px;
-  background:#fff;
-  border-radius:0 0 20px 20px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.15);
-  z-index:300;
-  padding:calc(56px + env(safe-area-inset-top,0px)) 16px 16px;
-  border-bottom:4px solid #f59e0b;
-  transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-}
-#due-banner.show{
-  display:block;
-  transform:translateX(-50%) translateY(0);
-}
-</style>
+<style>#due-banner{display:none;position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-100%);width:calc(100% - 0px);max-width:430px;background:#fff;border-radius:0 0 20px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:300;padding:calc(56px + env(safe-area-inset-top,0px)) 16px 16px;border-bottom:4px solid #f59e0b;transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);}#due-banner.show{display:block;transform:translateX(-50%) translateY(0);}</style>
 <div id="due-banner">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <div style="font-size:14px;font-weight:800;color:#92400e;display:flex;align-items:center;gap:6px">
@@ -417,8 +119,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   </div>
   <div id="due-banner-list"></div>
 </div>
-
-<!-- RECURRING -->
+<!-- RECURRING SCREEN -->
 <div id="screen-recurring" class="screen">
   <div class="topbar">
     <div class="topbar-left"><h1 id="title-recurring-screen">定期付款</h1><p id="subtitle-recurring-screen">管理週期性費用</p></div>
@@ -428,13 +129,11 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <div id="recurring-list"></div>
   </div>
 </div>
-
-<!-- ADD -->
+<!-- ADD SCREEN -->
 <div id="screen-add" class="screen active">
   <div class="topbar">
     <div class="topbar-left"><h1 id="title-add-screen">新增記錄</h1><p id="today-date"></p></div>
     <div style="display:flex;align-items:center;gap:10px">
-      <button id="scan-open-btn" title="掃描收據" style="background:#eef2ff;border:none;border-radius:12px;padding:8px 12px;cursor:pointer;color:#4f46e5;font-size:20px;line-height:1;display:flex;align-items:center">📷</button>
       <div class="sync-status"><div class="sync-dot" id="sync-dot-add"></div><span id="sync-text-add">---</span></div>
     </div>
   </div>
@@ -491,8 +190,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <button class="submit-btn" id="save-btn">儲存記錄</button>
   </div>
 </div>
-
-<!-- TODAY -->
+<!-- TODAY SCREEN -->
 <div id="screen-today" class="screen">
   <div class="topbar"><div class="topbar-left"><h1 id="title-today-screen">今日支出</h1><p id="today-label"></p></div></div>
   <div class="content">
@@ -507,8 +205,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <div id="today-list"></div>
   </div>
 </div>
-
-<!-- MONTH -->
+<!-- MONTH SCREEN -->
 <div id="screen-month" class="screen">
   <div class="topbar"><div class="topbar-left"><h1 id="title-month-screen">本月總覽</h1><p id="month-label"></p></div></div>
   <div class="content">
@@ -524,8 +221,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     <div id="month-list"></div>
   </div>
 </div>
-
-<!-- REPORT -->
+<!-- REPORT SCREEN -->
 <div id="screen-report" class="screen">
   <div class="topbar"><div class="topbar-left"><h1 id="title-report-screen">自訂查詢</h1><p id="subtitle-report-screen">選擇期間與分類</p></div></div>
   <div class="content">
@@ -552,8 +248,7 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     </div>
   </div>
 </div>
-
-<!-- SETTINGS -->
+<!-- SETTINGS SCREEN -->
 <div id="screen-settings" class="screen">
   <div class="topbar"><div class="topbar-left"><h1 id="title-settings-screen">設定 / 匯率</h1><p id="subtitle-settings-screen">依台灣中央銀行牌告匯率</p></div></div>
   <div class="content">
@@ -602,7 +297,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
     </div>
   </div>
 </div>
-
 <!-- NAV -->
 <nav class="nav">
   <button class="nav-btn active" data-screen="add">
@@ -625,7 +319,6 @@ html,body{height:100%;overflow:hidden;background:#e2e8f0;font-family:'Noto Sans 
   </button>
 </nav>
 </div>
-
 <script>
 // ===== 常數 =====
 const CATS=[
@@ -716,7 +409,6 @@ const I18N={
     cat_entertainment:'娛樂',cat_travel:'旅遊',cat_home:'居家',cat_subscription:'訂閱',cat_medical:'醫療',cat_beauty:'美容',
     cat_education:'教育',cat_bills:'帳單',cat_other:'其他',
     twd_ref:'* 1 ฿ ≈ NT$ ',
-    // 定期付款
     btn_add_recurring:'＋ 新增',modal_recurring_title:'🔔 新增定期付款',
     lbl_rec_name:'名稱',lbl_rec_cat:'類別',lbl_rec_amt:'金額',lbl_rec_freq:'頻率',lbl_rec_start:'開始 / 下次付款日',
     rec_name_placeholder:'例：Netflix、房租、健身房',
@@ -726,15 +418,6 @@ const I18N={
     due_banner_title:'定期付款提醒',recurring_empty:'尚無定期付款',
     confirm_del_recurring:'確定刪除此定期付款？',
     recorded_alert:'已記帳：',record_confirm_prefix:'立即記帳「',record_confirm_mid:'」',record_confirm_suffix:' 嗎？',
-    // Scan
-    scan_title:'📷 掃描收據',scan_desc:'拍攝或選擇收據圖片，AI 會自動識別金額與店家。',
-    scan_upload_label:'拍照 / 選擇圖片',scan_analyze:'🔍 分析收據',scan_analyzing:'AI 分析中...',
-    scan_lbl_amount:'識別金額',scan_lbl_note:'店家 / 備註',scan_lbl_cat:'類別',scan_lbl_curr:'幣別',
-    scan_confirm:'✅ 確認並記帳',scan_cancel:'取消',
-    scan_success:'✅ 分析完成！請確認資料後記帳。',scan_low_conf:'AI 無法確定類別，請自行選擇 👇',
-    scan_no_amount:'未能識別金額，請手動輸入。',scan_fill_info:'已從收據填入資料，確認後按「儲存記錄」完成。',
-    scan_fail:'分析失敗：',
-    // budget modal labels
     budget_user_suffix:' 的預算 (THB)',
   },
   en:{
@@ -782,7 +465,6 @@ const I18N={
     cat_entertainment:'Entertain',cat_travel:'Travel',cat_home:'Home',cat_subscription:'Subscription',cat_medical:'Medical',cat_beauty:'Beauty',
     cat_education:'Education',cat_bills:'Bills',cat_other:'Other',
     twd_ref:'* 1 ฿ ≈ NT$ ',
-    // Recurring
     btn_add_recurring:'＋ Add',modal_recurring_title:'🔔 Add Recurring Payment',
     lbl_rec_name:'Name',lbl_rec_cat:'Category',lbl_rec_amt:'Amount',lbl_rec_freq:'Frequency',lbl_rec_start:'Start / Next Due Date',
     rec_name_placeholder:'e.g. Netflix, Rent, Gym',
@@ -792,21 +474,11 @@ const I18N={
     due_banner_title:'Recurring Payment Reminder',recurring_empty:'No recurring payments',
     confirm_del_recurring:'Delete this recurring payment?',
     recorded_alert:'Recorded: ',record_confirm_prefix:'Record "',record_confirm_mid:'" ',record_confirm_suffix:' now?',
-    // Scan
-    scan_title:'📷 Scan Receipt',scan_desc:'Take a photo or select a receipt image. AI will auto-detect the amount and store.',
-    scan_upload_label:'Take Photo / Select Image',scan_analyze:'🔍 Analyze Receipt',scan_analyzing:'AI analyzing...',
-    scan_lbl_amount:'Detected Amount',scan_lbl_note:'Store / Note',scan_lbl_cat:'Category',scan_lbl_curr:'Currency',
-    scan_confirm:'✅ Confirm & Record',scan_cancel:'Cancel',
-    scan_success:'✅ Analysis complete! Please verify before saving.',scan_low_conf:'Category uncertain, please select manually 👇',
-    scan_no_amount:'Could not detect amount. Please enter manually.',scan_fill_info:'Receipt data filled. Confirm and tap "Save Record".',
-    scan_fail:'Analysis failed: ',
-    // budget modal
     budget_user_suffix:"'s Budget (THB)",
   }
 };
 let lang='zh';
 function T(k){return (I18N[lang]&&I18N[lang][k])||I18N['zh'][k]||k;}
-
 // ===== 狀態 =====
 let records=[], selCat='food', selCurr='THB', repCatFilter=null, apiUrl='';
 let userNames=['Sam','Patty'], selectedUserIdx=0;
@@ -854,23 +526,13 @@ function saveRates(){const m={};CURRENCIES.forEach(c=>m[c.code]=c.rate);localSto
 function saveNoteMemory(){localStorage.setItem('xp_note_memory',JSON.stringify(noteMemory));}
 
 // ===== 雲端同步：預算 & 定期付款 =====
-async function syncBudgetsToCloud(){
-  if(!apiUrl)return;
-  try{await apiCall('setBudgets',{budgets});}catch(e){console.warn('Budget sync failed',e);}
-}
-async function syncRecurringToCloud(){
-  if(!apiUrl)return;
-  try{await apiCall('setRecurring',{recurring:recurringList});}catch(e){console.warn('Recurring sync failed',e);}
-}
+async function syncBudgetsToCloud(){if(!apiUrl)return;try{await apiCall('setBudgets',{budgets});}catch(e){console.warn('Budget sync failed',e);}}
+async function syncRecurringToCloud(){if(!apiUrl)return;try{await apiCall('setRecurring',{recurring:recurringList});}catch(e){console.warn('Recurring sync failed',e);}}
 async function loadBudgetsFromCloud(){
   if(!apiUrl)return false;
   try{
     const res=await apiCall('getBudgets');
-    if(res.budgets&&Object.keys(res.budgets).length){
-      budgets=res.budgets;
-      localStorage.setItem('xp_budgets',JSON.stringify(budgets));
-      return true;
-    }
+    if(res.budgets&&Object.keys(res.budgets).length){budgets=res.budgets;localStorage.setItem('xp_budgets',JSON.stringify(budgets));return true;}
   }catch(e){console.warn('Budget load failed',e);}
   return false;
 }
@@ -878,24 +540,18 @@ async function loadRecurringFromCloud(){
   if(!apiUrl)return false;
   try{
     const res=await apiCall('getRecurring');
-    if(res.recurring&&res.recurring.length){
-      recurringList=res.recurring;
-      localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
-      return true;
-    }
+    if(res.recurring&&res.recurring.length){recurringList=res.recurring;localStorage.setItem('xp_recurring',JSON.stringify(recurringList));return true;}
   }catch(e){console.warn('Recurring load failed',e);}
   return false;
 }
 
 // ===== 語言套用 =====
 function applyLang(){
-  // Nav buttons
   const navKeys=['add','today','month','report','recurring','settings'];
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{
     const svg=b.querySelector('svg');b.textContent='';if(svg)b.appendChild(svg);
     b.appendChild(document.createTextNode(T('nav_'+navKeys[i])));
   });
-  // Screen titles & subtitles
   const titleIds={
     'title-add-screen':'title_add','title-today-screen':'title_today',
     'title-month-screen':'title_month','title-report-screen':'title_report',
@@ -907,8 +563,6 @@ function applyLang(){
     'subtitle-recurring-screen':'recurring_subtitle'
   };
   Object.entries(subIds).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.textContent=T(key);});
-
-  // Add screen
   const lbl=document.getElementById('lbl-who-paid');if(lbl)lbl.textContent=T('who_paid');
   const lblCat=document.getElementById('lbl-main-cat');if(lblCat)lblCat.textContent=T('lbl_cat');
   const lblAmt=document.getElementById('lbl-main-amount');if(lblAmt)lblAmt.textContent=T('lbl_amount');
@@ -919,31 +573,23 @@ function applyLang(){
   const inpNote=document.getElementById('inp-note');if(inpNote)inpNote.placeholder=T('note_placeholder');
   const inpCustCat=document.getElementById('inp-custom-cat');if(inpCustCat)inpCustCat.placeholder=T('custom_cat_placeholder');
   const saveBtn=document.getElementById('save-btn');if(saveBtn)saveBtn.textContent=T('btn_save');
-
-  // Today screen
   const tsl=document.getElementById('today-stat-lbl');if(tsl)tsl.textContent=T('today_total');
   const tss=document.getElementById('today-stat-sub');if(tss)tss.textContent=T('today_sub');
   const tcl=document.getElementById('today-count-lbl');if(tcl)tcl.textContent=T('count_lbl');
   const tcs=document.getElementById('today-count-sub');if(tcs)tcs.textContent=T('count_sub');
   const tdt=document.getElementById('today-detail-title');if(tdt)tdt.textContent=T('sec_details');
-
-  // Month screen
   const msl=document.getElementById('month-stat-lbl');if(msl)msl.textContent=T('month_total');
   const mss=document.getElementById('month-stat-sub');if(mss)mss.textContent=T('today_sub');
   const mcl=document.getElementById('month-count-lbl');if(mcl)mcl.textContent=T('count_lbl');
   const mcs=document.getElementById('month-count-sub');if(mcs)mcs.textContent=T('count_sub');
   const mct=document.getElementById('month-cat-title');if(mct)mct.textContent=T('sec_cat_analysis');
   const mdt=document.getElementById('month-detail-title');if(mdt)mdt.textContent=T('sec_details');
-
-  // Report screen
   const rfl=document.getElementById('rep-lbl-from');if(rfl)rfl.textContent=T('start_date');
   const rtl=document.getElementById('rep-lbl-to');if(rtl)rtl.textContent=T('end_date');
   const rcl=document.getElementById('rep-lbl-cat');if(rcl)rcl.textContent=T('filter_cat');
   const rrb=document.getElementById('rep-run-btn');if(rrb)rrb.textContent=T('btn_search');
   const rtot=document.getElementById('rep-total-lbl');if(rtot)rtot.textContent=T('report_total');
   const rdt=document.getElementById('rep-detail-title');if(rdt)rdt.textContent=T('sec_details');
-
-  // Settings screen
   const secLang=document.getElementById('sec-lang');if(secLang)secLang.textContent=T('sec_lang');
   const secUsers=document.getElementById('sec-users');if(secUsers)secUsers.textContent=T('sec_users');
   const secCloud=document.getElementById('sec-cloud');if(secCloud)secCloud.textContent=T('sec_cloud');
@@ -961,8 +607,6 @@ function applyLang(){
   const refrBtn=document.getElementById('refresh-btn');if(refrBtn)refrBtn.textContent=T('btn_resync');
   const expBtn=document.getElementById('export-btn');if(expBtn)expBtn.textContent=T('btn_export');
   const clrBtn=document.getElementById('clear-btn');if(clrBtn)clrBtn.textContent=T('btn_clear');
-
-  // Modals
   const smTitle=document.getElementById('setup-modal-title');if(smTitle)smTitle.textContent=T('modal_setup_title');
   const smDesc=document.getElementById('setup-modal-desc');if(smDesc)smDesc.textContent=T('modal_setup_desc');
   const ss1=document.getElementById('setup-step1');if(ss1)ss1.textContent=T('step1');
@@ -972,7 +616,6 @@ function applyLang(){
   const saLbl=document.getElementById('setup-api-lbl');if(saLbl)saLbl.textContent=T('lbl_api_url');
   const saBtn=document.getElementById('save-api-btn');if(saBtn)saBtn.textContent=T('btn_test_conn');
   const skipBtn=document.getElementById('skip-setup-btn');if(skipBtn)skipBtn.textContent=T('btn_skip');
-
   const emTitle=document.getElementById('edit-modal-title');if(emTitle)emTitle.textContent=T('modal_edit_title');
   const elCat=document.getElementById('edit-lbl-cat');if(elCat)elCat.textContent=T('lbl_cat');
   const elAmt=document.getElementById('edit-lbl-amt');if(elAmt)elAmt.textContent=T('lbl_amount');
@@ -980,15 +623,11 @@ function applyLang(){
   const elNote=document.getElementById('edit-lbl-note');if(elNote)elNote.textContent=T('lbl_note');
   const esBtn=document.getElementById('edit-save-btn');if(esBtn)esBtn.textContent=T('btn_save_edit');
   const ecBtn=document.getElementById('edit-cancel-btn');if(ecBtn)ecBtn.textContent=T('btn_cancel');
-
   const bmTitle=document.getElementById('budget-modal-title');if(bmTitle)bmTitle.textContent=T('modal_budget_title');
   const bsBtn=document.getElementById('budget-save-btn');if(bsBtn)bsBtn.textContent=T('btn_save_budget');
   const bcBtn=document.getElementById('budget-cancel-btn');if(bcBtn)bcBtn.textContent=T('btn_cancel');
-
   const imTitle=document.getElementById('identity-modal-title');if(imTitle)imTitle.textContent=T('identity_title');
   const imDesc=document.getElementById('identity-modal-desc');if(imDesc)imDesc.textContent=T('identity_desc');
-
-  // Recurring modal
   const rmTitle=document.getElementById('recurring-modal-title');if(rmTitle)rmTitle.textContent=T('modal_recurring_title');
   const lrn=document.getElementById('lbl-rec-name');if(lrn)lrn.textContent=T('lbl_rec_name');
   const lrc=document.getElementById('lbl-rec-cat');if(lrc)lrc.textContent=T('lbl_rec_cat');
@@ -998,35 +637,16 @@ function applyLang(){
   const rnp=document.getElementById('rec-name');if(rnp)rnp.placeholder=T('rec_name_placeholder');
   const rsBtn=document.getElementById('rec-save-btn');if(rsBtn)rsBtn.textContent=T('btn_save_budget');
   const rcBtn=document.getElementById('rec-cancel-btn');if(rcBtn)rcBtn.textContent=T('btn_cancel');
-  // Freq buttons
   ['daily','workday','weekend','weekly','monthly','yearly'].forEach(f=>{
     const b=document.getElementById('freq-'+f);if(b)b.textContent=T('freq_'+f);
   });
-  // Add recurring btn
   const arBtn=document.getElementById('add-recurring-btn');if(arBtn)arBtn.textContent=T('btn_add_recurring');
-  // Due banner
   const dbTitle=document.getElementById('due-banner-title');if(dbTitle)dbTitle.textContent=T('due_banner_title');
-
-  // Scan modal
-  const scTitle=document.getElementById('scan-modal-title');if(scTitle)scTitle.textContent=T('scan_title');
-  const scDesc=document.getElementById('scan-modal-desc');if(scDesc)scDesc.textContent=T('scan_desc');
-  const scUploadLbl=document.getElementById('scan-upload-label');if(scUploadLbl)scUploadLbl.textContent=T('scan_upload_label');
-  const scAnalyzeBtn=document.getElementById('scan-analyze-btn');if(scAnalyzeBtn)scAnalyzeBtn.textContent=T('scan_analyze');
-  const scLoadingTxt=document.getElementById('scan-loading-text');if(scLoadingTxt)scLoadingTxt.textContent=T('scan_analyzing');
-  const scLblAmt=document.getElementById('scan-lbl-amount');if(scLblAmt)scLblAmt.textContent=T('scan_lbl_amount');
-  const scLblNote=document.getElementById('scan-lbl-note');if(scLblNote)scLblNote.textContent=T('scan_lbl_note');
-  const scLblCat=document.getElementById('scan-lbl-cat');if(scLblCat)scLblCat.textContent=T('scan_lbl_cat');
-  const scLblCurr=document.getElementById('scan-lbl-curr');if(scLblCurr)scLblCurr.textContent=T('scan_lbl_curr');
-  const scConfirmBtn=document.getElementById('scan-confirm-btn');if(scConfirmBtn)scConfirmBtn.textContent=T('scan_confirm');
-  const scCancelBtn=document.getElementById('scan-cancel-btn');if(scCancelBtn)scCancelBtn.textContent=T('scan_cancel');
-
-  // rebuild dynamic UI
   buildCatGrid();buildCurrUI();
   refreshAll();
   updateDeviceIdentityDisplay();
   updateLangBtns();
 }
-
 // ===== API =====
 async function apiCall(action,data={}){
   if(!apiUrl)throw new Error('未設定 API 網址');
@@ -1065,7 +685,6 @@ function setSyncStatus(ok,msg=''){
 // ===== Setup Modal =====
 function showSetupModal(){document.getElementById('setup-modal').classList.remove('hidden');document.getElementById('api-url-input').value=apiUrl||'';}
 function hideSetupModal(){document.getElementById('setup-modal').classList.add('hidden');}
-
 document.getElementById('save-api-btn').onclick=async()=>{
   const url=document.getElementById('api-url-input').value.trim();
   const msg=document.getElementById('modal-msg'),btn=document.getElementById('save-api-btn');
@@ -1226,7 +845,6 @@ function getCat(id){const c=CATS.find(x=>x.id===id);if(c)return{...c,label:T(c.l
 function getCurr(c){return CURRENCIES.find(x=>x.code===c)||CURRENCIES[0];}
 function fmtTHB(v){return '฿ '+Math.round(v).toLocaleString();}
 function fmtAmt(a,c){const x=getCurr(c);return x.symbol+parseFloat(a).toLocaleString(undefined,{maximumFractionDigits:2});}
-
 // ===== Cat UI =====
 function buildCatGrid(){
   const g=document.getElementById('cat-grid');g.innerHTML='';
@@ -1379,6 +997,7 @@ function renderEntries(list,cid){
   });
 }
 
+// FIX: bar widths — p1 = 100-p0 to ensure exact sum and accurate visual proportions
 function renderBars(list,cid){
   const el=document.getElementById(cid);if(!list.length){el.innerHTML='';return;}
   const u0=userNames[0],u1=userNames[1];
@@ -1394,8 +1013,9 @@ function renderBars(list,cid){
   Object.entries(bycat).sort((a,b)=>b[1].total-a[1].total).forEach(([catId,data])=>{
     const cat=getCat(catId);
     const pct=max>0?(data.total/max*100):0;
+    // FIX: use complement to ensure p0+p1 = exactly 100%
     const p0=data.total>0?(data.u0/data.total*100):0;
-    const p1=data.total>0?(data.u1/data.total*100):0;
+    const p1=Math.max(100-p0,0);
     const d=document.createElement('div');d.className='bar-wrap';
     d.innerHTML=`
       <div class="bar-label"><span>${cat.icon} ${cat.label}</span><span>${fmtTHB(data.total)}</span></div>
@@ -1414,6 +1034,7 @@ function renderBars(list,cid){
   setTimeout(()=>{el.querySelectorAll('.bar-track>div').forEach(b=>b.style.width=b.dataset.pct+'%');},50);
 }
 
+// FIX: compare bar — p1 = 100-p0 to ensure exact fill
 function renderCompare(list,cid){
   const el=document.getElementById(cid);if(!el)return;
   if(!list.length){el.innerHTML='';return;}
@@ -1423,8 +1044,9 @@ function renderCompare(list,cid){
   const t0=l0.reduce((s,r)=>s+toTHB(r.amount,r.curr),0);
   const t1=l1.reduce((s,r)=>s+toTHB(r.amount,r.curr),0);
   const total=t0+t1;
+  // FIX: p1 = 100-p0 so the two fills exactly cover the bar with no gap/overflow
   const p0=total>0?(t0/total*100):50;
-  const p1=total>0?(t1/total*100):50;
+  const p1=100-p0;
   el.innerHTML=`
     <div class="section-title">${T('sec_compare')}</div>
     <div class="stat-row">
@@ -1444,7 +1066,6 @@ function renderCompare(list,cid){
       <div class="cmp-fill-1" style="width:${p1}%"></div>
     </div>`;
 }
-
 function renderMonthBudget(list,m,cid){
   const el=document.getElementById(cid);if(!el)return;
   const u0=userNames[0],u1=userNames[1];
@@ -1479,14 +1100,12 @@ function renderMonthBudget(list,m,cid){
       </div>
     </div>`;
 }
-
 function setLang(l){lang=l;localStorage.setItem('xp_lang',l);applyLang();}
 function updateLangBtns(){
   const z=document.getElementById('lang-zh-btn'),e=document.getElementById('lang-en-btn');
   if(z){z.style.borderColor=lang==='zh'?'#4f46e5':'#e2e8f0';z.style.background=lang==='zh'?'#eef2ff':'#fff';z.style.color=lang==='zh'?'#4f46e5':'#475569';}
   if(e){e.style.borderColor=lang==='en'?'#4f46e5':'#e2e8f0';e.style.background=lang==='en'?'#eef2ff':'#fff';e.style.color=lang==='en'?'#4f46e5':'#475569';}
 }
-
 function buildCatFilters(cid,aid,onSel){
   const w=document.getElementById(cid);w.innerHTML='';
   const mk=(lbl,id)=>{const b=document.createElement('button');b.className='cat-filter'+(aid===id?' active':'');b.textContent=lbl;b.onclick=()=>onSel(id);w.appendChild(b);};
@@ -1646,105 +1265,12 @@ document.getElementById('export-btn').onclick=()=>{
     rows.push([r.date,getCat(r.cat).label,r.amount,r.curr,Math.round(toTHB(r.amount,r.curr)),r.note||'',r.user||userNames[0]]);
   });
   const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='expenses_'+today()+'.csv';a.click();
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='expenses_'+today()+'.csv';a.click();
 };
 document.getElementById('clear-btn').onclick=()=>{
   if(confirm(T('confirm_clear'))){records=[];saveLocal();refreshAll();alert(T('cleared'));}
 };
-
-// ===== 掃描收據 =====
-(function(){
-  let scanBase64='', scanSelCat='food', scanSelCurr='THB';
-  function showScanStep(step){['upload','loading','result'].forEach(s=>{document.getElementById('scan-step-'+s).style.display=s===step?'block':'none';});}
-  document.getElementById('scan-open-btn').onclick=()=>{
-    scanBase64='';scanSelCat='food';scanSelCurr=selCurr;
-    document.getElementById('scan-preview-wrap').style.display='none';
-    document.getElementById('scan-analyze-btn').disabled=true;
-    document.getElementById('scan-result-msg').className='msg';
-    showScanStep('upload');
-    document.getElementById('scan-modal').classList.remove('hidden');
-    buildScanCatGrid();buildScanCurrUI();
-  };
-  document.getElementById('scan-cancel-btn').onclick=()=>{document.getElementById('scan-modal').classList.add('hidden');document.getElementById('scan-file-input').value='';};
-  document.getElementById('scan-file-input').onchange=function(){
-    const file=this.files[0];if(!file)return;
-    const reader=new FileReader();
-    reader.onload=e=>{scanBase64=e.target.result.split(',')[1];document.getElementById('scan-preview-img').src=e.target.result;document.getElementById('scan-preview-wrap').style.display='block';document.getElementById('scan-analyze-btn').disabled=false;};
-    reader.readAsDataURL(file);
-  };
-  document.getElementById('scan-analyze-btn').onclick=async()=>{
-    if(!scanBase64)return;
-    showScanStep('loading');
-    try{
-      const prompt=`你是一個收據分析助手。請分析這張收據圖片，用 JSON 格式回答（只回 JSON，不要其他文字）：{"amount":數字,"currency":"幣別代碼THB/TWD/USD等","note":"店家名稱15字內","cat":"food/drink/transport/shopping/home/travel/entertainment/medical/beauty/education/bills/other","confidence":"high或low"}`;
-      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:scanBase64}},{type:'text',text:prompt}]}]})});
-      const data=await res.json();
-      const text=data.content?.[0]?.text||'';
-      const jsonMatch=text.match(/\{[\s\S]*\}/);
-      if(!jsonMatch)throw new Error('Parse error');
-      const result=JSON.parse(jsonMatch[0]);
-      document.getElementById('scan-amount').value=result.amount>0?result.amount:'';
-      document.getElementById('scan-note').value=result.note||'';
-      const detectedCurr=CURRENCIES.find(c=>c.code===result.currency)?result.currency:'THB';
-      scanSelCurr=detectedCurr;buildScanCurrUI();
-      const validCat=CATS.find(c=>c.id===result.cat);
-      scanSelCat=validCat?result.cat:'other';buildScanCatGrid();
-      const msg=document.getElementById('scan-result-msg');
-      if(result.amount===0){msg.className='msg error';msg.textContent=T('scan_no_amount');}
-      else if(result.confidence==='low'||!validCat){msg.className='msg info';msg.textContent=T('scan_low_conf');}
-      else{msg.className='msg success';msg.textContent=T('scan_success');}
-      showScanStep('result');
-    }catch(e){showScanStep('upload');document.getElementById('scan-analyze-btn').disabled=false;alert(T('scan_fail')+e.message);}
-  };
-  document.getElementById('scan-confirm-btn').onclick=async()=>{
-    const amt=parseFloat(document.getElementById('scan-amount').value);
-    const note=document.getElementById('scan-note').value.trim();
-    if(!amt||amt<=0){alert(T('err_amount'));return;}
-    document.getElementById('inp-amount').value=amt;document.getElementById('inp-note').value=note;
-    selCat=scanSelCat;selCurr=scanSelCurr;localStorage.setItem('xp_last_curr',scanSelCurr);
-    buildCatGrid();buildCurrUI();
-    document.getElementById('scan-modal').classList.add('hidden');document.getElementById('scan-file-input').value='';
-    const msg=document.getElementById('add-msg');msg.className='msg info';msg.textContent=T('scan_fill_info');
-    setTimeout(()=>{msg.className='msg';},5000);
-    document.querySelector('#screen-add .content').scrollTop=0;
-  };
-  function buildScanCatGrid(){
-    const g=document.getElementById('scan-cat-grid');g.innerHTML='';
-    PRIMARY_CATS.forEach(id=>{
-      const c=getCat(id);const b=document.createElement('button');
-      b.className='cat-btn'+(scanSelCat===id?' selected':'');
-      b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
-      b.onclick=()=>{scanSelCat=id;document.getElementById('scan-cat-more').value='';buildScanCatGrid();};
-      g.appendChild(b);
-    });
-    const sel=document.getElementById('scan-cat-more');
-    const secCats=CATS.filter(c=>!PRIMARY_CATS.includes(c.id));
-    const isSecSel=secCats.some(c=>c.id===scanSelCat);
-    sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
-    secCats.forEach(c=>{const cat=getCat(c.id);const o=document.createElement('option');o.value=cat.id;o.textContent=cat.icon+' '+cat.label;if(scanSelCat===cat.id)o.selected=true;sel.appendChild(o);});
-    sel.className=isSecSel?'curr-select selected-other':'curr-select';
-  }
-  document.getElementById('scan-cat-more').onchange=function(){if(this.value){scanSelCat=this.value;buildScanCatGrid();}};
-  function buildScanCurrUI(){
-    const qg=document.getElementById('scan-curr-quick');qg.innerHTML='';
-    QUICK_CURR.forEach(code=>{
-      const b=document.createElement('button');b.className='curr-btn'+(scanSelCurr===code?' selected':'');
-      b.textContent=code;b.title=getCurr(code).name;
-      b.onclick=()=>{scanSelCurr=code;buildScanCurrUI();};
-      qg.appendChild(b);
-    });
-  }
-})();
-
 // ===== 定期付款 =====
-// 新版頻率：daily / workday / weekend / weekly / monthly / yearly
-// daily    = 每日（一到日）
-// workday  = 工作日（一到五）
-// weekend  = 假日（六日）
-// weekly   = 每週（同一天）
-// monthly  = 每月（同一日）
-// yearly   = 每年（同一天）
-
 let recurringList=[];
 let recSelCat='subscription', recSelFreq='monthly', editingRecId=null;
 
@@ -1754,41 +1280,27 @@ function saveRecurring(){
   syncRecurringToCloud();
 }
 
-// 判斷今天的 DOW（0=Sun,1=Mon,...,6=Sat）
 function todayDOW(){return new Date(today()+'T00:00:00').getDay();}
 function isWorkday(){const d=todayDOW();return d>=1&&d<=5;}
 function isWeekend(){const d=todayDOW();return d===0||d===6;}
 
-// 根據 freq 判斷今天是否為「應該觸發的日子」
-function isFreqMatchToday(freq, nextDue){
-  // nextDue 為計算好的下次到期日
+function isFreqMatchToday(freq,nextDue){
   const days=getDaysUntil(nextDue);
-  if(days>0)return false; // 還未到期
-
-  // 到期（days<=0），再按 freq 判斷今日是否適用
+  if(days>0)return false;
   if(freq==='workday')return isWorkday();
   if(freq==='weekend')return isWeekend();
-  // daily / weekly / monthly / yearly：到期即提醒，不分星期
   return true;
 }
-
-// 計算下一個到期日（從 startDate 或上次到期後推進）
-function getNextDue(startDate, freq){
+function getNextDue(startDate,freq){
   const today_=today();
   let d=new Date(startDate+'T00:00:00');
   const t=new Date(today_+'T00:00:00');
-  // 先推進到 >= today
-  while(d<t){
-    d=advanceByFreq(d, freq);
-  }
+  while(d<t){d=advanceByFreq(d,freq);}
   return d.toISOString().split('T')[0];
 }
-
-// 推進一個週期
-function advanceByFreq(d, freq){
+function advanceByFreq(d,freq){
   const nd=new Date(d);
   if(freq==='daily'||freq==='workday'||freq==='weekend'){
-    // 逐日推進直到下一個符合條件的日子
     nd.setDate(nd.getDate()+1);
     if(freq==='workday'){while(nd.getDay()===0||nd.getDay()===6)nd.setDate(nd.getDate()+1);}
     if(freq==='weekend'){while(nd.getDay()>=1&&nd.getDay()<=5)nd.setDate(nd.getDate()+1);}
@@ -1799,36 +1311,26 @@ function advanceByFreq(d, freq){
 }
 
 // ===== 今日已處理記憶 =====
-// 格式：{ '2026-05-01': ['id1','id2'] }
-// 每天自動清空舊日期
-let dismissedToday = {};
-
+let dismissedToday={};
 function loadDismissed(){
   try{
-    const raw = localStorage.getItem('xp_dismissed');
-    if(raw) dismissedToday = JSON.parse(raw);
-    // 清除非今天的記錄
-    const t = today();
-    Object.keys(dismissedToday).forEach(d=>{ if(d!==t) delete dismissedToday[d]; });
-  }catch(e){ dismissedToday={}; }
+    const raw=localStorage.getItem('xp_dismissed');
+    if(raw)dismissedToday=JSON.parse(raw);
+    const t=today();
+    Object.keys(dismissedToday).forEach(d=>{if(d!==t)delete dismissedToday[d];});
+  }catch(e){dismissedToday={};}
 }
-
-function saveDismissed(){
-  localStorage.setItem('xp_dismissed', JSON.stringify(dismissedToday));
-}
-
+function saveDismissed(){localStorage.setItem('xp_dismissed',JSON.stringify(dismissedToday));}
 function dismissToday(id){
-  const t = today();
-  if(!dismissedToday[t]) dismissedToday[t] = [];
-  if(!dismissedToday[t].includes(id)) dismissedToday[t].push(id);
+  const t=today();
+  if(!dismissedToday[t])dismissedToday[t]=[];
+  if(!dismissedToday[t].includes(id))dismissedToday[t].push(id);
   saveDismissed();
 }
-
 function isDismissedToday(id){
-  const t = today();
+  const t=today();
   return (dismissedToday[t]||[]).includes(id);
 }
-
 function getDaysUntil(dateStr){
   const t=new Date(today()+'T00:00:00');
   const d=new Date(dateStr+'T00:00:00');
@@ -1863,7 +1365,6 @@ function buildRecCurrSelect(){
   sel.value=selCurr;
 }
 
-// Freq button click handlers
 document.querySelectorAll('.rec-freq-btn[data-freq]').forEach(b=>{
   b.onclick=function(){
     recSelFreq=this.dataset.freq;
@@ -1890,7 +1391,6 @@ function openRecurringModal(id=null){
       document.getElementById('rec-curr').value=r.curr||'THB';
     }
   }
-  // Refresh freq button labels (for lang)
   ['daily','workday','weekend','weekly','monthly','yearly'].forEach(f=>{
     const b=document.getElementById('freq-'+f);if(b)b.textContent=T('freq_'+f);
   });
@@ -1900,6 +1400,7 @@ function openRecurringModal(id=null){
 document.getElementById('rec-cancel-btn').onclick=()=>document.getElementById('recurring-modal').classList.add('hidden');
 document.getElementById('add-recurring-btn').onclick=()=>openRecurringModal();
 
+// FIX: store owner (current device user) when creating a new recurring item
 document.getElementById('rec-save-btn').onclick=()=>{
   const name=document.getElementById('rec-name').value.trim();
   const amount=parseFloat(document.getElementById('rec-amount').value);
@@ -1910,10 +1411,12 @@ document.getElementById('rec-save-btn').onclick=()=>{
   if(!startDate){alert(T('err_date'));return;}
   const nextDue=getNextDue(startDate,recSelFreq);
   if(editingRecId){
+    // editing: keep original owner, just update details
     const idx=recurringList.findIndex(x=>x.id===editingRecId);
     if(idx>-1)recurringList[idx]={...recurringList[idx],name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue};
   }else{
-    recurringList.push({id:uid(),name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue});
+    // NEW: tag with current device user so each person gets their own
+    recurringList.push({id:uid(),name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue,user:userNames[selectedUserIdx]});
   }
   saveRecurring();
   document.getElementById('recurring-modal').classList.add('hidden');
@@ -1923,20 +1426,22 @@ document.getElementById('rec-save-btn').onclick=()=>{
 function advanceRecurring(id){
   const r=recurringList.find(x=>x.id===id);if(!r)return;
   const nextDate=new Date((r.nextDue||r.startDate)+'T00:00:00');
-  const advanced=advanceByFreq(nextDate, r.freq||'monthly');
+  const advanced=advanceByFreq(nextDate,r.freq||'monthly');
   r.nextDue=advanced.toISOString().split('T')[0];
   saveRecurring();
 }
-
 function recordRecurring(id){
   const r=recurringList.find(x=>x.id===id);if(!r)return;
-  const rec={id:uid(),cat:r.cat,amount:r.amount,curr:r.curr||'THB',note:r.name,date:today(),ts:Date.now(),user:userNames[selectedUserIdx]};
+  // record using the recurring item's owner, or current device user if unset
+  const recOwner=r.user||userNames[selectedUserIdx];
+  const rec={id:uid(),cat:r.cat,amount:r.amount,curr:r.curr||'THB',note:r.name,date:today(),ts:Date.now(),user:recOwner};
   records.push(rec);saveLocal();refreshAll();
   advanceRecurring(id);renderRecurringList();checkDueBanner();
   if(apiUrl){apiCall('add',rec).catch(()=>{});}
   alert(T('recorded_alert')+r.name+' '+fmtAmt(r.amount,r.curr||'THB'));
 }
 
+// FIX: renderRecurringList — show user badge so both users can see ownership
 function renderRecurringList(){
   const el=document.getElementById('recurring-list');
   if(!recurringList.length){el.innerHTML=`<div class="empty">${T('recurring_empty')}</div>`;return;}
@@ -1947,18 +1452,22 @@ function renderRecurringList(){
     const nextDue=r.nextDue||r.startDate;
     const days=getDaysUntil(nextDue);
     const freqLabel=T('freq_'+(r.freq||'monthly'));
-    const isDue=isFreqMatchToday(r.freq||'monthly', nextDue);
-    let dueClass='ok', dueLabel='';
+    const isDue=isFreqMatchToday(r.freq||'monthly',nextDue);
+    let dueClass='ok',dueLabel='';
     if(isDue){dueClass='late';dueLabel=T('due_today');}
     else if(days<=0&&!isDue){dueClass='ok';dueLabel=T('due_not_today');}
     else if(days<=3){dueClass='today';dueLabel=days+T('due_in_days');}
     else{dueClass='ok';dueLabel=days+T('due_in');}
+    // user badge
+    const recOwner=r.user||userNames[0];
+    const ownerIsU1=recOwner===userNames[1];
+    const ownerBadge=ownerIsU1?'user-badge u1':'user-badge';
     const d=document.createElement('div');
     d.className='rec-card'+(isDue?' overdue':days<=3&&days>0?' due':'');
     d.innerHTML=`
       <div class="rec-icon" style="background:${cat.color}">${cat.icon}</div>
       <div class="rec-info">
-        <div class="rec-name">${r.name}</div>
+        <div class="rec-name">${r.name} <span class="${ownerBadge}">${recOwner}</span></div>
         <div class="rec-meta">${freqLabel} · ${nextDue}</div>
       </div>
       <div class="rec-amt">
@@ -1984,56 +1493,55 @@ function renderRecurringList(){
   });
 }
 
+// FIX: checkDueBanner — only show reminders belonging to the current device user
 function checkDueBanner(){
-  // 只顯示「今天到期 且 今天還沒處理過」的項目
-  const due = recurringList.filter(r =>
-    isFreqMatchToday(r.freq||'monthly', r.nextDue||r.startDate) &&
-    !isDismissedToday(r.id)
+  const currentUserName=userNames[selectedUserIdx];
+  // Show item if: due today AND not dismissed AND (no owner set = old data, OR owner matches this device)
+  const due=recurringList.filter(r=>
+    isFreqMatchToday(r.freq||'monthly',r.nextDue||r.startDate) &&
+    !isDismissedToday(r.id) &&
+    (!r.user||r.user===currentUserName)
   );
-  const banner = document.getElementById('due-banner');
+  const banner=document.getElementById('due-banner');
   if(!due.length){
     banner.classList.remove('show');
-    setTimeout(()=>{ if(!banner.classList.contains('show')) banner.style.display='none'; }, 350);
+    setTimeout(()=>{if(!banner.classList.contains('show'))banner.style.display='none';},350);
     return;
   }
-  const list = document.getElementById('due-banner-list');
-  list.innerHTML = '';
+  const list=document.getElementById('due-banner-list');
+  list.innerHTML='';
   due.slice(0,3).forEach(r=>{
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px';
-
-    const nameSpan = document.createElement('span');
-    nameSpan.style.cssText = 'font-size:13px;font-weight:700;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-    nameSpan.textContent = getCat(r.cat).icon+' '+r.name;
-
-    const recBtn = document.createElement('button');
-    recBtn.style.cssText = 'padding:8px 14px;background:#f59e0b;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;white-space:nowrap;flex-shrink:0';
-    recBtn.textContent = T('record_now');
-    recBtn.onclick = ()=>{
-      recordRecurring(r.id);   // 記帳並推進 nextDue
-      dismissToday(r.id);      // 同時標記今天已處理
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px';
+    const nameSpan=document.createElement('span');
+    nameSpan.style.cssText='font-size:13px;font-weight:700;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    nameSpan.textContent=getCat(r.cat).icon+' '+r.name;
+    const recBtn=document.createElement('button');
+    recBtn.style.cssText="padding:8px 14px;background:#f59e0b;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;flex-shrink:0";
+    recBtn.textContent=T('record_now');
+    recBtn.onclick=()=>{
+      recordRecurring(r.id);
+      dismissToday(r.id);
       checkDueBanner();
     };
-
-    const skipBtn = document.createElement('button');
-    skipBtn.style.cssText = 'padding:8px 14px;background:#f1f5f9;color:#475569;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;white-space:nowrap;flex-shrink:0';
-    skipBtn.textContent = T('skip_this');
-    skipBtn.onclick = ()=>{
-      dismissToday(r.id);   // 只記今天不提醒，nextDue 不動
+    const skipBtn=document.createElement('button');
+    skipBtn.style.cssText="padding:8px 14px;background:#f1f5f9;color:#475569;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;flex-shrink:0";
+    skipBtn.textContent=T('skip_this');
+    skipBtn.onclick=()=>{
+      dismissToday(r.id);
       checkDueBanner();
       renderRecurringList();
     };
-
-    const btnWrap = document.createElement('div');
-    btnWrap.style.cssText = 'display:flex;gap:6px;flex-shrink:0';
+    const btnWrap=document.createElement('div');
+    btnWrap.style.cssText='display:flex;gap:6px;flex-shrink:0';
     btnWrap.appendChild(recBtn);
     btnWrap.appendChild(skipBtn);
     row.appendChild(nameSpan);
     row.appendChild(btnWrap);
     list.appendChild(row);
   });
-  banner.style.display = 'block';
-  banner.offsetHeight; // force reflow
+  banner.style.display='block';
+  banner.offsetHeight;
   banner.classList.add('show');
 }
 
@@ -2047,12 +1555,11 @@ document.getElementById('inp-date').value=today();
 const d1=new Date();d1.setDate(1);
 document.getElementById('rep-from').value=d1.toISOString().split('T')[0];
 document.getElementById('rep-to').value=today();
-
-loadLocal();loadRecurring();loadDismissed();buildCatGrid();buildCurrUI();
+loadLocal();loadRecurring();loadDismissed();
+buildCatGrid();buildCurrUI();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
 updateLangBtns();applyLang();
 
-// Banner 關閉按鈕
 document.getElementById('due-banner-close').onclick=()=>{
   const banner=document.getElementById('due-banner');
   banner.classList.remove('show');
@@ -2074,6 +1581,4 @@ else{
 }
 refreshAll();
 setTimeout(()=>checkDueBanner(),1000);
-</script>
-</body>
-</html>
+</script></body></html>
