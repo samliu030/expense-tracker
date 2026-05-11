@@ -586,7 +586,13 @@ async function loadRecurringFromCloud(){
   if(!apiUrl)return false;
   try{
     const res=await apiCall('getRecurring');
-    if(res.recurring&&res.recurring.length){recurringList=res.recurring;localStorage.setItem('xp_recurring',JSON.stringify(recurringList));return true;}
+    if(res.recurring&&res.recurring.length){
+      recurringList=res.recurring;
+      const changed=normalizeRecurringOwners(localStorage.getItem(DEVICE_KEY)!==null);
+      localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
+      if(changed)syncRecurringToCloud();
+      return true;
+    }
   }catch(e){console.warn('Recurring load failed',e);}
   return false;
 }
@@ -761,7 +767,7 @@ function showIdentityModal(){
     const b=document.createElement('button');
     b.style.cssText=`padding:20px;border:3px solid ${colors[i]};border-radius:16px;background:#fff;cursor:pointer;font-size:18px;font-weight:900;color:${colors[i]};font-family:'Noto Sans TC',sans-serif;transition:all 0.2s`;
     b.textContent=T('identity_prefix_'+i)+name+T('identity_suffix');
-    b.onclick=()=>{selectedUserIdx=i;localStorage.setItem(DEVICE_KEY,i);updateUserToggle();modal.classList.add('hidden');};
+    b.onclick=()=>{selectedUserIdx=i;localStorage.setItem(DEVICE_KEY,i);normalizeRecurringOwners(true);saveRecurring();updateUserToggle();renderRecurringList();checkDueBanner();modal.classList.add('hidden');};
     btns.appendChild(b);
   });
   modal.classList.remove('hidden');
@@ -778,13 +784,18 @@ document.querySelectorAll('#user-toggle .segment-btn').forEach(b=>{
   b.onclick=function(){
     selectedUserIdx=parseInt(this.dataset.idx);
     localStorage.setItem(DEVICE_KEY,selectedUserIdx);
+    normalizeRecurringOwners(false);
     updateUserToggle();
+    renderRecurringList();
+    checkDueBanner();
   };
 });
 document.getElementById('save-users-btn').onclick=()=>{
   userNames[0]=document.getElementById('set-user-0').value.trim()||'Sam';
   userNames[1]=document.getElementById('set-user-1').value.trim()||'Patty';
   localStorage.setItem('xp_usernames',JSON.stringify(userNames));
+  normalizeRecurringOwners(false);
+  saveRecurring();
   updateUserToggle();refreshAll();
   alert(T('users_saved'));
 };
@@ -1317,8 +1328,44 @@ document.getElementById('clear-btn').onclick=()=>{
 let recurringList=[];
 let recSelCat='subscription', recSelFreq='monthly', editingRecId=null;
 
-function loadRecurring(){try{const r=localStorage.getItem('xp_recurring');if(r)recurringList=JSON.parse(r);}catch(e){}}
+function getRecurringOwnerIdx(r){
+  if(!r)return null;
+  const rawIdx=r.userIdx ?? r.ownerIdx;
+  const idx=Number(rawIdx);
+  if(Number.isInteger(idx)&&idx>=0&&idx<userNames.length)return idx;
+  if(r.user===userNames[0])return 0;
+  if(r.user===userNames[1])return 1;
+  return null;
+}
+function normalizeRecurringOwners(claimMissing=false){
+  let changed=false;
+  recurringList=recurringList.map(r=>{
+    const next={...r};
+    let ownerIdx=getRecurringOwnerIdx(next);
+    if(ownerIdx===null&&claimMissing)ownerIdx=selectedUserIdx;
+    if(ownerIdx!==null){
+      if(next.userIdx!==ownerIdx){next.userIdx=ownerIdx;changed=true;}
+      if(next.user!==userNames[ownerIdx]){next.user=userNames[ownerIdx];changed=true;}
+    }
+    return next;
+  });
+  return changed;
+}
+function currentUserRecurringList(){
+  return recurringList.filter(r=>getRecurringOwnerIdx(r)===selectedUserIdx);
+}
+function loadRecurring(){
+  try{
+    const r=localStorage.getItem('xp_recurring');
+    if(r){
+      recurringList=JSON.parse(r);
+      const changed=normalizeRecurringOwners(localStorage.getItem(DEVICE_KEY)!==null);
+      if(changed)localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
+    }
+  }catch(e){}
+}
 function saveRecurring(){
+  normalizeRecurringOwners(false);
   localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
   syncRecurringToCloud();
 }
@@ -1456,10 +1503,13 @@ document.getElementById('rec-save-btn').onclick=()=>{
   if(editingRecId){
     // editing: keep original owner, just update details
     const idx=recurringList.findIndex(x=>x.id===editingRecId);
-    if(idx>-1)recurringList[idx]={...recurringList[idx],name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue};
+    if(idx>-1){
+      const ownerIdx=getRecurringOwnerIdx(recurringList[idx]);
+      recurringList[idx]={...recurringList[idx],name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue,userIdx:ownerIdx??selectedUserIdx,user:userNames[ownerIdx??selectedUserIdx]};
+    }
   }else{
     // NEW: tag with current device user so each person gets their own
-    recurringList.push({id:uid(),name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue,user:userNames[selectedUserIdx]});
+    recurringList.push({id:uid(),name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue,userIdx:selectedUserIdx,user:userNames[selectedUserIdx]});
   }
   saveRecurring();
   document.getElementById('recurring-modal').classList.add('hidden');
@@ -1475,8 +1525,9 @@ function advanceRecurring(id){
 }
 function recordRecurring(id){
   const r=recurringList.find(x=>x.id===id);if(!r)return;
-  // record using the recurring item's owner, or current device user if unset
-  const recOwner=r.user||userNames[selectedUserIdx];
+  const ownerIdx=getRecurringOwnerIdx(r);
+  if(ownerIdx!==selectedUserIdx)return;
+  const recOwner=userNames[ownerIdx];
   const rec={id:uid(),cat:r.cat,amount:r.amount,curr:r.curr||'THB',note:r.name,date:today(),ts:Date.now(),user:recOwner};
   records.push(rec);saveLocal();refreshAll();
   advanceRecurring(id);renderRecurringList();checkDueBanner();
@@ -1487,9 +1538,12 @@ function recordRecurring(id){
 // FIX: renderRecurringList — show user badge so both users can see ownership
 function renderRecurringList(){
   const el=document.getElementById('recurring-list');
-  if(!recurringList.length){el.innerHTML=`<div class="empty">${T('recurring_empty')}</div>`;return;}
+  const ownerChanged=normalizeRecurringOwners(localStorage.getItem(DEVICE_KEY)!==null);
+  if(ownerChanged)saveRecurring();
+  const ownList=currentUserRecurringList();
+  if(!ownList.length){el.innerHTML=`<div class="empty">${T('recurring_empty')}</div>`;return;}
   el.innerHTML='';
-  const sorted=[...recurringList].sort((a,b)=>(a.nextDue||a.startDate).localeCompare(b.nextDue||b.startDate));
+  const sorted=[...ownList].sort((a,b)=>(a.nextDue||a.startDate).localeCompare(b.nextDue||b.startDate));
   sorted.forEach(r=>{
     const cat=getCat(r.cat);
     const nextDue=r.nextDue||r.startDate;
@@ -1502,8 +1556,9 @@ function renderRecurringList(){
     else if(days<=3){dueClass='today';dueLabel=days+T('due_in_days');}
     else{dueClass='ok';dueLabel=days+T('due_in');}
     // user badge
-    const recOwner=r.user||userNames[0];
-    const ownerIsU1=recOwner===userNames[1];
+    const ownerIdx=getRecurringOwnerIdx(r)??selectedUserIdx;
+    const recOwner=userNames[ownerIdx];
+    const ownerIsU1=ownerIdx===1;
     const ownerBadge=ownerIsU1?'user-badge u1':'user-badge';
     const d=document.createElement('div');
     d.className='rec-card'+(isDue?' overdue':days<=3&&days>0?' due':'');
@@ -1538,12 +1593,12 @@ function renderRecurringList(){
 
 // FIX: checkDueBanner — only show reminders belonging to the current device user
 function checkDueBanner(){
-  const currentUserName=userNames[selectedUserIdx];
-  // Show item if: due today AND not dismissed AND (no owner set = old data, OR owner matches this device)
+  const ownerChanged=normalizeRecurringOwners(false);
+  if(ownerChanged)saveRecurring();
   const due=recurringList.filter(r=>
     isFreqMatchToday(r.freq||'monthly',r.nextDue||r.startDate) &&
     !isDismissedToday(r.id) &&
-    (!r.user||r.user===currentUserName)
+    getRecurringOwnerIdx(r)===selectedUserIdx
   );
   const banner=document.getElementById('due-banner');
   if(!due.length){
