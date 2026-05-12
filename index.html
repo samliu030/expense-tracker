@@ -588,7 +588,7 @@ async function loadRecurringFromCloud(){
     const res=await apiCall('getRecurring');
     if(res.recurring&&res.recurring.length){
       recurringList=res.recurring;
-      const changed=normalizeRecurringOwners(localStorage.getItem(DEVICE_KEY)!==null);
+      const changed=normalizeRecurringOwners(false);
       localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
       if(changed)syncRecurringToCloud();
       return true;
@@ -767,7 +767,7 @@ function showIdentityModal(){
     const b=document.createElement('button');
     b.style.cssText=`padding:20px;border:3px solid ${colors[i]};border-radius:16px;background:#fff;cursor:pointer;font-size:18px;font-weight:900;color:${colors[i]};font-family:'Noto Sans TC',sans-serif;transition:all 0.2s`;
     b.textContent=T('identity_prefix_'+i)+name+T('identity_suffix');
-    b.onclick=()=>{selectedUserIdx=i;localStorage.setItem(DEVICE_KEY,i);normalizeRecurringOwners(true);saveRecurring();updateUserToggle();renderRecurringList();checkDueBanner();modal.classList.add('hidden');};
+    b.onclick=()=>{selectedUserIdx=i;localStorage.setItem(DEVICE_KEY,i);normalizeRecurringOwners();saveRecurring();updateUserToggle();renderRecurringList();checkDueBanner();modal.classList.add('hidden');};
     btns.appendChild(b);
   });
   modal.classList.remove('hidden');
@@ -784,7 +784,7 @@ document.querySelectorAll('#user-toggle .segment-btn').forEach(b=>{
   b.onclick=function(){
     selectedUserIdx=parseInt(this.dataset.idx);
     localStorage.setItem(DEVICE_KEY,selectedUserIdx);
-    normalizeRecurringOwners(false);
+    normalizeRecurringOwners();
     updateUserToggle();
     renderRecurringList();
     checkDueBanner();
@@ -794,7 +794,7 @@ document.getElementById('save-users-btn').onclick=()=>{
   userNames[0]=document.getElementById('set-user-0').value.trim()||'Sam';
   userNames[1]=document.getElementById('set-user-1').value.trim()||'Patty';
   localStorage.setItem('xp_usernames',JSON.stringify(userNames));
-  normalizeRecurringOwners(false);
+  normalizeRecurringOwners();
   saveRecurring();
   updateUserToggle();refreshAll();
   alert(T('users_saved'));
@@ -1327,9 +1327,17 @@ document.getElementById('clear-btn').onclick=()=>{
 // ===== 定期付款 =====
 let recurringList=[];
 let recSelCat='subscription', recSelFreq='monthly', editingRecId=null;
+let recurringOwnerMap={};
+const RECURRING_OWNER_KEY='xp_recurring_owner_map';
+let recurringConfirmedOwnerMap={};
+const RECURRING_CONFIRMED_OWNER_KEY='xp_recurring_confirmed_owner_map';
 
 function getRecurringOwnerIdx(r){
   if(!r)return null;
+  if(r.id&&recurringOwnerMap[r.id]!==undefined){
+    const mapped=Number(recurringOwnerMap[r.id]);
+    if(Number.isInteger(mapped)&&mapped>=0&&mapped<userNames.length)return mapped;
+  }
   const rawIdx=r.userIdx ?? r.ownerIdx;
   const idx=Number(rawIdx);
   if(Number.isInteger(idx)&&idx>=0&&idx<userNames.length)return idx;
@@ -1337,13 +1345,33 @@ function getRecurringOwnerIdx(r){
   if(r.user===userNames[1])return 1;
   return null;
 }
-function normalizeRecurringOwners(claimMissing=false){
+function saveRecurringOwnerMap(){localStorage.setItem(RECURRING_OWNER_KEY,JSON.stringify(recurringOwnerMap));}
+function saveRecurringConfirmedOwnerMap(){localStorage.setItem(RECURRING_CONFIRMED_OWNER_KEY,JSON.stringify(recurringConfirmedOwnerMap));}
+function rememberRecurringOwner(id,ownerIdx){
+  if(!id)return;
+  if(Number.isInteger(ownerIdx)&&ownerIdx>=0&&ownerIdx<userNames.length){
+    recurringOwnerMap[id]=ownerIdx;
+  }
+}
+function confirmRecurringOwner(id,ownerIdx){
+  rememberRecurringOwner(id,ownerIdx);
+  if(id&&Number.isInteger(ownerIdx)&&ownerIdx>=0&&ownerIdx<userNames.length){
+    recurringConfirmedOwnerMap[id]=ownerIdx;
+  }
+}
+function isConfirmedRecurringOwner(r){
+  const ownerIdx=getRecurringOwnerIdx(r);
+  if(ownerIdx!==selectedUserIdx)return false;
+  if(r.ownerConfirmed===true||r.ownerVersion===2)return true;
+  return r.id&&Number(recurringConfirmedOwnerMap[r.id])===selectedUserIdx;
+}
+function normalizeRecurringOwners(){
   let changed=false;
   recurringList=recurringList.map(r=>{
     const next={...r};
     let ownerIdx=getRecurringOwnerIdx(next);
-    if(ownerIdx===null&&claimMissing)ownerIdx=selectedUserIdx;
     if(ownerIdx!==null){
+      rememberRecurringOwner(next.id,ownerIdx);
       if(next.userIdx!==ownerIdx){next.userIdx=ownerIdx;changed=true;}
       if(next.user!==userNames[ownerIdx]){next.user=userNames[ownerIdx];changed=true;}
     }
@@ -1356,17 +1384,26 @@ function currentUserRecurringList(){
 }
 function loadRecurring(){
   try{
+    const om=localStorage.getItem(RECURRING_OWNER_KEY);
+    if(om)recurringOwnerMap=JSON.parse(om)||{};
+    const cm=localStorage.getItem(RECURRING_CONFIRMED_OWNER_KEY);
+    if(cm)recurringConfirmedOwnerMap=JSON.parse(cm)||{};
     const r=localStorage.getItem('xp_recurring');
     if(r){
       recurringList=JSON.parse(r);
-      const changed=normalizeRecurringOwners(localStorage.getItem(DEVICE_KEY)!==null);
-      if(changed)localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
+      const changed=normalizeRecurringOwners();
+      if(changed){
+        localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
+        saveRecurringOwnerMap();
+      }
     }
   }catch(e){}
 }
 function saveRecurring(){
-  normalizeRecurringOwners(false);
+  normalizeRecurringOwners();
   localStorage.setItem('xp_recurring',JSON.stringify(recurringList));
+  saveRecurringOwnerMap();
+  saveRecurringConfirmedOwnerMap();
   syncRecurringToCloud();
 }
 
@@ -1505,11 +1542,15 @@ document.getElementById('rec-save-btn').onclick=()=>{
     const idx=recurringList.findIndex(x=>x.id===editingRecId);
     if(idx>-1){
       const ownerIdx=getRecurringOwnerIdx(recurringList[idx]);
-      recurringList[idx]={...recurringList[idx],name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue,userIdx:ownerIdx??selectedUserIdx,user:userNames[ownerIdx??selectedUserIdx]};
+      const finalOwnerIdx=ownerIdx??selectedUserIdx;
+      confirmRecurringOwner(editingRecId,finalOwnerIdx);
+      recurringList[idx]={...recurringList[idx],name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue,userIdx:finalOwnerIdx,user:userNames[finalOwnerIdx],ownerConfirmed:true,ownerVersion:2};
     }
   }else{
     // NEW: tag with current device user so each person gets their own
-    recurringList.push({id:uid(),name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue,userIdx:selectedUserIdx,user:userNames[selectedUserIdx]});
+    const id=uid();
+    confirmRecurringOwner(id,selectedUserIdx);
+    recurringList.push({id,name,amount,cat:recSelCat,freq:recSelFreq,curr,startDate,nextDue,userIdx:selectedUserIdx,user:userNames[selectedUserIdx],ownerConfirmed:true,ownerVersion:2});
   }
   saveRecurring();
   document.getElementById('recurring-modal').classList.add('hidden');
@@ -1538,9 +1579,9 @@ function recordRecurring(id){
 // FIX: renderRecurringList — show user badge so both users can see ownership
 function renderRecurringList(){
   const el=document.getElementById('recurring-list');
-  const ownerChanged=normalizeRecurringOwners(localStorage.getItem(DEVICE_KEY)!==null);
+  const ownerChanged=normalizeRecurringOwners();
   if(ownerChanged)saveRecurring();
-  const ownList=currentUserRecurringList();
+  const ownList=recurringList.filter(isConfirmedRecurringOwner);
   if(!ownList.length){el.innerHTML=`<div class="empty">${T('recurring_empty')}</div>`;return;}
   el.innerHTML='';
   const sorted=[...ownList].sort((a,b)=>(a.nextDue||a.startDate).localeCompare(b.nextDue||b.startDate));
@@ -1593,12 +1634,12 @@ function renderRecurringList(){
 
 // FIX: checkDueBanner — only show reminders belonging to the current device user
 function checkDueBanner(){
-  const ownerChanged=normalizeRecurringOwners(false);
+  const ownerChanged=normalizeRecurringOwners();
   if(ownerChanged)saveRecurring();
   const due=recurringList.filter(r=>
     isFreqMatchToday(r.freq||'monthly',r.nextDue||r.startDate) &&
     !isDismissedToday(r.id) &&
-    getRecurringOwnerIdx(r)===selectedUserIdx
+    isConfirmedRecurringOwner(r)
   );
   const banner=document.getElementById('due-banner');
   if(!due.length){
