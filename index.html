@@ -1808,23 +1808,30 @@ buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshRepo
 updateLangBtns();
 applyLang();
 
-const generatedRecs=processRecurring();
-if(generatedRecs.length>0){
+function runRecurring(syncToCloud){
+  const gen=processRecurring();
+  if(!gen.length)return;
   refreshAll();
   const msg=document.getElementById('add-msg');
   msg.className='msg info';
-  msg.textContent=T('recurring_generated')+generatedRecs.map(r=>r.note).join('、');
+  msg.textContent=T('recurring_generated')+gen.map(r=>r.note).join('、');
   setTimeout(()=>{msg.className='msg';},6000);
+  if(syncToCloud&&apiUrl){gen.forEach(r=>apiCall('add',r).catch(()=>{}));}
 }
 
 const hasDeviceId=localStorage.getItem(DEVICE_KEY)!==null;
 if(!hasDeviceId){
+  runRecurring(false);
   setTimeout(()=>showIdentityModal(),400);
 }else if(!apiUrl){
+  runRecurring(false);
   setTimeout(()=>showSetupModal(),400);
 }else{
   setSyncStatus(true);
-  syncFromCloud().then(ok=>{if(ok)refreshAll();});
+  syncFromCloud().then(ok=>{
+    runRecurring(ok);
+    if(ok)refreshAll();
+  });
 }
 </script>
 </body>
