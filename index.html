@@ -843,7 +843,17 @@ function loadLocal(){
     if(dv!==null)selectedUserIdx=parseInt(dv);
     const bg=localStorage.getItem('xp_budgets');if(bg)budgets=JSON.parse(bg);
     const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
-    const rc=localStorage.getItem('xp_recurring');if(rc)recurringPayments=JSON.parse(rc);
+    const rc=localStorage.getItem('xp_recurring');
+    if(rc){
+      recurringPayments=JSON.parse(rc);
+      // dedup: keep first entry per cat+amount+freq+user combo
+      const seen=new Set();
+      recurringPayments=recurringPayments.filter(rp=>{
+        const key=rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user;
+        if(seen.has(key))return false;
+        seen.add(key);return true;
+      });
+    }
   }catch(e){}
   document.getElementById('set-user-0').value=userNames[0];
   document.getElementById('set-user-1').value=userNames[1];
@@ -890,7 +900,10 @@ function processRecurring(){
       }
     }
     if(shouldGen){
-      const alreadyExists=records.some(r=>r.recurringId===rp.id&&r.date===t);
+      const alreadyExists=records.some(r=>r.date===t&&(
+        r.recurringId===rp.id||
+        (r.isRecurring&&r.cat===rp.cat&&Math.abs(r.amount-rp.amount)<0.01&&r.user===rp.user)
+      ));
       if(!alreadyExists){
         const rec={
           id:uid(),cat:rp.cat,amount:rp.amount,curr:rp.curr,
@@ -1720,13 +1733,17 @@ document.getElementById('save-btn').onclick=async()=>{
 
   const isRecurring=document.getElementById('inp-recurring').checked;
   if(isRecurring){
-    const rp={
-      id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,
-      user:userNames[selectedUserIdx],freq:selFreq,
-      startDate:normalizeDate(date),lastGenerated:normalizeDate(date)
-    };
-    recurringPayments.push(rp);saveRecurring();
-    successMsg+=' · '+T('recurring_added');
+    const dupKey=finalCat+'|'+amt+'|'+selCurr+'|'+selFreq+'|'+userNames[selectedUserIdx];
+    const isDup=recurringPayments.some(rp=>rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user===dupKey);
+    if(!isDup){
+      const rp={
+        id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,
+        user:userNames[selectedUserIdx],freq:selFreq,
+        startDate:normalizeDate(date),lastGenerated:normalizeDate(date)
+      };
+      recurringPayments.push(rp);saveRecurring();
+      successMsg+=' · '+T('recurring_added');
+    }
     document.getElementById('inp-recurring').checked=false;
     document.getElementById('recurring-options').style.display='none';
   }
