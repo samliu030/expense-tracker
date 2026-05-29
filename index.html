@@ -366,6 +366,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Noto San
   <div class="modal">
     <h2>✎ 編輯定期支出</h2>
     <div class="form-group">
+      <label class="form-label">類別</label>
+      <div class="cat-grid" id="recur-edit-cat-grid" style="margin-bottom:8px"></div>
+      <select class="curr-select" id="recur-edit-cat-more"></select>
+    </div>
+    <div class="form-group">
       <label class="form-label">備註</label>
       <input type="text" class="form-input" id="recur-edit-note" placeholder="店家、說明">
     </div>
@@ -989,7 +994,31 @@ function refreshRecurringSettings(){
 }
 
 // ===== Recurring Edit Modal =====
-let recurEditId=null;
+let recurEditId=null,recurEditSelCat='food';
+function buildRecurEditCatGrid(){
+  const g=document.getElementById('recur-edit-cat-grid');g.innerHTML='';
+  PRIMARY_CATS.forEach(id=>{
+    const c=getCat(id);
+    const b=document.createElement('button');
+    b.className='cat-btn'+(recurEditSelCat===id?' selected':'');
+    b.innerHTML=`<span class="cat-icon">${c.icon}</span><span>${c.label}</span>`;
+    b.onclick=()=>{recurEditSelCat=id;document.getElementById('recur-edit-cat-more').value='';buildRecurEditCatGrid();};
+    g.appendChild(b);
+  });
+  const sel=document.getElementById('recur-edit-cat-more');
+  const secCats=CATS.filter(c=>!PRIMARY_CATS.includes(c.id));
+  const isSecSel=secCats.some(c=>c.id===recurEditSelCat);
+  sel.innerHTML=`<option value="">${T('cat_more')}</option>`;
+  secCats.forEach(c=>{
+    const o=document.createElement('option');o.value=c.id;
+    o.textContent=c.icon+' '+T(c.lkey);
+    if(recurEditSelCat===c.id)o.selected=true;sel.appendChild(o);
+  });
+  sel.className=isSecSel?'curr-select selected-other':'curr-select';
+}
+document.getElementById('recur-edit-cat-more').onchange=function(){
+  if(this.value){recurEditSelCat=this.value;buildRecurEditCatGrid();}
+};
 (function initRecurCurrSelect(){
   const sel=document.getElementById('recur-edit-curr');
   if(!sel)return;
@@ -1005,6 +1034,8 @@ function openRecurEditModal(id){
   const rp=recurringPayments.find(x=>x.id===id);
   if(!rp)return;
   recurEditId=id;
+  recurEditSelCat=rp.cat||'food';
+  buildRecurEditCatGrid();
   document.getElementById('recur-edit-note').value=rp.note||'';
   document.getElementById('recur-edit-amount').value=rp.amount||'';
   const sel=document.getElementById('recur-edit-curr');
@@ -1028,7 +1059,7 @@ document.getElementById('recur-edit-save-btn').onclick=function(){
   if(!amount||isNaN(amount)){alert('請輸入有效金額');return;}
   const idx=recurringPayments.findIndex(x=>x.id===recurEditId);
   if(idx!==-1){
-    recurringPayments[idx]={...recurringPayments[idx],note,amount,curr,freq};
+    recurringPayments[idx]={...recurringPayments[idx],cat:recurEditSelCat,note,amount,curr,freq};
     saveRecurring();refreshRecurringSettings();
   }
   document.getElementById('recur-edit-modal').classList.add('hidden');
