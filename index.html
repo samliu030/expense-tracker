@@ -842,6 +842,7 @@ let noteMemory={}, budgets={}, editingId=null;
 let editSelCat='food';
 let todayUserFilter=null, monthUserFilter=null, repUserFilter=null;
 let recurringPayments=[], selFreq='monthly';
+let pendingOps=[], flushing=false;
 const DEVICE_KEY='xp_device_user';
 
 // ===== 日期工具 =====
@@ -880,6 +881,7 @@ function loadLocal(){
     if(dv!==null)selectedUserIdx=parseInt(dv);
     const bg=localStorage.getItem('xp_budgets');if(bg)budgets=JSON.parse(bg);
     const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
+    try{pendingOps=JSON.parse(localStorage.getItem('xp_pending')||'[]');}catch(e){pendingOps=[];}
     const rc=localStorage.getItem('xp_recurring');
     if(rc){
       recurringPayments=JSON.parse(rc);
@@ -907,6 +909,8 @@ function processRecurring(){
   const generated=[];
   let changed=false;
   recurringPayments.forEach(rp=>{
+    // 只生成「本機身分擁有」的定期支出，避免兩支手機各生成一份（跨裝置重複）
+    if(rp.user&&rp.user!==userNames[selectedUserIdx])return;
     const last=rp.lastGenerated;
     let shouldGen=false;
     if(rp.freq==='daily'){
@@ -986,7 +990,7 @@ function refreshRecurringSettings(){
     div.querySelector('.recur-item-del-btn').onclick=()=>{
       if(confirm(T('confirm_delete'))){
         recurringPayments=recurringPayments.filter(x=>x.id!==rp.id);
-        saveRecurring();refreshRecurringSettings();
+        saveRecurring();refreshRecurringSettings();pushRecurring();
       }
     };
     list.appendChild(div);
@@ -1059,8 +1063,8 @@ document.getElementById('recur-edit-save-btn').onclick=function(){
   if(!amount||isNaN(amount)){alert('請輸入有效金額');return;}
   const idx=recurringPayments.findIndex(x=>x.id===recurEditId);
   if(idx!==-1){
-    recurringPayments[idx]={...recurringPayments[idx],cat:recurEditSelCat,note,amount,curr,freq};
-    saveRecurring();refreshRecurringSettings();
+    recurringPayments[idx]={...recurringPayments[idx],cat:recurEditSelCat,note,amount,curr,freq,mtime:Date.now()};
+    saveRecurring();refreshRecurringSettings();pushRecurring();
   }
   document.getElementById('recur-edit-modal').classList.add('hidden');
   recurEditId=null;
@@ -1122,7 +1126,7 @@ function applyLang(){
   const repChartTitle=document.getElementById('rep-chart-title');
   if(repChartTitle)repChartTitle.textContent=T('chart_daily');
   document.querySelectorAll('#screen-settings .section-title').forEach((el,i)=>{
-    [T('sec_users'),T('sec_lang'),T('sec_cloud'),T('sec_rates'),T('sec_recurring'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
+    [T('sec_lang'),T('sec_users'),T('sec_cloud'),T('sec_rates'),T('sec_recurring'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
   });
   document.querySelectorAll('#screen-settings .form-label').forEach(el=>{
     if(el.textContent.includes('1')||el.textContent.includes('User 1'))el.textContent=T('lbl_user1');
@@ -1171,21 +1175,108 @@ async function apiCall(action,data={}){
     return json;
   }finally{clearTimeout(timer);}
 }
-async function syncFromCloud(){
-  if(!apiUrl)return;
+// ===== 未同步佇列 =====
+function savePending(){localStorage.setItem('xp_pending',JSON.stringify(pendingOps));}
+function enqueue(op){
+  // 同 id 的舊操作用新的取代（add→edit 收斂成一次 upsert；任何操作後 delete 則由 delete 收尾）
+  pendingOps=pendingOps.filter(o=>o.id!==op.id);
+  pendingOps.push(op);
+  savePending();
+  flushQueue();
+}
+async function flushQueue(){
+  if(!apiUrl||flushing||!pendingOps.length)return true;
+  flushing=true;
+  const batch=pendingOps.slice(); // 快照，避免 flush 期間新進的操作被一起清掉
+  let ok=true;
   try{
+    const upserts=batch.filter(o=>o.op==='upsert').map(o=>o.rec);
+    const deletes=batch.filter(o=>o.op==='delete').map(o=>o.id);
+    if(upserts.length)await apiCall('addMany',{records:upserts});
+    for(const id of deletes){
+      try{await apiCall('delete',{id});}
+      catch(e){if(!/not found/i.test(e.message))throw e;} // 雲端本來就沒有 → 視為已完成
+    }
+    pendingOps=pendingOps.filter(o=>!batch.includes(o)); // 只移除這批已送出的（用物件參考比對）
+    savePending();setSyncStatus(true);
+  }catch(e){ok=false;setSyncStatus(false,e.message);}
+  finally{flushing=false;}
+  if(ok&&pendingOps.length)flushQueue(); // flush 期間有新操作 → 再跑一輪
+  return ok;
+}
+function normRec(r){
+  r.date=normalizeDate(r.date);
+  if(!r.user||r.user==='')r.user=userNames[0];
+  return r;
+}
+async function syncFromCloud(){
+  if(!apiUrl)return false;
+  try{
+    await flushQueue(); // 先把本機未同步的推上去，再拉雲端，避免覆蓋
     const res=await apiCall('getAll');
     if(res.records){
-      records=res.records.map(r=>{
-        r.date=normalizeDate(r.date);
-        if(!r.user||r.user==='')r.user=userNames[0];
-        return r;
-      });
+      const map={};
+      res.records.forEach(r=>{map[r.id]=normRec(r);});
+      // 仍卡在佇列（剛剛 flush 失敗）的本機變更，蓋在雲端結果之上不被吃掉
+      pendingOps.filter(o=>o.op==='upsert').forEach(o=>{map[o.rec.id]=normRec({...o.rec});});
+      pendingOps.filter(o=>o.op==='delete').forEach(o=>{delete map[o.id];});
+      records=Object.values(map);
       saveLocal();setSyncStatus(true);return true;
     }
   }catch(e){setSyncStatus(false,e.message);}
   return false;
 }
+
+// ===== 設定 / 預算 / 定期 雲端同步 =====
+function mergeRecurring(cloudArr){
+  if(!Array.isArray(cloudArr))return;
+  const map={};
+  recurringPayments.forEach(rp=>{map[rp.id]=rp;});
+  cloudArr.forEach(rp=>{
+    const ex=map[rp.id];
+    if(!ex){map[rp.id]=rp;return;}
+    // 定義欄位取「較新（mtime 大）」者，避免離線編輯被舊雲端蓋掉
+    const merged=(rp.mtime||0)>=(ex.mtime||0)?{...ex,...rp}:{...rp,...ex};
+    const lg=[ex.lastGenerated,rp.lastGenerated].filter(Boolean).sort().pop()||'';
+    merged.lastGenerated=lg;    // lastGenerated 取較晚者，避免回退導致重複生成
+    merged.mtime=Math.max(rp.mtime||0,ex.mtime||0);
+    map[rp.id]=merged;
+  });
+  recurringPayments=Object.values(map);
+  saveRecurring();
+}
+async function syncSettingsFromCloud(){
+  if(!apiUrl)return;
+  try{
+    const [s,b,rc]=await Promise.all([
+      apiCall('getSettings').catch(()=>({})),
+      apiCall('getBudgets').catch(()=>({})),
+      apiCall('getRecurring').catch(()=>({}))
+    ]);
+    if(s&&s.settings){
+      if(Array.isArray(s.settings.usernames)&&s.settings.usernames.length===2){
+        userNames=s.settings.usernames.map((n,i)=>n||['Sam','Patty'][i]);
+        localStorage.setItem('xp_usernames',JSON.stringify(userNames));
+      }
+      if(s.settings.rates){
+        CURRENCIES.forEach(c=>{if(s.settings.rates[c.code])c.rate=s.settings.rates[c.code];});
+        saveRates();
+      }
+    }
+    if(b&&b.budgets){budgets={...budgets,...b.budgets};localStorage.setItem('xp_budgets',JSON.stringify(budgets));}
+    if(rc&&rc.recurring)mergeRecurring(rc.recurring);
+    updateUserToggle();
+    document.getElementById('set-user-0').value=userNames[0];
+    document.getElementById('set-user-1').value=userNames[1];
+  }catch(e){}
+}
+function pushSettings(){
+  if(!apiUrl)return;
+  const rates={};CURRENCIES.forEach(c=>{rates[c.code]=c.rate;});
+  apiCall('setSettings',{settings:{usernames:userNames,rates}}).catch(()=>{});
+}
+function pushBudgets(){if(apiUrl)apiCall('setBudgets',{budgets}).catch(()=>{});}
+function pushRecurring(){if(apiUrl)apiCall('setRecurring',{recurring:recurringPayments}).catch(()=>{});}
 function setSyncStatus(ok,msg=''){
   const dot=document.getElementById('sync-dot-add'),text=document.getElementById('sync-text-add');
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
@@ -1213,7 +1304,13 @@ document.getElementById('save-api-btn').onclick=async()=>{
     if(json.success){
       apiUrl=url;localStorage.setItem('xp_api_url',url);
       msg.className='msg success';msg.textContent=T('conn_success');
-      await syncFromCloud();refreshAll();
+      // 首次連線：把現有本機記錄全部排入佇列，避免被空雲端蓋掉
+      records.forEach(r=>{pendingOps=pendingOps.filter(o=>o.id!==r.id);pendingOps.push({op:'upsert',id:r.id,rec:r});});
+      savePending();
+      await syncSettingsFromCloud();
+      await syncFromCloud();
+      pushSettings();pushBudgets();pushRecurring(); // 把本機設定/預算/定期種到雲端
+      refreshAll();
       setTimeout(()=>hideSetupModal(),800);
     }else throw new Error(json.message);
   }catch(e){
@@ -1261,7 +1358,7 @@ document.getElementById('save-users-btn').onclick=()=>{
   userNames[0]=document.getElementById('set-user-0').value.trim()||'Sam';
   userNames[1]=document.getElementById('set-user-1').value.trim()||'Patty';
   localStorage.setItem('xp_usernames',JSON.stringify(userNames));
-  updateUserToggle();refreshAll();alert(T('users_saved'));
+  updateUserToggle();refreshAll();pushSettings();alert(T('users_saved'));
 };
 
 // ===== 備註記憶 =====
@@ -1451,10 +1548,7 @@ document.getElementById('edit-save-btn').onclick=async()=>{
   if(idx>-1){
     records[idx]={...records[idx],cat:editSelCat,amount:amt,date:normalizeDate(date),note};
     saveLocal();refreshAll();
-    if(apiUrl){
-      try{await apiCall('delete',{id:editingId});await apiCall('add',records[idx]);}
-      catch(e){console.warn('Cloud edit failed',e);}
-    }
+    enqueue({op:'upsert',id:records[idx].id,rec:records[idx]});
   }
   btn.disabled=false;btn.textContent=T('btn_save_edit');
   document.getElementById('edit-modal').classList.add('hidden');editingId=null;
@@ -1477,6 +1571,7 @@ document.getElementById('budget-save-btn').onclick=()=>{
   const b1=parseFloat(document.getElementById('budget-input-1').value)||0;
   budgets[m+'_0']=b0;budgets[m+'_1']=b1;
   localStorage.setItem('xp_budgets',JSON.stringify(budgets));
+  pushBudgets();
   refreshMonth();document.getElementById('budget-modal').classList.add('hidden');
 };
 function openBudgetModal(){
@@ -1611,7 +1706,7 @@ function renderEntries(list,cid){
       dv.querySelector('.del-btn').onclick=async()=>{
         if(!confirm(T('confirm_delete')))return;
         const id=r.id;records=records.filter(x=>x.id!==id);saveLocal();refreshAll();
-        if(apiUrl){try{await apiCall('delete',{id});}catch(e){}}
+        enqueue({op:'delete',id});
       };
       grp.appendChild(dv);
     });
@@ -1783,10 +1878,8 @@ function runReport(){
   renderCompare(list,'rep-compare');
   renderBars(list,'rep-bars');
   renderDailyChart(list, from, to);
-  buildUserTabs('rep-user-tabs',repUserFilter,(f)=>{repUserFilter=f;
-    buildUserTabs('rep-user-tabs',repUserFilter,()=>{});
-    renderEntries(filterByUser(list,repUserFilter),'rep-list');
-  });
+  const renderRepTabs=()=>buildUserTabs('rep-user-tabs',repUserFilter,(f)=>{repUserFilter=f;renderRepTabs();renderEntries(filterByUser(list,repUserFilter),'rep-list');});
+  renderRepTabs();
   renderEntries(filterByUser(list,repUserFilter),'rep-list');
 }
 function refreshSettings(){
@@ -1806,7 +1899,7 @@ function buildRateList(){
   CURRENCIES.filter(c=>c.code!=='THB').forEach(c=>{
     const row=document.createElement('div');row.className='rate-row';
     row.innerHTML=`<span style="font-size:13px;font-weight:900;min-width:40px;color:#0f172a">${c.code}</span><span style="font-size:12px;color:#64748b;font-weight:600;flex:1">${c.name}</span><span style="font-size:12px;color:#94a3b8;font-weight:700;margin-right:4px">1=฿</span><input type="number" value="${c.rate}" step="0.0001" style="width:80px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;background:#fff;color:#0f172a;font-family:'Noto Sans TC',sans-serif;outline:none;font-weight:700" data-code="${c.code}">`;
-    row.querySelector('input').onchange=e=>{const val=parseFloat(e.target.value);if(val>0){const cur=CURRENCIES.find(x=>x.code===e.target.dataset.code);if(cur){cur.rate=val;saveRates();}}};
+    row.querySelector('input').onchange=e=>{const val=parseFloat(e.target.value);if(val>0){const cur=CURRENCIES.find(x=>x.code===e.target.dataset.code);if(cur){cur.rate=val;saveRates();pushSettings();}}};
     el.appendChild(row);
   });
   const twdRate=getRate('TWD');
@@ -1853,9 +1946,9 @@ document.getElementById('save-btn').onclick=async()=>{
       const rp={
         id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,
         user:userNames[selectedUserIdx],freq:selFreq,
-        startDate:normalizeDate(date),lastGenerated:normalizeDate(date)
+        startDate:normalizeDate(date),lastGenerated:normalizeDate(date),mtime:Date.now()
       };
-      recurringPayments.push(rp);saveRecurring();
+      recurringPayments.push(rp);saveRecurring();pushRecurring();
       successMsg+=' · '+T('recurring_added');
     }
     document.getElementById('inp-recurring').checked=false;
@@ -1868,10 +1961,7 @@ document.getElementById('save-btn').onclick=async()=>{
   document.getElementById('inp-date').value=today();
   refreshAll();
   setTimeout(()=>{msg.className='msg';},3000);
-  if(apiUrl){
-    try{await apiCall('add',rec);}
-    catch(e){const em=document.getElementById('add-msg');em.className='msg error';em.textContent=T('cloud_fail')+e.message;}
-  }
+  enqueue({op:'upsert',id:rec.id,rec});
 };
 
 // ===== 更新匯率 =====
@@ -1895,7 +1985,7 @@ document.getElementById('rate-fetch-btn').onclick=async()=>{
         else if(c.code==='TWD'){c.rate=Math.round((1/thbToTwd)*10000)/10000;updated++;}
         else if(rawRates[c.code]){c.rate=Math.round((rawRates[c.code]/thbToTwd)*10000)/10000;updated++;}
       });
-      saveRates();buildRateList();
+      saveRates();buildRateList();pushSettings();
       btn.textContent=T('rate_updated')+updated+T('rate_types');
     }else throw new Error('No THB rate');
   }catch(e){btn.textContent=T('rate_fail');}
@@ -1907,7 +1997,7 @@ document.getElementById('rep-run-btn').onclick=runReport;
 document.getElementById('refresh-btn').onclick=async()=>{
   const btn=document.getElementById('refresh-btn');
   btn.disabled=true;btn.innerHTML='<span class="spinner dark"></span>'+T('syncing');
-  await syncFromCloud();refreshAll();
+  await syncSettingsFromCloud();await syncFromCloud();refreshSettings();refreshAll();
   btn.disabled=false;btn.textContent=T('btn_resync');
 };
 document.getElementById('export-btn').onclick=()=>{
@@ -1947,7 +2037,8 @@ function runRecurring(syncToCloud){
   msg.className='msg info';
   msg.textContent=T('recurring_generated')+gen.map(r=>r.note).join('、');
   setTimeout(()=>{msg.className='msg';},6000);
-  if(syncToCloud&&apiUrl){gen.forEach(r=>apiCall('add',r).catch(()=>{}));}
+  gen.forEach(r=>enqueue({op:'upsert',id:r.id,rec:r}));
+  pushRecurring(); // lastGenerated 已更新，推回雲端避免另一支手機重複生成
 }
 
 const hasDeviceId=localStorage.getItem(DEVICE_KEY)!==null;
@@ -1959,9 +2050,9 @@ if(!hasDeviceId){
   setTimeout(()=>showSetupModal(),400);
 }else{
   setSyncStatus(true);
-  syncFromCloud().then(ok=>{
+  Promise.all([syncSettingsFromCloud(),syncFromCloud()]).then(([,ok])=>{
     runRecurring(ok);
-    if(ok)refreshAll();
+    refreshAll();
   });
 }
 </script>
