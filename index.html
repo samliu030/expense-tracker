@@ -125,6 +125,18 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 .stat-value{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.05}
 .stat-sub{font-size:11px;color:var(--ink-3);margin-top:5px;font-weight:600}
 
+/* ── Hero 合計 ── */
+.hero{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px 20px 18px;margin-bottom:15px;box-shadow:var(--shadow-sm);overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--accent-line),var(--accent))}
+.hero-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
+.hero .stat-label{margin:0}
+.hero-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);font-size:11.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.hero-pill b{font-weight:800;color:var(--ink)}
+.hero-amt{display:flex;align-items:baseline;gap:9px}
+.hero-cur{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--accent);line-height:1}
+.hero-value{font-family:var(--serif);font-size:50px;font-weight:600;color:var(--ink);letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums}
+.hero .stat-sub{margin-top:8px}
+
 /* ── Section titles ── */
 .section-title{font-size:10.5px;font-weight:700;color:var(--ink-3);margin:20px 2px 11px;letter-spacing:0.16em;text-transform:uppercase;position:relative;padding-bottom:9px;border-bottom:1px solid var(--border)}
 
@@ -519,9 +531,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 <div id="screen-today" class="screen">
   <div class="topbar"><div class="topbar-left"><div class="tb-eyebrow">TODAY</div><h1>今日支出</h1><p id="today-label"></p></div></div>
   <div class="content">
-    <div class="stat-row">
-      <div class="stat"><div class="stat-label" id="today-stat-lbl">今日合計 (THB)</div><div class="stat-value" id="today-total">0</div><div class="stat-sub" id="today-stat-sub">泰銖</div></div>
-      <div class="stat"><div class="stat-label" id="today-count-lbl">筆數</div><div class="stat-value" id="today-count">0</div><div class="stat-sub" id="today-count-sub">筆記錄</div></div>
+    <div class="hero">
+      <div class="hero-row-top">
+        <span class="stat-label" id="today-stat-lbl">今日合計 (THB)</span>
+        <span class="hero-pill"><b class="num" id="today-count">0</b>&nbsp;<span id="today-count-sub">筆記錄</span></span>
+      </div>
+      <div class="hero-amt"><span class="hero-cur">฿</span><span class="hero-value num" id="today-total">0</span></div>
+      <div class="stat-sub num" id="today-stat-sub">泰銖</div>
     </div>
     <div id="today-compare"></div>
     <div id="today-bars"></div>
@@ -536,9 +552,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
   <div class="topbar"><div class="topbar-left"><div class="tb-eyebrow">THIS MONTH</div><h1>本月總覽</h1><p id="month-label"></p></div></div>
   <div class="content">
     <div id="month-budget-section"></div>
-    <div class="stat-row">
-      <div class="stat"><div class="stat-label" id="month-stat-lbl">本月合計 (THB)</div><div class="stat-value" id="month-total">0</div><div class="stat-sub">泰銖</div></div>
-      <div class="stat"><div class="stat-label" id="month-count-lbl">筆數</div><div class="stat-value" id="month-count">0</div><div class="stat-sub" id="month-count-sub">筆記錄</div></div>
+    <div class="hero">
+      <div class="hero-row-top">
+        <span class="stat-label" id="month-stat-lbl">本月合計 (THB)</span>
+        <span class="hero-pill"><b class="num" id="month-count">0</b>&nbsp;<span id="month-count-sub">筆記錄</span></span>
+      </div>
+      <div class="hero-amt"><span class="hero-cur">฿</span><span class="hero-value num" id="month-total">0</span></div>
+      <div class="stat-sub num" id="month-stat-sub">泰銖</div>
     </div>
     <div class="section-title" id="month-cat-title">各類別分析</div>
     <div id="month-bars"></div>
@@ -1128,13 +1148,13 @@ function applyLang(){
   document.getElementById('recurring-auto-label').textContent=T('recurring_auto');
   document.getElementById('recurring-hint').textContent=T('hint_'+selFreq);
   document.querySelectorAll('.recur-freq-btn').forEach(b=>{b.textContent=T('freq_'+b.dataset.freq)||b.textContent;});
-  document.querySelector('#today-total').closest('.stat').querySelector('.stat-label').textContent=T('today_total');
-  document.querySelector('#today-total').closest('.stat').querySelector('.stat-sub').textContent=T('today_sub');
-  document.querySelector('#today-count').closest('.stat').querySelector('.stat-sub').textContent=T('count_sub');
+  document.getElementById('today-stat-lbl').textContent=T('today_total');
+  document.getElementById('today-stat-sub').textContent=T('today_sub');
+  document.getElementById('today-count-sub').textContent=T('count_sub');
   document.querySelector('#screen-today .section-title').textContent=T('sec_details');
-  document.querySelector('#month-total').closest('.stat').querySelector('.stat-label').textContent=T('month_total');
-  document.querySelector('#month-total').closest('.stat').querySelector('.stat-sub').textContent=T('today_sub');
-  document.querySelector('#month-count').closest('.stat').querySelector('.stat-sub').textContent=T('count_sub');
+  document.getElementById('month-stat-lbl').textContent=T('month_total');
+  document.getElementById('month-stat-sub').textContent=T('today_sub');
+  document.getElementById('month-count-sub').textContent=T('count_sub');
   document.querySelectorAll('#screen-month .section-title').forEach((el,i)=>{
     el.textContent=[T('sec_cat_analysis'),T('sec_details')][i]||el.textContent;
   });
