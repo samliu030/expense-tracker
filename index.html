@@ -905,39 +905,41 @@ function normalizeDate(raw){
 }
 
 // ===== 本機儲存 =====
+// 讀取 JSON key，壞掉時回傳 fallback，不讓單一 key 損毀拖垮整個 loadLocal
+function lsJSON(key,fallback){
+  try{const v=localStorage.getItem(key);return v===null?fallback:JSON.parse(v);}
+  catch(e){return fallback;}
+}
 function loadLocal(){
-  try{
-    const r=localStorage.getItem('xp_records');
-    if(r){
-      records=JSON.parse(r).map(rec=>{
-        rec.date=normalizeDate(rec.date);
-        if(!rec.user)rec.user=userNames[0];
-        return rec;
-      });
-    }
-    const ra=localStorage.getItem('xp_rates');if(ra){const s=JSON.parse(ra);CURRENCIES.forEach(c=>{if(s[c.code])c.rate=s[c.code];});}
-    apiUrl=localStorage.getItem('xp_api_url')||'';
-    const lc=localStorage.getItem('xp_last_curr');if(lc)selCurr=lc;
-    const nm=localStorage.getItem('xp_note_memory');if(nm)noteMemory=JSON.parse(nm);
-    const lu=localStorage.getItem('xp_last_user');if(lu!==null)selectedUserIdx=parseInt(lu);
-    const un=localStorage.getItem('xp_usernames');if(un)userNames=JSON.parse(un);
-    const dv=localStorage.getItem(DEVICE_KEY);
-    if(dv!==null)selectedUserIdx=parseInt(dv);
-    const bg=localStorage.getItem('xp_budgets');if(bg)budgets=JSON.parse(bg);
-    const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
-    try{pendingOps=JSON.parse(localStorage.getItem('xp_pending')||'[]');}catch(e){pendingOps=[];}
-    const rc=localStorage.getItem('xp_recurring');
-    if(rc){
-      recurringPayments=JSON.parse(rc);
-      // dedup: keep first entry per cat+amount+freq+user combo
-      const seen=new Set();
-      recurringPayments=recurringPayments.filter(rp=>{
-        const key=rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user;
-        if(seen.has(key))return false;
-        seen.add(key);return true;
-      });
-    }
-  }catch(e){}
+  const r=lsJSON('xp_records',null);
+  if(Array.isArray(r)){
+    records=r.map(rec=>{
+      rec.date=normalizeDate(rec.date);
+      if(!rec.user)rec.user=userNames[0];
+      return rec;
+    });
+  }
+  const ra=lsJSON('xp_rates',null);if(ra)CURRENCIES.forEach(c=>{if(ra[c.code])c.rate=ra[c.code];});
+  apiUrl=localStorage.getItem('xp_api_url')||'';
+  const lc=localStorage.getItem('xp_last_curr');if(lc)selCurr=lc;
+  noteMemory=lsJSON('xp_note_memory',{})||{};
+  const lu=localStorage.getItem('xp_last_user');if(lu!==null&&!isNaN(parseInt(lu)))selectedUserIdx=parseInt(lu);
+  const un=lsJSON('xp_usernames',null);if(Array.isArray(un)&&un.length===2)userNames=un;
+  const dv=localStorage.getItem(DEVICE_KEY);
+  if(dv!==null&&!isNaN(parseInt(dv)))selectedUserIdx=parseInt(dv);
+  budgets=lsJSON('xp_budgets',{})||{};
+  const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
+  pendingOps=lsJSON('xp_pending',[])||[];
+  const rc=lsJSON('xp_recurring',null);
+  if(Array.isArray(rc)){
+    // dedup: keep first entry per cat+amount+freq+user combo
+    const seen=new Set();
+    recurringPayments=rc.filter(rp=>{
+      const key=rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user;
+      if(seen.has(key))return false;
+      seen.add(key);return true;
+    });
+  }
   document.getElementById('set-user-0').value=userNames[0];
   document.getElementById('set-user-1').value=userNames[1];
   updateUserToggle();
@@ -967,10 +969,13 @@ function processRecurring(){
     }else if(rp.freq==='weekly'){
       if(!last){shouldGen=true;}
       else{
-        const lastD=new Date(last+'T00:00:00');
+        // 以 startDate 的星期幾為基準算出最近一次到期日，漏開 App 補生時不會把週期漂走
+        const startDow=new Date(rp.startDate+'T00:00:00').getDay();
         const todayD=new Date(t+'T00:00:00');
-        const diff=Math.floor((todayD-lastD)/86400000);
-        shouldGen=diff>=7;
+        const back=(todayD.getDay()-startDow+7)%7;
+        const due=new Date(todayD);due.setDate(due.getDate()-back);
+        const dueStr=due.getFullYear()+'-'+String(due.getMonth()+1).padStart(2,'0')+'-'+String(due.getDate()).padStart(2,'0');
+        shouldGen=last<dueStr;
       }
     }else if(rp.freq==='monthly'){
       if(!last){shouldGen=true;}
@@ -978,7 +983,9 @@ function processRecurring(){
         const lastMonth=last.slice(0,7);
         const curMonth=t.slice(0,7);
         if(lastMonth<curMonth){
-          const dom=parseInt(rp.startDate.split('-')[2]);
+          // 定期日設 29/30/31 時，短月份取該月最後一天，避免整月漏生
+          const daysInMonth=new Date(parseInt(t.slice(0,4)),parseInt(t.slice(5,7)),0).getDate();
+          const dom=Math.min(parseInt(rp.startDate.split('-')[2]),daysInMonth);
           const todayDay=parseInt(t.split('-')[2]);
           shouldGen=todayDay>=dom;
         }
@@ -1399,8 +1406,21 @@ document.querySelectorAll('#user-toggle .segment-btn').forEach(b=>{
   };
 });
 document.getElementById('save-users-btn').onclick=()=>{
+  const oldNames=[...userNames];
   userNames[0]=document.getElementById('set-user-0').value.trim()||'Sam';
   userNames[1]=document.getElementById('set-user-1').value.trim()||'Patty';
+  // 改名時把歷史紀錄與定期支出的舊名字一併遷移，否則歸屬會錯亂
+  // 用 oldNames.indexOf 單次對照，避免兩人名字互換時被連鎖改錯
+  let migrated=false;
+  records.forEach(r=>{
+    const i=oldNames.indexOf(r.user);
+    if(i>-1&&userNames[i]!==r.user){r.user=userNames[i];migrated=true;enqueue({op:'upsert',id:r.id,rec:r});}
+  });
+  recurringPayments.forEach(rp=>{
+    const i=oldNames.indexOf(rp.user);
+    if(i>-1&&userNames[i]!==rp.user){rp.user=userNames[i];rp.mtime=Date.now();migrated=true;}
+  });
+  if(migrated){saveLocal();saveRecurring();pushRecurring();}
   localStorage.setItem('xp_usernames',JSON.stringify(userNames));
   updateUserToggle();refreshAll();pushSettings();alert(T('users_saved'));
 };
@@ -2054,7 +2074,7 @@ document.getElementById('export-btn').onclick=()=>{
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='expenses_'+today()+'.csv';a.click();
 };
 document.getElementById('clear-btn').onclick=()=>{
-  if(confirm(T('confirm_clear'))){records=[];saveLocal();refreshAll();alert(T('cleared'));}
+  if(confirm(T('confirm_clear'))){records=[];pendingOps=[];saveLocal();savePending();refreshAll();alert(T('cleared'));}
 };
 
 // ===== Init =====
