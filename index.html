@@ -502,6 +502,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
         <input type="text" class="form-input" id="inp-note" placeholder="例：全家、MK火鍋、Grab" autocomplete="off">
         <div class="note-suggestions" id="note-suggestions"></div>
       </div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <button class="secondary-btn" id="voice-btn" style="flex:1;margin:0;padding:12px">🎤 <span id="voice-btn-label">語音記帳</span></button>
+        <div id="voice-lang-toggle" style="display:none;gap:4px">
+          <button id="voice-lang-en" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:12px;background:var(--ink);color:#fbf9f2;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--sans)">EN</button>
+          <button id="voice-lang-th" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);color:var(--ink-2);font-size:13px;font-weight:800;cursor:pointer;font-family:var(--sans)">ไทย</button>
+        </div>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">日期</label>
@@ -592,6 +599,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
         <div style="font-size:12px;color:var(--ink-3);margin-top:4px" id="rep-sub"></div>
       </div>
       <div id="rep-compare"></div>
+      <div id="rep-pie-wrap" style="display:none;margin-bottom:16px">
+        <div class="section-title" id="rep-pie-title">分類佔比</div>
+        <div id="rep-pie-body"></div>
+      </div>
+      <div id="rep-tree-wrap" style="display:none;margin-bottom:16px">
+        <div class="section-title" id="rep-tree-title">分類樹狀圖</div>
+        <div id="rep-tree-body"></div>
+      </div>
       <div id="rep-bars" style="margin-bottom:12px"></div>
       <!-- Daily Chart -->
       <div id="rep-chart-wrap" style="display:none;margin-bottom:16px">
@@ -801,6 +816,11 @@ const I18N={
     recurring_not_yet:'尚未生成',
     budget_label_suffix:' 的預算 (THB)',
     btn_delete:'刪除',
+    // Voice
+    voice_btn:'語音記帳',ai_busy:'🤖 AI 辨識中...',ai_fail:'辨識失敗',ai_filled:'已填入資料',ai_low_conf:'（信心度低）',
+    ai_listening:'🎤 請說話，例如「午餐麥當勞250泰銖」',ai_voice_fallback:'此瀏覽器不支援語音，請直接輸入，例如：午餐麥當勞250泰銖',
+    // Charts
+    chart_pie:'分類佔比',chart_tree:'分類樹狀圖',
   },
   en:{
     app_title:'Expense Tracker',
@@ -874,6 +894,12 @@ const I18N={
     recurring_not_yet:'Not yet generated',
     budget_label_suffix:"'s Budget (THB)",
     btn_delete:'Delete',
+    // Voice
+    voice_btn:'Voice Entry',ai_busy:'🤖 Recognizing...',ai_fail:'Recognition failed',ai_filled:'Filled in',ai_low_conf:' (low confidence)',
+    ai_listening:'🎤 Speak now, e.g. "lunch McDonald\'s 250 baht"',ai_voice_fallback:'Speech not supported. Type instead, e.g.: lunch McDonald\'s 250 baht',
+    voice_lang_en:'EN',voice_lang_th:'ไทย',
+    // Charts
+    chart_pie:'Category Share',chart_tree:'Category Treemap',
   }
 };
 let lang='zh';
@@ -1176,6 +1202,14 @@ function applyLang(){
   document.querySelector('#rep-total').closest('.card').querySelector('.stat-label').textContent=T('report_total');
   const repChartTitle=document.getElementById('rep-chart-title');
   if(repChartTitle)repChartTitle.textContent=T('chart_daily');
+  const repPieTitle=document.getElementById('rep-pie-title');
+  if(repPieTitle)repPieTitle.textContent=T('chart_pie');
+  const repTreeTitle=document.getElementById('rep-tree-title');
+  if(repTreeTitle)repTreeTitle.textContent=T('chart_tree');
+  const voiceBtnLabel=document.getElementById('voice-btn-label');
+  if(voiceBtnLabel)voiceBtnLabel.textContent=T('voice_btn');
+  const vlt=document.getElementById('voice-lang-toggle');
+  if(vlt)vlt.style.display=(lang==='en')?'flex':'none';
   document.querySelectorAll('#screen-settings .section-title').forEach((el,i)=>{
     [T('sec_lang'),T('sec_users'),T('sec_cloud'),T('sec_rates'),T('sec_recurring'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
   });
@@ -1726,6 +1760,97 @@ function renderDailyChart(list, from, to) {
   wrap.style.display = 'block';
 }
 
+// ===== 圓餅圖 & 樹狀圖 =====
+const PIE_PALETTE=['#b8860b','#c2410c','#0d9488','#7c3aed','#be185d','#2563eb','#65a30d','#d97706','#0891b2','#9333ea','#dc2626','#059669','#4f46e5','#db2777','#78716c'];
+function renderCategoryPie(list,wrapId,bodyId){
+  const wrap=document.getElementById(wrapId);if(!wrap)return;
+  const body=document.getElementById(bodyId);
+  if(!list.length){wrap.style.display='none';return;}
+  const bycat={};
+  list.forEach(r=>{bycat[r.cat]=(bycat[r.cat]||0)+toTHB(r.amount,r.curr);});
+  const rows=Object.entries(bycat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const grand=rows.reduce((s,[,v])=>s+v,0);
+  if(!rows.length||grand<=0){wrap.style.display='none';return;}
+  const colorOf={};rows.forEach(([cid],i)=>{colorOf[cid]=PIE_PALETTE[i%PIE_PALETTE.length];});
+  const cx=80,cy=80,rOut=72,rIn=44;let ang=-Math.PI/2;
+  const arc=(a0,a1,r)=>[cx+r*Math.cos(a0),cy+r*Math.sin(a0),cx+r*Math.cos(a1),cy+r*Math.sin(a1)];
+  let paths='';
+  rows.forEach(([cid,v])=>{
+    const frac=v/grand;const a1=ang+frac*Math.PI*2;
+    const large=(a1-ang)>Math.PI?1:0;
+    if(rows.length===1){
+      paths+=`<circle cx="${cx}" cy="${cy}" r="${(rOut+rIn)/2}" fill="none" stroke="${colorOf[cid]}" stroke-width="${rOut-rIn}"/>`;
+    }else{
+      const [ox0,oy0,ox1,oy1]=arc(ang,a1,rOut);
+      const [ix1,iy1,ix0,iy0]=arc(a1,ang,rIn);
+      paths+=`<path d="M${ox0.toFixed(2)} ${oy0.toFixed(2)} A${rOut} ${rOut} 0 ${large} 1 ${ox1.toFixed(2)} ${oy1.toFixed(2)} L${ix1.toFixed(2)} ${iy1.toFixed(2)} A${rIn} ${rIn} 0 ${large} 0 ${ix0.toFixed(2)} ${iy0.toFixed(2)} Z" fill="${colorOf[cid]}"/>`;
+    }
+    ang=a1;
+  });
+  const svg=`<svg viewBox="0 0 160 160" width="160" height="160" style="flex-shrink:0" xmlns="http://www.w3.org/2000/svg">${paths}
+    <text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="11" fill="#9a8f78" font-family="sans-serif" font-weight="700">TOTAL</text>
+    <text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="16" fill="#3c3018" font-family="serif" font-weight="700">฿${Math.round(grand).toLocaleString()}</text></svg>`;
+  let legend='';
+  rows.forEach(([cid,v])=>{
+    const cat=getCat(cid);const pct=(v/grand*100);
+    legend+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 0">
+      <span style="width:11px;height:11px;border-radius:3px;background:${colorOf[cid]};flex-shrink:0"></span>
+      <span style="font-size:13px;font-weight:700;color:var(--ink)">${cat.icon} ${escapeHtml(cat.label)}</span>
+      <span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--ink-2);font-variant-numeric:tabular-nums">${pct.toFixed(pct<10?1:0)}%</span>
+      <span style="font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;min-width:62px;text-align:right">${fmtTHB(v)}</span>
+    </div>`;
+  });
+  body.innerHTML=`<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center">
+    <div style="display:flex;justify-content:center">${svg}</div>
+    <div style="flex:1;min-width:180px">${legend}</div></div>`;
+  wrap.style.display='block';
+}
+function renderCategoryTreemap(list,wrapId,bodyId){
+  const wrap=document.getElementById(wrapId);if(!wrap)return;
+  const body=document.getElementById(bodyId);
+  if(!list.length){wrap.style.display='none';return;}
+  const bycat={};
+  list.forEach(r=>{bycat[r.cat]=(bycat[r.cat]||0)+toTHB(r.amount,r.curr);});
+  const rows=Object.entries(bycat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const grand=rows.reduce((s,[,v])=>s+v,0);
+  if(!rows.length||grand<=0){wrap.style.display='none';return;}
+  const W=body.offsetWidth||340, H=200;
+  // Slice-and-dice: alternate horizontal/vertical at each level
+  function sliceDice(items,x,y,w,h,vert){
+    const total=items.reduce((s,[,v])=>s+v,0);
+    let pos=vert?y:x;
+    return items.map(([cid,v],i)=>{
+      const frac=v/total;
+      const slice=vert?h*frac:w*frac;
+      const rect=vert?{x,y:pos,w,h:slice}:{x:pos,y,w:slice,h};
+      pos+=slice;
+      return {cid,v,rect};
+    });
+  }
+  const rects=sliceDice(rows,0,0,W,H,false);
+  let svgParts='';
+  rects.forEach(({cid,v,rect:{x,y,w,h}},i)=>{
+    const cat=getCat(cid);
+    const color=PIE_PALETTE[i%PIE_PALETTE.length];
+    const pctVal=v/grand*100;
+    const px=x.toFixed(1),py=y.toFixed(1),pw=Math.max(0,w-2).toFixed(1),ph=Math.max(0,h-2).toFixed(1);
+    svgParts+=`<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="5" fill="${color}" opacity="0.9"/>`;
+    if(w>36&&h>24){
+      const tx=(x+w/2).toFixed(1),ty=(y+h/2).toFixed(1);
+      svgParts+=`<text x="${tx}" y="${(parseFloat(ty)-6).toFixed(1)}" text-anchor="middle" font-size="14" fill="#fff" font-family="sans-serif">${cat.icon}</text>`;
+      if(w>60&&h>40){
+        const lblFontSize=Math.min(11,Math.floor(w/8));
+        svgParts+=`<text x="${tx}" y="${(parseFloat(ty)+8).toFixed(1)}" text-anchor="middle" font-size="${lblFontSize}" fill="rgba(255,255,255,0.9)" font-family="sans-serif" font-weight="700">${escapeHtml(cat.label)}</text>`;
+      }
+      if(w>80&&h>52){
+        svgParts+=`<text x="${tx}" y="${(parseFloat(ty)+22).toFixed(1)}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.8)" font-family="sans-serif" font-weight="600">${pctVal.toFixed(0)}%</text>`;
+      }
+    }
+  });
+  body.innerHTML=`<div style="overflow:hidden;border-radius:12px"><svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">${svgParts}</svg></div>`;
+  wrap.style.display='block';
+}
+
 // ===== Render Helpers =====
 function renderEntries(list,cid){
   const el=document.getElementById(cid);
@@ -1933,6 +2058,8 @@ function runReport(){
   const from=document.getElementById('rep-from').value,to=document.getElementById('rep-to').value;
   if(!from||!to){alert('請選擇日期範圍');return;}
   const cw=document.getElementById('rep-chart-wrap');if(cw)cw.style.display='none';
+  const pw=document.getElementById('rep-pie-wrap');if(pw)pw.style.display='none';
+  const tw=document.getElementById('rep-tree-wrap');if(tw)tw.style.display='none';
   let list=records.filter(r=>r.date>=from&&r.date<=to);
   if(repCatFilter)list=list.filter(r=>r.cat===repCatFilter);
   const total=list.reduce((s,r)=>s+toTHB(r.amount,r.curr),0);
@@ -1940,6 +2067,8 @@ function runReport(){
   document.getElementById('rep-total').textContent=Math.round(total).toLocaleString();
   document.getElementById('rep-sub').textContent=list.length+T('count_sub')+' · '+from+' ~ '+to;
   renderCompare(list,'rep-compare');
+  renderCategoryPie(list,'rep-pie-wrap','rep-pie-body');
+  renderCategoryTreemap(list,'rep-tree-wrap','rep-tree-body');
   renderBars(list,'rep-bars');
   renderDailyChart(list, from, to);
   const renderRepTabs=()=>buildUserTabs('rep-user-tabs',repUserFilter,(f)=>{repUserFilter=f;renderRepTabs();renderEntries(filterByUser(list,repUserFilter),'rep-list');});
@@ -1980,6 +2109,75 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
   if(id==='today')refreshToday();else if(id==='month')refreshMonth();
   else if(id==='report')refreshReport();else if(id==='settings')refreshSettings();
 });
+
+// ===== 語音記帳 =====
+const PS_SUPABASE_URL='https://hyrfnylsmgwcjngqdbbd.supabase.co';
+const PS_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5cmZueWxzbWd3Y2puZ3FkYmJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODY3MTIsImV4cCI6MjA5NjQ2MjcxMn0.qATijjdL2uKBbqyjLbqPvknWTD4ljAS2msImivJYdVI';
+const AI_ENDPOINT=PS_SUPABASE_URL+'/functions/v1/scan-receipt';
+let voiceLang='en-US';
+async function callScanApi(payload){
+  const r=await fetch(AI_ENDPOINT,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':PS_ANON_KEY,'Authorization':'Bearer '+PS_ANON_KEY},
+    body:JSON.stringify(payload)
+  });
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||!data.ok)throw new Error(data.error||('HTTP '+r.status));
+  return data.result;
+}
+function aiMsg(type,text){
+  const msg=document.getElementById('add-msg');
+  msg.className=type?('msg '+type):'msg';msg.textContent=text||'';
+}
+function setVoiceBusy(busy){document.getElementById('voice-btn').disabled=busy;}
+function fillFromAI(res){
+  if(!res||!isFinite(Number(res.amount))||Number(res.amount)<=0)throw new Error('no amount');
+  document.getElementById('inp-amount').value=Math.round(Number(res.amount)*100)/100;
+  if(res.currency&&CURRENCIES.some(c=>c.code===res.currency)){selCurr=res.currency;localStorage.setItem('xp_last_curr',selCurr);buildCurrUI();}
+  if(res.category&&CATS.some(c=>c.id===res.category)){selCat=res.category;buildCatGrid();}
+  if(res.merchant)document.getElementById('inp-note').value=res.merchant;
+  if(res.date&&/^\d{4}-\d{2}-\d{2}$/.test(res.date))document.getElementById('inp-date').value=res.date;
+  const conf=res.confidence==='low'?' '+T('ai_low_conf'):'';
+  aiMsg('success',T('ai_filled')+conf);
+}
+async function parseVoiceText(text){
+  setVoiceBusy(true);aiMsg('success',T('ai_busy'));
+  try{const res=await callScanApi({text});fillFromAI(res);}
+  catch(e){console.error(e);aiMsg('error',T('ai_fail')+'：'+e.message);}
+  setVoiceBusy(false);
+}
+// 英文模式語言切換按鈕
+document.getElementById('voice-lang-en').onclick=()=>{
+  voiceLang='en-US';
+  document.getElementById('voice-lang-en').style.background='var(--ink)';document.getElementById('voice-lang-en').style.color='#fbf9f2';
+  document.getElementById('voice-lang-th').style.background='var(--surface)';document.getElementById('voice-lang-th').style.color='var(--ink-2)';
+};
+document.getElementById('voice-lang-th').onclick=()=>{
+  voiceLang='th-TH';
+  document.getElementById('voice-lang-th').style.background='var(--ink)';document.getElementById('voice-lang-th').style.color='#fbf9f2';
+  document.getElementById('voice-lang-en').style.background='var(--surface)';document.getElementById('voice-lang-en').style.color='var(--ink-2)';
+};
+document.getElementById('voice-btn').onclick=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const recLang=lang==='zh'?'zh-TW':voiceLang;
+  if(!SR){
+    const t=prompt(T('ai_voice_fallback'));
+    if(t&&t.trim())parseVoiceText(t.trim());
+    return;
+  }
+  const rec=new SR();
+  rec.lang=recLang;rec.interimResults=false;rec.maxAlternatives=1;
+  aiMsg('success',T('ai_listening'));
+  rec.onresult=e=>{const t=e.results[0][0].transcript;if(t)parseVoiceText(t);};
+  rec.onerror=e=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      const t=prompt(T('ai_voice_fallback'));
+      if(t&&t.trim())parseVoiceText(t.trim());
+    }else aiMsg('error',T('ai_fail')+'：'+e.error);
+  };
+  rec.onend=()=>{};
+  rec.start();
+};
 
 // ===== 儲存記錄 =====
 document.getElementById('save-btn').onclick=async()=>{
