@@ -486,13 +486,27 @@ function applySpecialSettings(){
 }
 
 // init
-const API_URL="https://script.google.com/macros/s/.../exec";
+// 讀記帳 App 共用的 Apps Script 網址（同 origin 共用 localStorage，key=xp_api_url）。
+// 在 GitHub Pages 上跟記帳 App 同網址時，這裡會自動拿到已設定好的網址，免再輸入。
+let API_URL=localStorage.getItem("xp_api_url")||"";
 document.getElementById("todayStr").textContent=new Date().toLocaleDateString("zh-TW",{month:'long',day:'numeric',weekday:'short'});
 applyTheme("ivory"); // 只設主題；MONTHS 空時 applyTheme 內 renderAll 被 guard 跳過
 loadData();
 
+function setupApiUrl(){
+  const cur=API_URL||"";
+  const url=(prompt("貼上你的 Apps Script 網址（與記帳 App 同一個）：", cur)||"").trim();
+  if(!url) return false;
+  API_URL=url; localStorage.setItem("xp_api_url", url);
+  return true;
+}
+
 async function loadData(){
   const st=document.getElementById("loadStatus");
+  if(!API_URL){
+    st.innerHTML=`尚未設定 Apps Script 網址 — <a href="#" onclick="if(setupApiUrl())loadData();return false" style="color:var(--accent);font-weight:600">點此設定</a>`;
+    return;
+  }
   try{
     const [allRes,setRes]=await Promise.all([
       fetch(`${API_URL}?action=getAll`).then(r=>r.json()),
