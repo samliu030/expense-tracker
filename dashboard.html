@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>消費分析儀表板</title>
+<title>Expense Dashboard</title>
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Expense Dashboard">
+<meta name="theme-color" content="#f3efe5">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,7 +32,10 @@
     color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased;
     padding:22px 16px 80px; transition:background .25s,color .25s;
   }
-  .wrap{max-width:980px;margin:0 auto}
+  .wrap{max-width:980px;margin:0 auto;position:relative}
+  .langbar{position:absolute;top:0;right:0;display:flex;gap:4px}
+  .lbtn{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:transparent;color:var(--ink-soft);padding:5px 11px;border-radius:999px;cursor:pointer;transition:.15s}
+  .lbtn[aria-current="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .eyebrow{font-size:11px;letter-spacing:var(--eyebrow-spacing);text-transform:uppercase;color:var(--accent);font-weight:600}
   h1{font-family:var(--font-display);font-weight:600;font-size:30px;letter-spacing:-.01em;margin:6px 0 2px}
   .sub{color:var(--ink-soft);font-size:13px}
@@ -154,78 +165,82 @@
 </head>
 <body data-theme="ivory">
 <div class="wrap">
+  <div class="langbar">
+    <button class="lbtn" data-l="zh" onclick="setLang('zh')">中</button>
+    <button class="lbtn" data-l="en" onclick="setLang('en')">EN</button>
+  </div>
   <div class="eyebrow">Expense Analytics</div>
-  <h1>消費分析儀表板</h1>
-  <div class="sub">基準幣別 ฿ THB · 即時讀取 · <span id="todayStr"></span></div>
-  <div class="mock-banner">即時讀取 Google Sheets · <span id="loadStatus">載入中…</span></div>
+  <h1 data-i18n="h1">消費分析儀表板</h1>
+  <div class="sub"><span data-i18n="subBase">基準幣別 ฿ THB · 即時讀取 · </span><span id="todayStr"></span></div>
+  <div class="mock-banner"><span data-i18n="bannerPrefix">即時讀取 Google Sheets · </span><span id="loadStatus">載入中…</span></div>
 
   <div class="userbar" id="userbar"></div>
   <div class="tabs" id="tabs"></div>
 
   <div class="hero">
-    <div class="card"><div class="lbl">今日消費</div><div class="big"><span class="cur">฿</span><span id="hToday">0</span></div><div class="meta" id="hTodayMeta"></div></div>
-    <div class="card"><div class="lbl">過去 7 天</div><div class="big"><span class="cur">฿</span><span id="h7">0</span></div><div class="meta" id="h7Meta"></div></div>
-    <div class="card"><div class="lbl">本月累計</div><div class="big"><span class="cur">฿</span><span id="hMonth">0</span></div><div class="meta" id="hMonthMeta"></div></div>
+    <div class="card"><div class="lbl" data-i18n="heroToday">今日消費</div><div class="big"><span class="cur">฿</span><span id="hToday">0</span></div><div class="meta" id="hTodayMeta"></div></div>
+    <div class="card"><div class="lbl" data-i18n="heroLast7">過去 7 天</div><div class="big"><span class="cur">฿</span><span id="h7">0</span></div><div class="meta" id="h7Meta"></div></div>
+    <div class="card"><div class="lbl" data-i18n="heroMonth">本月累計</div><div class="big"><span class="cur">฿</span><span id="hMonth">0</span></div><div class="meta" id="hMonthMeta"></div></div>
   </div>
 
   <div class="panel">
-    <div class="panel-head"><h2>圖表總覽</h2><div class="hint">甜甜圈／每日圖可點擊下鑽</div></div>
+    <div class="panel-head"><h2 data-i18n="chartOverview">圖表總覽</h2><div class="hint" data-i18n="overviewHint">甜甜圈／每日圖可點擊下鑽</div></div>
     <div class="charts">
       <div class="chartcard">
-        <h3>🍩 本月類別占比</h3>
-        <div class="csub" id="donutCrumb">點圖或下方圖例鑽進去看細項</div>
+        <h3 data-i18n="donutTitle">🍩 本月類別占比</h3>
+        <div class="csub" id="donutCrumb" data-i18n="donutSub">點圖或下方圖例鑽進去看細項</div>
         <div class="donutwrap">
           <div class="donut-square"><canvas id="donut"></canvas>
-            <div class="donut-center"><div class="dc-lbl" id="donutCenterLbl">篩選後</div><div class="dc-val"><span class="cur">฿</span><span id="donutTotal">0</span></div></div>
+            <div class="donut-center"><div class="dc-lbl" id="donutCenterLbl" data-i18n="donutCenterFiltered">篩選後</div><div class="dc-val"><span class="cur">฿</span><span id="donutTotal">0</span></div></div>
           </div>
           <div class="donut-legend" id="donutLegend"></div>
         </div>
       </div>
       <div class="chartcard">
-        <h3>📈 6 個月消費趨勢</h3>
-        <div class="csub">含全部 vs 不含特別類別（日常基準有沒有失控）</div>
+        <h3 data-i18n="lineTitle">📈 6 個月消費趨勢</h3>
+        <div class="csub" data-i18n="lineSub">含全部 vs 不含特別類別（日常基準有沒有失控）</div>
         <div class="chartbox"><canvas id="line"></canvas></div>
       </div>
       <div class="chartcard">
-        <h3>📊 本月每日消費</h3>
-        <div class="csub">哪天爆花一眼看到 · 點某天看買了什麼</div>
+        <h3 data-i18n="dailyTitle">📊 本月每日消費</h3>
+        <div class="csub" data-i18n="dailySub">哪天爆花一眼看到 · 點某天看買了什麼</div>
         <div class="chartbox"><canvas id="daily"></canvas></div>
         <div class="day-detail" id="dailyDetail"></div>
       </div>
       <div class="chartcard">
-        <h3>🧱 各月類別堆疊</h3>
-        <div class="csub">每月結構怎麼變、哪類在膨脹</div>
+        <h3 data-i18n="stackedTitle">🧱 各月類別堆疊</h3>
+        <div class="csub" data-i18n="stackedSub">每月結構怎麼變、哪類在膨脹</div>
         <div class="chartbox"><canvas id="stacked"></canvas></div>
       </div>
     </div>
   </div>
 
   <div class="panel">
-    <div class="panel-head"><h2 id="catTitle">類別明細</h2><div class="hint">點類別名稱展開逐筆明細 · 勾選框即時加減總額</div></div>
+    <div class="panel-head"><h2 id="catTitle">類別明細</h2><div class="hint" data-i18n="catHint">點類別名稱展開逐筆明細 · 勾選框即時加減總額</div></div>
     <div class="compare">
-      <div class="cbox"><div class="t">含全部類別</div><div class="v"><span class="cur">฿</span><span id="cAll">0</span></div><div class="d">本月全部消費</div></div>
-      <div class="cbox"><div class="t">不含特別類別</div><div class="v"><span class="cur">฿</span><span id="cBase">0</span></div><div class="d">日常基準（去掉<span id="specNames"></span>）</div></div>
-      <div class="cbox live"><div class="t">你勾選的 →</div><div class="v"><span class="cur">฿</span><span id="cLive">0</span></div><div class="d"><span id="cLiveCnt">0</span> 個類別 · <span id="cLivePct">0</span>% of 全部</div></div>
+      <div class="cbox"><div class="t" data-i18n="cmpAllT">含全部類別</div><div class="v"><span class="cur">฿</span><span id="cAll">0</span></div><div class="d" data-i18n="cmpAllD">本月全部消費</div></div>
+      <div class="cbox"><div class="t" data-i18n="cmpBaseT">不含特別類別</div><div class="v"><span class="cur">฿</span><span id="cBase">0</span></div><div class="d"><span data-i18n="cmpBaseD1">日常基準（去掉</span><span id="specNames"></span><span data-i18n="cmpBaseD2">）</span></div></div>
+      <div class="cbox live"><div class="t" data-i18n="cmpLiveT">你勾選的 →</div><div class="v"><span class="cur">฿</span><span id="cLive">0</span></div><div class="d"><span id="cLiveCnt">0</span><span data-i18n="cmpLiveCats"> 個類別 · </span><span id="cLivePct">0</span><span data-i18n="cmpLiveD2">% of 全部</span></div></div>
     </div>
     <div class="filter-actions">
-      <button class="chip solid" onclick="selectAll(true)">全選</button>
-      <button class="chip" onclick="selectAll(false)">全不選</button>
-      <button class="chip" onclick="onlyDaily()">只看日常（去除特別）</button>
-      <button class="chip" onclick="onlySpecial()">只看特別類別</button>
-      <button class="chip" onclick="openSpecialSettings()">⚙ 設定特別類別</button>
+      <button class="chip solid" onclick="selectAll(true)" data-i18n="chipAll">全選</button>
+      <button class="chip" onclick="selectAll(false)" data-i18n="chipNone">全不選</button>
+      <button class="chip" onclick="onlyDaily()" data-i18n="chipDaily">只看日常（去除特別）</button>
+      <button class="chip" onclick="onlySpecial()" data-i18n="chipSpecial">只看特別類別</button>
+      <button class="chip" onclick="openSpecialSettings()" data-i18n="chipSettings">⚙ 設定特別類別</button>
     </div>
     <div class="catlist" id="catlist"></div>
     <div class="special-settings" id="specialSettings" style="display:none">
-      <div class="ss-head">勾選哪些類別算「特別」（存在這台裝置）</div>
+      <div class="ss-head" data-i18n="ssHead">勾選哪些類別算「特別」（存在這台裝置）</div>
       <div class="ss-grid" id="specialGrid"></div>
       <div class="ss-actions">
-        <button class="chip solid" onclick="applySpecialSettings()">儲存</button>
-        <button class="chip" onclick="document.getElementById('specialSettings').style.display='none'">取消</button>
+        <button class="chip solid" onclick="applySpecialSettings()" data-i18n="ssSave">儲存</button>
+        <button class="chip" onclick="document.getElementById('specialSettings').style.display='none'" data-i18n="ssCancel">取消</button>
       </div>
     </div>
   </div>
 
-  <div class="foot">即時讀取 Google Sheets · 基準幣別 ฿ THB</div>
+  <div class="foot" data-i18n="foot">即時讀取 Google Sheets · 基準幣別 ฿ THB</div>
 </div>
 
 <script>
@@ -254,6 +269,106 @@ function buildData(records, rates){
 
 // ---------- utils ----------
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+// ---------- i18n ----------
+let CURRENT_LANG=(function(){try{return localStorage.getItem("dash_lang")||"zh";}catch(e){return "zh";}})();
+// 類別中→英對照（方案 B：對不到的 fallback 顯示原中文，備註一律不翻）
+const CAT_EN={
+  "餐飲":"Food","飲食":"Food","食物":"Food","三餐":"Meals","外食":"Eating out","早餐":"Breakfast","午餐":"Lunch","晚餐":"Dinner","宵夜":"Late snack",
+  "交通":"Transport","通勤":"Commute","油錢":"Fuel","停車":"Parking",
+  "娛樂":"Entertainment","購物":"Shopping","居住":"Housing","房租":"Rent","水電":"Utilities","水電瓦斯":"Utilities",
+  "醫療":"Health","健康":"Health","保健":"Health","教育":"Education","學習":"Learning",
+  "旅遊":"Travel","旅行":"Travel","生活用品":"Daily goods","日用品":"Daily goods","雜支":"Misc","雜項":"Misc",
+  "通訊":"Telecom","電話":"Phone","網路":"Internet","訂閱":"Subscriptions",
+  "寵物":"Pet","禮物":"Gift","禮品":"Gift","紅包":"Gift money","服飾":"Clothing","衣服":"Clothing","美妝":"Beauty","美容":"Beauty",
+  "運動":"Sports","健身":"Fitness","咖啡":"Coffee","飲料":"Drinks","菸酒":"Tobacco & alcohol",
+  "投資":"Investment","保險":"Insurance","稅金":"Tax","稅":"Tax","手續費":"Fees","孝親":"Family support","家用":"Household",
+  "其他":"Other","其它":"Other","未分類":"Uncategorized"
+};
+function catLabel(c){return CURRENT_LANG==="en"?(CAT_EN[c]||c):c;}
+const I18N={
+  zh:{
+    htmlLang:"zh-Hant", localeTag:"zh-TW", listComma:"、", catComma:"、",
+    pageTitle:"消費分析儀表板", h1:"消費分析儀表板",
+    subBase:"基準幣別 ฿ THB · 即時讀取 · ", bannerPrefix:"即時讀取 Google Sheets · ", loading:"載入中…",
+    heroToday:"今日消費", heroLast7:"過去 7 天", heroMonth:"本月累計",
+    chartOverview:"圖表總覽", overviewHint:"甜甜圈／每日圖可點擊下鑽",
+    donutTitle:"🍩 本月類別占比", donutSub:"點圖或下方圖例鑽進去看細項", donutCenterFiltered:"篩選後",
+    lineTitle:"📈 6 個月消費趨勢", lineSub:"含全部 vs 不含特別類別（日常基準有沒有失控）",
+    dailyTitle:"📊 本月每日消費", dailySub:"哪天爆花一眼看到 · 點某天看買了什麼",
+    stackedTitle:"🧱 各月類別堆疊", stackedSub:"每月結構怎麼變、哪類在膨脹",
+    catHint:"點類別名稱展開逐筆明細 · 勾選框即時加減總額",
+    cmpAllT:"含全部類別", cmpAllD:"本月全部消費", cmpBaseT:"不含特別類別", cmpBaseD1:"日常基準（去掉", cmpBaseD2:"）",
+    cmpLiveT:"你勾選的 →", cmpLiveCats:" 個類別 · ", cmpLiveD2:"% of 全部",
+    chipAll:"全選", chipNone:"全不選", chipDaily:"只看日常（去除特別）", chipSpecial:"只看特別類別", chipSettings:"⚙ 設定特別類別",
+    ssHead:"勾選哪些類別算「特別」（存在這台裝置）", ssSave:"儲存", ssCancel:"取消",
+    foot:"即時讀取 Google Sheets · 基準幣別 ฿ THB", userAll:"合併",
+    specialTag:"特別", specialFallback:"特別類別", noData:"此視角無資料",
+    backAll:"← 全部類別", lineAll:"含全部", lineBase:"不含特別", dayDetailClose:"✕ 收起",
+    donutTipSuffix:"　▸ 點擊看細項", dailyTipSuffix:"　▸ 點擊看當天明細",
+    promptUrl:"貼上你的 Apps Script 網址（與記帳 App 同一個）：",
+    todayMeta:(today,cnt)=>`${today} · ${cnt} 筆`,
+    dailyAvg:(v)=>`日均 ฿${v}`,
+    monthVs:(pm,cls,arrow,pct)=>`vs ${pm} <span class="${cls}">${arrow} ${pct}%</span>`,
+    catTitleMonth:(m)=>`${m} 類別明細`,
+    donutDrillCrumb:(cat,n)=>`${cat} · ${n} 個項目`,
+    dayDetailHead:(day,cnt,tot)=>`${day} 那天 · ${cnt} 筆 · 合計 <b>฿${tot}</b>`,
+    statusLoaded:(n,time,warn,note)=>`${n} 筆 · 更新於 ${time}${warn}${note}`,
+    warnRates:(list)=>` ⚠️ 缺匯率：${list}（暫以原值計）`,
+    emptyUserNote:(n)=>` · ${n} 筆未標記使用者（僅合併視角顯示）`,
+    statusFail:(msg)=>`<span style="color:var(--danger)">載入失敗：${msg}</span>`,
+    statusNoUrl:()=>`尚未設定 Apps Script 網址 — <a href="#" onclick="if(setupApiUrl())loadData();return false" style="color:var(--accent);font-weight:600">點此設定</a>`
+  },
+  en:{
+    htmlLang:"en", localeTag:"en-US", listComma:", ", catComma:", ",
+    pageTitle:"Expense Dashboard", h1:"Expense Dashboard",
+    subBase:"Base currency ฿ THB · Live · ", bannerPrefix:"Live from Google Sheets · ", loading:"Loading…",
+    heroToday:"Today", heroLast7:"Last 7 days", heroMonth:"This month",
+    chartOverview:"Overview", overviewHint:"Tap the donut / daily chart to drill in",
+    donutTitle:"🍩 Category share (month)", donutSub:"Tap a slice or legend to drill into details", donutCenterFiltered:"Filtered",
+    lineTitle:"📈 6-month spending trend", lineSub:"All vs excl. special (is the daily baseline drifting?)",
+    dailyTitle:"📊 Daily spending (month)", dailySub:"Spot the spikes · tap a day to see what was bought",
+    stackedTitle:"🧱 Category stack by month", stackedSub:"How the mix shifts · which category is swelling",
+    catHint:"Tap a category name to expand line items · checkboxes update the total live",
+    cmpAllT:"All categories", cmpAllD:"All spending this month", cmpBaseT:"Excl. special", cmpBaseD1:"Daily baseline (excl. ", cmpBaseD2:")",
+    cmpLiveT:"Your selection →", cmpLiveCats:" categories · ", cmpLiveD2:"% of all",
+    chipAll:"Select all", chipNone:"Clear all", chipDaily:"Daily only (excl. special)", chipSpecial:"Special only", chipSettings:"⚙ Special categories",
+    ssHead:"Pick which categories count as “special” (saved on this device)", ssSave:"Save", ssCancel:"Cancel",
+    foot:"Live from Google Sheets · Base currency ฿ THB", userAll:"Combined",
+    specialTag:"special", specialFallback:"special categories", noData:"No data for this view",
+    backAll:"← All categories", lineAll:"All", lineBase:"Excl. special", dayDetailClose:"✕ Close",
+    donutTipSuffix:"　▸ tap for details", dailyTipSuffix:"　▸ tap for that day",
+    promptUrl:"Paste your Apps Script URL (same one as the expense app):",
+    todayMeta:(today,cnt)=>`${today} · ${cnt} entries`,
+    dailyAvg:(v)=>`Daily avg ฿${v}`,
+    monthVs:(pm,cls,arrow,pct)=>`vs ${pm} <span class="${cls}">${arrow} ${pct}%</span>`,
+    catTitleMonth:(m)=>`${m} category detail`,
+    donutDrillCrumb:(cat,n)=>`${cat} · ${n} items`,
+    dayDetailHead:(day,cnt,tot)=>`${day} · ${cnt} entries · total <b>฿${tot}</b>`,
+    statusLoaded:(n,time,warn,note)=>`${n} entries · updated ${time}${warn}${note}`,
+    warnRates:(list)=>` ⚠️ Missing FX rate: ${list} (counted at face value)`,
+    emptyUserNote:(n)=>` · ${n} entries without a user tag (shown in Combined only)`,
+    statusFail:(msg)=>`<span style="color:var(--danger)">Load failed: ${msg}</span>`,
+    statusNoUrl:()=>`Apps Script URL not set — <a href="#" onclick="if(setupApiUrl())loadData();return false" style="color:var(--accent);font-weight:600">set it here</a>`
+  }
+};
+function t(key){const d=I18N[CURRENT_LANG]||I18N.zh;const v=d[key];if(v!==undefined)return v;const f=I18N.zh[key];return f!==undefined?f:key;}
+function updateTodayStr(){document.getElementById("todayStr").textContent=new Date().toLocaleDateString(t("localeTag"),{month:'long',day:'numeric',weekday:'short'});}
+function renderLangToggle(){document.querySelectorAll(".lbtn").forEach(b=>b.setAttribute("aria-current",b.dataset.l===CURRENT_LANG));}
+function applyLang(lang){
+  CURRENT_LANG=(lang==="en")?"en":"zh";
+  try{localStorage.setItem("dash_lang",CURRENT_LANG);}catch(e){}
+  document.documentElement.lang=t("htmlLang");
+  document.title=t("pageTitle");
+  document.querySelectorAll("[data-i18n]").forEach(el=>{el.textContent=t(el.dataset.i18n);});
+  renderLangToggle();
+  updateTodayStr();
+  renderUserbar();
+  if(MONTHS.length){renderTabs();renderAll();}
+  if(renderStatus)renderStatus(); // 動態狀態列跟著切語言
+}
+let renderStatus=null;
+function setLang(lang){if(lang===CURRENT_LANG)return;applyLang(lang);}
 
 // ---------- 特別類別存取 ----------
 function loadSpecial(){try{return JSON.parse(localStorage.getItem("dash_special_cats")||"[]");}catch(e){return [];}}
@@ -284,13 +399,13 @@ function rebuildFromRaw(){
     renderUserbar();
     document.getElementById("tabs").innerHTML="";
     document.getElementById("hToday").textContent="0";
-    document.getElementById("hTodayMeta").textContent="此視角無資料";
+    document.getElementById("hTodayMeta").textContent=t("noData");
     return;
   }
   renderTabs(); renderAll();
 }
 function renderUserbar(){
-  const opts=[["Sam",USERNAMES.Sam||"Sam"],["Patty",USERNAMES.Patty||"Patty"],["__all__","合併"]];
+  const opts=[["Sam",USERNAMES.Sam||"Sam"],["Patty",USERNAMES.Patty||"Patty"],["__all__",t("userAll")]];
   document.getElementById("userbar").innerHTML=opts.map(([v,l])=>
     `<button class="ubtn" data-u="${v}" aria-current="${v===activeUser}" onclick="switchUser('${v}')">${l}</button>`).join("");
 }
@@ -352,21 +467,21 @@ function renderHero(){
   const ms=DATA[activeMonth]?monthTotal(activeMonth):0;
   const todayCnt=allTxns.filter(t=>t.date===today).length;
   document.getElementById("hToday").textContent=fmt(todaySum);
-  document.getElementById("hTodayMeta").innerHTML=`${today} · ${todayCnt} 筆`;
+  document.getElementById("hTodayMeta").innerHTML=t("todayMeta")(today,todayCnt);
   document.getElementById("h7").textContent=fmt(w);
-  document.getElementById("h7Meta").innerHTML=`日均 ฿${fmt(w/7)}`;
+  document.getElementById("h7Meta").innerHTML=t("dailyAvg")(fmt(w/7));
   document.getElementById("hMonth").textContent=fmt(ms);
   const pm=MONTHS[MONTHS.indexOf(activeMonth)-1];
   if(pm){const pv=monthTotal(pm),diff=pv?(ms-pv)/pv*100:0;
-    document.getElementById("hMonthMeta").innerHTML=`vs ${pm} <span class="${diff>=0?'up':'down'}">${diff>=0?'▲':'▼'} ${Math.abs(diff).toFixed(0)}%</span>`;
+    document.getElementById("hMonthMeta").innerHTML=t("monthVs")(pm,diff>=0?'up':'down',diff>=0?'▲':'▼',Math.abs(diff).toFixed(0));
   } else document.getElementById("hMonthMeta").textContent="—";
 }
 
 // ---------- 類別清單 ----------
 function renderCats(){
   const md=DATA[activeMonth];
-  document.getElementById("catTitle").textContent=`${activeMonth} 類別明細`;
-  document.getElementById("specNames").textContent=SPECIAL.filter(s=>md[s]).join("、")||"特別類別";
+  document.getElementById("catTitle").textContent=t("catTitleMonth")(activeMonth);
+  document.getElementById("specNames").textContent=SPECIAL.filter(s=>md[s]).map(catLabel).join(t("catComma"))||t("specialFallback");
   const cats=Object.keys(md).sort((a,b)=>monthCatTotal(activeMonth,b)-monthCatTotal(activeMonth,a));
   const maxV=Math.max(...cats.map(c=>monthCatTotal(activeMonth,c))),total=monthTotal(activeMonth);
   document.getElementById("catlist").innerHTML=cats.map(c=>{
@@ -375,7 +490,7 @@ function renderCats(){
     return `<div class="catrow ${on?'':'dim'}" data-cat="${c}">
       <div class="catmain">
         <input type="checkbox" class="chk" ${on?'checked':''} onclick="event.stopPropagation();toggleCat('${c}')">
-        <div class="catname" onclick="toggleOpen(this)"><span class="swatch" style="background:${catColor(c)}"></span>${c}${isSp?'<span class="tag">特別</span>':''}<span class="arw">▶</span></div>
+        <div class="catname" onclick="toggleOpen(this)"><span class="swatch" style="background:${catColor(c)}"></span>${esc(catLabel(c))}${isSp?`<span class="tag">${t("specialTag")}</span>`:''}<span class="arw">▶</span></div>
         <div class="barwrap"><div class="bar" style="width:${v/maxV*100}%;background:${catColor(c)}"></div></div>
         <div class="catamt"><div class="a">฿${fmt(v)}</div><div class="p">${(v/total*100).toFixed(1)}%</div></div>
       </div>
@@ -407,42 +522,42 @@ function setDonutDrill(cat){donutDrill=cat;buildDonut();}
 function buildDonut(){
   const md=DATA[activeMonth],ctx=document.getElementById("donut"),border=CURRENT.vars["--surface"];
   if(charts.donut)charts.donut.destroy();
-  function paintLegend(labels,colors,clickable){
-    document.getElementById("donutLegend").innerHTML=labels.map((l,i)=>
-      `<div class="dleg ${clickable?'':'static'}" ${clickable?`onclick="setDonutDrill('${l.replace(/'/g,"\\'")}')"`:''}><span class="sw" style="background:${colors[i]}"></span>${esc(l)}</div>`).join("");
+  function paintLegend(keys,displays,colors,clickable){
+    document.getElementById("donutLegend").innerHTML=keys.map((k,i)=>
+      `<div class="dleg ${clickable?'':'static'}" ${clickable?`onclick="setDonutDrill('${String(k).replace(/'/g,"\\'")}')"`:''}><span class="sw" style="background:${colors[i]}"></span>${esc(displays[i])}</div>`).join("");
   }
   if(donutDrill&&md[donutDrill]){
     const cat=donutDrill,items=catBreakdown(activeMonth,cat),tot=monthCatTotal(activeMonth,cat),cols=items.map((_,i)=>shade(catColor(cat),i,items.length));
-    document.getElementById("donutCrumb").innerHTML=`<span class="crumb-back" onclick="setDonutDrill(null)">← 全部類別</span>${cat} · ${items.length} 個項目`;
-    document.getElementById("donutCenterLbl").textContent=cat;
+    document.getElementById("donutCrumb").innerHTML=`<span class="crumb-back" onclick="setDonutDrill(null)">${t("backAll")}</span>${t("donutDrillCrumb")(esc(catLabel(cat)),items.length)}`;
+    document.getElementById("donutCenterLbl").textContent=catLabel(cat);
     document.getElementById("donutTotal").textContent=fmt(tot);
-    paintLegend(items.map(i=>i[0]),cols,false);
+    paintLegend(items.map(i=>i[0]),items.map(i=>i[0]),cols,false);
     charts.donut=new Chart(ctx,{type:"doughnut",data:{labels:items.map(i=>i[0]),datasets:[{data:items.map(i=>i[1]),backgroundColor:cols,borderColor:border,borderWidth:2}]},
       options:{maintainAspectRatio:false,cutout:"66%",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}  ฿${fmt(c.raw)} (${(c.raw/tot*100).toFixed(1)}%)`}}}}});
     return;
   }
   const cats=Object.keys(md).filter(c=>checked[c]!==false).sort((a,b)=>monthCatTotal(activeMonth,b)-monthCatTotal(activeMonth,a));
   const cols=cats.map(catColor);
-  document.getElementById("donutCrumb").textContent="點圖或下方圖例鑽進去看細項";
-  document.getElementById("donutCenterLbl").textContent="篩選後";
-  paintLegend(cats,cols,true);
-  charts.donut=new Chart(ctx,{type:"doughnut",data:{labels:cats,datasets:[{data:cats.map(c=>monthCatTotal(activeMonth,c)),backgroundColor:cols,borderColor:border,borderWidth:2}]},
+  document.getElementById("donutCrumb").textContent=t("donutSub");
+  document.getElementById("donutCenterLbl").textContent=t("donutCenterFiltered");
+  paintLegend(cats,cats.map(catLabel),cols,true);
+  charts.donut=new Chart(ctx,{type:"doughnut",data:{labels:cats.map(catLabel),datasets:[{data:cats.map(c=>monthCatTotal(activeMonth,c)),backgroundColor:cols,borderColor:border,borderWidth:2}]},
     options:{maintainAspectRatio:false,cutout:"66%",onClick:(e,els)=>{if(els.length)setDonutDrill(cats[els[0].index]);},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}  ฿${fmt(c.raw)} (${(c.raw/c.dataset.data.reduce((s,v)=>s+v,0)*100).toFixed(1)}%)　▸ 點擊看細項`}}}}});
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}  ฿${fmt(c.raw)} (${(c.raw/c.dataset.data.reduce((s,v)=>s+v,0)*100).toFixed(1)}%)${t("donutTipSuffix")}`}}}}});
 }
 function buildLine(){
   const ctx=document.getElementById("line");if(charts.line)charts.line.destroy();
   charts.line=new Chart(ctx,{type:"line",data:{labels:MONTHS.map(m=>m.slice(5)),datasets:[
-    {label:"含全部",data:MONTHS.map(monthTotal),borderColor:CURRENT.line[0],backgroundColor:hexToRgba(CURRENT.line[0],.09),fill:true,tension:.35,pointRadius:3,borderWidth:2},
-    {label:"不含特別",data:MONTHS.map(monthBase),borderColor:CURRENT.line[1],backgroundColor:hexToRgba(CURRENT.line[1],.09),fill:true,tension:.35,pointRadius:3,borderWidth:2}]},
+    {label:t("lineAll"),data:MONTHS.map(monthTotal),borderColor:CURRENT.line[0],backgroundColor:hexToRgba(CURRENT.line[0],.09),fill:true,tension:.35,pointRadius:3,borderWidth:2},
+    {label:t("lineBase"),data:MONTHS.map(monthBase),borderColor:CURRENT.line[1],backgroundColor:hexToRgba(CURRENT.line[1],.09),fill:true,tension:.35,pointRadius:3,borderWidth:2}]},
     options:{plugins:{legend:{position:"bottom",labels:{boxWidth:12,padding:12}}},scales:{y:{ticks:{callback:v=>"฿"+(v/1000)+"k"},grid:{color:chartGrid()}},x:{grid:{display:false}}}}});
 }
 function showDayDetail(day){
   const md=DATA[activeMonth],items=[];
   Object.entries(md).forEach(([c,rows])=>rows.forEach(r=>{if(r[0]===day)items.push({cat:c,note:r[1],amt:r[2]});}));
   items.sort((a,b)=>b.amt-a.amt);const tot=items.reduce((s,i)=>s+i.amt,0),box=document.getElementById("dailyDetail");
-  box.innerHTML=`<div class="dd-head"><div class="t">${day.slice(5)} 那天 · ${items.length} 筆 · 合計 <b>฿${fmt(tot)}</b></div><span class="dd-clear" onclick="clearDayDetail()">✕ 收起</span></div>`+
-    items.map(i=>`<div class="ditem"><span class="sw" style="background:${catColor(i.cat)}"></span><span class="nm">${esc(i.note)}<span class="ct">${esc(i.cat)}</span></span><span class="am">฿${fmt(i.amt)}</span></div>`).join("");
+  box.innerHTML=`<div class="dd-head"><div class="t">${t("dayDetailHead")(day.slice(5),items.length,fmt(tot))}</div><span class="dd-clear" onclick="clearDayDetail()">${t("dayDetailClose")}</span></div>`+
+    items.map(i=>`<div class="ditem"><span class="sw" style="background:${catColor(i.cat)}"></span><span class="nm">${esc(i.note)}<span class="ct">${esc(catLabel(i.cat))}</span></span><span class="am">฿${fmt(i.amt)}</span></div>`).join("");
   box.classList.add("show");
 }
 function clearDayDetail(){const b=document.getElementById("dailyDetail");b.classList.remove("show");b.innerHTML="";}
@@ -451,12 +566,12 @@ function buildDaily(){
   const days=Object.keys(byDay).sort();clearDayDetail();
   const ctx=document.getElementById("daily");if(charts.daily)charts.daily.destroy();
   charts.daily=new Chart(ctx,{type:"bar",data:{labels:days.map(d=>d.slice(8)),datasets:[{data:days.map(d=>byDay[d]),backgroundColor:CURRENT.bar,borderRadius:4,maxBarThickness:26}]},
-    options:{onClick:(e,els)=>{if(els.length)showDayDetail(days[els[0].index]);},plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>activeMonth+"-"+i[0].label,label:c=>" ฿"+fmt(c.raw)+"　▸ 點擊看當天明細"}}},
+    options:{onClick:(e,els)=>{if(els.length)showDayDetail(days[els[0].index]);},plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>activeMonth+"-"+i[0].label,label:c=>" ฿"+fmt(c.raw)+t("dailyTipSuffix")}}},
       scales:{y:{ticks:{callback:v=>"฿"+(v>=1000?(v/1000)+"k":v)},grid:{color:chartGrid()}},x:{grid:{display:false}}}}});
 }
 function buildStacked(){
   const ctx=document.getElementById("stacked");if(charts.stacked)charts.stacked.destroy();
-  const ds=ALLCATS.map(c=>({label:c,data:MONTHS.map(m=>monthCatTotal(m,c)),backgroundColor:catColor(c),borderWidth:0}));
+  const ds=ALLCATS.map(c=>({label:catLabel(c),data:MONTHS.map(m=>monthCatTotal(m,c)),backgroundColor:catColor(c),borderWidth:0}));
   charts.stacked=new Chart(ctx,{type:"bar",data:{labels:MONTHS.map(m=>m.slice(5)),datasets:ds},
     options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}  ฿${fmt(c.raw)}`}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>"฿"+(v/1000)+"k"},grid:{color:chartGrid()}}}}});
 }
@@ -475,7 +590,7 @@ function renderAll(){renderHero();renderCats();renderCompare();buildDonut();buil
 function openSpecialSettings(){
   const box=document.getElementById("specialSettings");
   document.getElementById("specialGrid").innerHTML=ALLCATS.map(c=>
-    `<label><input type="checkbox" value="${c}" ${SPECIAL.includes(c)?'checked':''}>${c}</label>`).join("");
+    `<label><input type="checkbox" value="${esc(c)}" ${SPECIAL.includes(c)?'checked':''}>${esc(catLabel(c))}</label>`).join("");
   box.style.display="block";
 }
 function applySpecialSettings(){
@@ -489,13 +604,14 @@ function applySpecialSettings(){
 // 讀記帳 App 共用的 Apps Script 網址（同 origin 共用 localStorage，key=xp_api_url）。
 // 在 GitHub Pages 上跟記帳 App 同網址時，這裡會自動拿到已設定好的網址，免再輸入。
 let API_URL=localStorage.getItem("xp_api_url")||"";
-document.getElementById("todayStr").textContent=new Date().toLocaleDateString("zh-TW",{month:'long',day:'numeric',weekday:'short'});
 applyTheme("ivory"); // 只設主題；MONTHS 空時 applyTheme 內 renderAll 被 guard 跳過
+applyLang(CURRENT_LANG); // 套用儲存的語言（含靜態文字／日期／使用者列）
+document.getElementById("loadStatus").textContent=t("loading");
 loadData();
 
 function setupApiUrl(){
   const cur=API_URL||"";
-  const url=(prompt("貼上你的 Apps Script 網址（與記帳 App 同一個）：", cur)||"").trim();
+  const url=(prompt(t("promptUrl"), cur)||"").trim();
   if(!url) return false;
   API_URL=url; localStorage.setItem("xp_api_url", url);
   return true;
@@ -504,7 +620,8 @@ function setupApiUrl(){
 async function loadData(){
   const st=document.getElementById("loadStatus");
   if(!API_URL){
-    st.innerHTML=`尚未設定 Apps Script 網址 — <a href="#" onclick="if(setupApiUrl())loadData();return false" style="color:var(--accent);font-weight:600">點此設定</a>`;
+    renderStatus=()=>{st.innerHTML=t("statusNoUrl")();};
+    renderStatus();
     return;
   }
   try{
@@ -526,13 +643,18 @@ async function loadData(){
     activeMonth=CUR_MONTH;
     // 缺匯率警告
     const probe=buildData(RAW_RECORDS,RATES);
-    const warn=probe.missingCurrencies.length?` ⚠️ 缺匯率：${probe.missingCurrencies.join("、")}（暫以原值計）`:"";
-    const emptyUserNote=emptyUserCnt>0?` · ${emptyUserCnt} 筆未標記使用者（僅合併視角顯示）`:"";
-    st.innerHTML=`${RAW_RECORDS.length} 筆 · 更新於 ${new Date().toLocaleTimeString("zh-TW")}${warn}${emptyUserNote}`;
+    const loadedAt=new Date();
+    renderStatus=()=>{
+      const warn=probe.missingCurrencies.length?t("warnRates")(probe.missingCurrencies.join(t("listComma"))):"";
+      const emptyUserNote=emptyUserCnt>0?t("emptyUserNote")(emptyUserCnt):"";
+      st.innerHTML=t("statusLoaded")(RAW_RECORDS.length,loadedAt.toLocaleTimeString(t("localeTag")),warn,emptyUserNote);
+    };
+    renderStatus();
     renderUserbar();
     rebuildFromRaw();
   }catch(err){
-    st.innerHTML=`<span style="color:var(--danger)">載入失敗：${err.message}</span>`;
+    renderStatus=()=>{st.innerHTML=t("statusFail")(err.message);};
+    renderStatus();
     console.error(err);
   }
 }

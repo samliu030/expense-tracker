@@ -1,0 +1,13 @@
+{
+  "name": "Expense Dashboard",
+  "short_name": "Expense Dashboard",
+  "start_url": "dashboard.html",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f3efe5",
+  "theme_color": "#f3efe5",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
