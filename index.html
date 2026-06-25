@@ -143,6 +143,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 
 /* ── Section titles ── */
 .section-title{font-size:10.5px;font-weight:700;color:var(--ink-3);margin:20px 2px 11px;letter-spacing:0.16em;text-transform:uppercase;position:relative;padding-bottom:9px;border-bottom:1px solid var(--border)}
+.collapsible-title{cursor:pointer;user-select:none}
+.collapse-arrow{position:absolute;right:2px;top:0;font-size:13px;letter-spacing:0;transition:transform 0.25s ease;color:var(--ink-3)}
+.collapsible-title.collapsed .collapse-arrow{transform:rotate(-90deg)}
+.collapsible-body{overflow:hidden;transition:max-height 0.3s ease,opacity 0.25s ease,margin 0.25s ease;max-height:6000px;opacity:1}
+.collapsible-body.collapsed{max-height:0;opacity:0;margin:0}
 
 /* ── Entry rows ── */
 .entry{
@@ -689,8 +694,8 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
       <div class="hero-amt"><span class="hero-cur">฿</span><span class="hero-value num" id="month-total">0</span></div>
       <div class="stat-sub num" id="month-stat-sub">泰銖</div>
     </div>
-    <div class="section-title" id="month-cat-title">各類別分析</div>
-    <div id="month-bars"></div>
+    <div class="section-title collapsible-title" id="month-cat-title" onclick="toggleCatAnalysis()">各類別分析<span class="collapse-arrow" id="month-cat-arrow">▾</span></div>
+    <div id="month-bars" class="collapsible-body"></div>
     <div class="section-title" id="month-detail-title">明細</div>
     <div class="user-tab-row" id="month-user-tabs"></div>
     <div id="month-list"></div>
@@ -1422,7 +1427,9 @@ function applyLang(){
   document.getElementById('month-stat-sub').textContent=T('today_sub');
   document.getElementById('month-count-sub').textContent=T('count_sub');
   document.querySelectorAll('#screen-month .section-title').forEach((el,i)=>{
-    el.textContent=[T('sec_cat_analysis'),T('sec_details')][i]||el.textContent;
+    const txt=[T('sec_cat_analysis'),T('sec_details')][i];if(!txt)return;
+    const arrow=el.querySelector('.collapse-arrow');
+    if(arrow){el.childNodes[0].nodeValue=txt;}else{el.textContent=txt;}
   });
   document.querySelectorAll('#screen-report .form-label').forEach((el,i)=>{
     [T('start_date'),T('end_date'),T('filter_cat')].forEach((v,j)=>{if(i===j)el.textContent=v;});
@@ -2151,13 +2158,12 @@ function renderBars(list,cid){
     if((r.user||u0)===u0)bycat[r.cat].u0+=amt;
     else bycat[r.cat].u1+=amt;
   });
-  const max=Math.max(...Object.values(bycat).map(v=>v.total));
   el.innerHTML='';
   Object.entries(bycat).sort((a,b)=>b[1].total-a[1].total).forEach(([catId,data])=>{
     const cat=getCat(catId);
-    // FIX: calculate each user's share of the global max directly
-    const p0abs=max>0?(data.u0/max*100):0;
-    const p1abs=max>0?(data.u1/max*100):0;
+    // 每條填滿：寬度 = 該人 / 該類別總額，綠橘合計 100%（只表達兩人分攤比例）
+    const p0abs=data.total>0?(data.u0/data.total*100):0;
+    const p1abs=data.total>0?(data.u1/data.total*100):0;
     const d=document.createElement('div');d.className='bar-wrap';
     d.innerHTML=`
       <div class="bar-label"><span>${catMini(cat.id,cat.icon,20)} ${escapeHtml(cat.label)}</span><span>${fmtTHB(data.total)}</span></div>
@@ -2179,6 +2185,18 @@ function renderBars(list,cid){
       if(b.dataset.pct)b.style.width=b.dataset.pct+'%';
     });
   },50);
+}
+
+// 各類別分析：收納式展開/縮放（狀態記在 localStorage，預設收起）
+function toggleCatAnalysis(){
+  const collapsed=localStorage.getItem('xp_cat_collapsed')!=='0';
+  applyCatCollapsed(!collapsed);
+}
+function applyCatCollapsed(collapsed){
+  localStorage.setItem('xp_cat_collapsed',collapsed?'1':'0');
+  const t=document.getElementById('month-cat-title'),b=document.getElementById('month-bars');
+  if(t)t.classList.toggle('collapsed',collapsed);
+  if(b)b.classList.toggle('collapsed',collapsed);
 }
 
 function renderCompare(list,cid){
@@ -2322,6 +2340,7 @@ function refreshMonth(){
   document.getElementById('month-count').textContent=list.length;
   renderMonthBudget(list,m,'month-budget-section');
   renderBars(list,'month-bars');
+  applyCatCollapsed(localStorage.getItem('xp_cat_collapsed')!=='0');
   buildUserTabs('month-user-tabs',monthUserFilter,(f)=>{monthUserFilter=f;refreshMonth();});
   renderEntries(filterByUser(list,monthUserFilter),'month-list');
 }
