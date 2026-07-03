@@ -1175,9 +1175,10 @@ function loadLocal(){
   pendingOps=lsJSON('xp_pending',[])||[];
   const rc=lsJSON('xp_recurring',null);
   if(Array.isArray(rc)){
-    // dedup: keep first entry per cat+amount+freq+user combo
+    // dedup: keep first entry per cat+amount+freq+user combo（墓碑不參與去重，需保留以傳播刪除）
     const seen=new Set();
     recurringPayments=rc.filter(rp=>{
+      if(rp.deleted)return (rp.mtime||0)>Date.now()-90*86400000; // 過期墓碑（90 天）順手清掉
       const key=rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user;
       if(seen.has(key))return false;
       seen.add(key);return true;
@@ -1198,6 +1199,7 @@ function processRecurring(){
   const generated=[];
   let changed=false;
   recurringPayments.forEach(rp=>{
+    if(rp.deleted)return; // 墓碑：已刪除的不再生成
     // 只生成「本機身分擁有」的定期支出，避免兩支手機各生成一份（跨裝置重複）
     if(rp.user&&rp.user!==userNames[selectedUserIdx])return;
     const last=rp.lastGenerated;
@@ -1261,11 +1263,12 @@ function refreshRecurringSettings(){
   const empty=document.getElementById('recurring-settings-empty');
   if(!list)return;
   list.innerHTML='';
-  if(!recurringPayments.length){
+  const active=recurringPayments.filter(rp=>!rp.deleted); // 墓碑不顯示
+  if(!active.length){
     empty.style.display='block';return;
   }
   empty.style.display='none';
-  recurringPayments.forEach(rp=>{
+  active.forEach(rp=>{
     const cat=getCat(rp.cat);
     const div=document.createElement('div');
     div.className='recur-item';
@@ -1283,7 +1286,8 @@ function refreshRecurringSettings(){
     div.querySelector('.recur-item-edit-btn').onclick=()=>openRecurEditModal(rp.id);
     div.querySelector('.recur-item-del-btn').onclick=()=>{
       if(confirm(T('confirm_delete'))){
-        recurringPayments=recurringPayments.filter(x=>x.id!==rp.id);
+        // 標記墓碑而非直接移除：整包 push 後另一支手機合併時才知道這筆是「被刪」而非「它沒有」，不會復活
+        rp.deleted=true;rp.mtime=Date.now();
         saveRecurring();refreshRecurringSettings();pushRecurring();
       }
     };
@@ -1557,7 +1561,9 @@ function mergeRecurring(cloudArr){
     const ex=map[rp.id];
     if(!ex){map[rp.id]=rp;return;}
     // 定義欄位取「較新（mtime 大）」者，避免離線編輯被舊雲端蓋掉
+    const newer=(rp.mtime||0)>=(ex.mtime||0)?rp:ex;
     const merged=(rp.mtime||0)>=(ex.mtime||0)?{...ex,...rp}:{...rp,...ex};
+    merged.deleted=!!newer.deleted; // deleted 跟著較新方，spread 不會清掉舊 flag 所以要明確設
     const lg=[ex.lastGenerated,rp.lastGenerated].filter(Boolean).sort().pop()||'';
     merged.lastGenerated=lg;    // lastGenerated 取較晚者，避免回退導致重複生成
     merged.mtime=Math.max(rp.mtime||0,ex.mtime||0);
@@ -1655,6 +1661,7 @@ function showIdentityModal(){
     b.onclick=()=>{
       selectedUserIdx=i;localStorage.setItem(DEVICE_KEY,i);
       updateUserToggle();modal.classList.add('hidden');
+      if(!apiUrl)setTimeout(()=>showSetupModal(),300); // 首次流程：選完身分接著設定雲端，不用重新整理
     };
     btns.appendChild(b);
   });
@@ -1906,11 +1913,16 @@ function openEditModal(id){
 document.getElementById('budget-cancel-btn').onclick=()=>document.getElementById('budget-modal').classList.add('hidden');
 document.getElementById('budget-save-btn').onclick=()=>{
   const m=thisMonth();
-  const b0=parseFloat(document.getElementById('budget-input-0').value)||0;
-  const b1=parseFloat(document.getElementById('budget-input-1').value)||0;
-  budgets[m+'_0']=b0;budgets[m+'_1']=b1;
+  // 空白輸入＝清除該預算：本機刪 key、雲端送 null（後端把 null 視為刪除）
+  const push={};
+  [0,1].forEach(i=>{
+    const raw=document.getElementById('budget-input-'+i).value.trim();
+    const key=m+'_'+i;
+    if(raw===''){delete budgets[key];push[key]=null;}
+    else{const v=parseFloat(raw)||0;budgets[key]=v;push[key]=v;}
+  });
   localStorage.setItem('xp_budgets',JSON.stringify(budgets));
-  pushBudgets();
+  if(apiUrl)apiCall('setBudgets',{budgets:push}).catch(()=>{});
   refreshMonth();document.getElementById('budget-modal').classList.add('hidden');
 };
 function openBudgetModal(){
@@ -2476,7 +2488,7 @@ document.getElementById('save-btn').onclick=async()=>{
   let amt=0;
   const evalResult=safeMathEval(rawVal);
   if(isFinite(evalResult)&&evalResult>0)amt=Math.round(evalResult*100)/100;
-  if(!amt)amt=parseFloat(rawVal);
+  // safeMathEval 已涵蓋純數字與算式；不再 parseFloat fallback（會把 130abc 收成 130）
   const noteVal=document.getElementById('inp-note').value.trim();
   const date=document.getElementById('inp-date').value;
   const msg=document.getElementById('add-msg');
@@ -2494,7 +2506,7 @@ document.getElementById('save-btn').onclick=async()=>{
   const isRecurring=document.getElementById('inp-recurring').checked;
   if(isRecurring){
     const dupKey=finalCat+'|'+amt+'|'+selCurr+'|'+selFreq+'|'+userNames[selectedUserIdx];
-    const isDup=recurringPayments.some(rp=>rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user===dupKey);
+    const isDup=recurringPayments.some(rp=>!rp.deleted&&rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user===dupKey);
     if(!isDup){
       const rp={
         id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,
@@ -2522,10 +2534,20 @@ document.getElementById('rate-fetch-btn').onclick=async()=>{
   const btn=document.getElementById('rate-fetch-btn');
   btn.textContent=T('rate_updating');btn.disabled=true;
   try{
-    const proxy='https://api.allorigins.win/get?url='+encodeURIComponent('https://rate.bot.com.tw/xrt/flcsv/0/day');
-    const res=await fetch(proxy);const data=await res.json();
+    // 兩個 CORS proxy 依序嘗試，單一服務掛掉不影響更新
+    const RATE_URL='https://rate.bot.com.tw/xrt/flcsv/0/day';
+    let csvText=null;
+    try{
+      const res=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(RATE_URL));
+      csvText=(await res.json()).contents;
+    }catch(e){}
+    if(!csvText){
+      const res=await fetch('https://corsproxy.io/?url='+encodeURIComponent(RATE_URL));
+      csvText=await res.text();
+    }
+    if(!csvText)throw new Error('proxy failed');
     const rawRates={TWD:1};
-    data.contents.split('\n').forEach(line=>{
+    csvText.split('\n').forEach(line=>{
       const cols=line.split(',');if(cols.length<4)return;
       const code=cols[0].trim();const buy=parseFloat(cols[2]);const sell=parseFloat(cols[3]);
       if(buy>0&&sell>0)rawRates[code]=(buy+sell)/2;
@@ -2573,8 +2595,8 @@ document.getElementById('today-date').textContent=ds;
 document.getElementById('today-label').textContent=ds;
 document.getElementById('month-label').textContent=now.getFullYear()+'年'+(now.getMonth()+1)+'月';
 document.getElementById('inp-date').value=today();
-const d1=new Date();d1.setDate(1);
-document.getElementById('rep-from').value=d1.toISOString().split('T')[0];
+// 用本地日期拼字串（toISOString 是 UTC，台北早上 8 點前會退回上個月）
+document.getElementById('rep-from').value=thisMonth()+'-01';
 document.getElementById('rep-to').value=today();
 
 setTheme(localStorage.getItem('xp_theme')||'boba');
