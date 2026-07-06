@@ -180,6 +180,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 .segment-btn.active{background:var(--surface);color:var(--sam);box-shadow:var(--shadow-sm)}
 .segment-btn.active.u1{color:var(--patty)}
 
+.quick-row{display:flex;gap:8px;margin-bottom:14px}
+.quick-btn{flex:1;padding:13px;border:1.5px solid var(--border);border-radius:14px;background:var(--surface);
+  color:var(--ink);font-weight:800;font-size:14px;cursor:pointer;font-family:var(--sans);
+  display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s}
+.quick-btn:active{transform:scale(.97)}
+.quick-badge{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--danger);
+  color:#fff;font-size:11.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.quick-badge.hidden{display:none}
+
 /* ── Compare bars ── */
 .compare-bar-wrap{height:12px;background:var(--surface2);border-radius:999px;display:flex;overflow:hidden;margin-top:10px;border:1px solid var(--border)}
 .cmp-fill-0{height:100%;background:var(--sam);transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}
@@ -520,6 +529,31 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
   </div>
 </div>
 
+<!-- Quick Add Modal -->
+<div class="modal-overlay hidden" id="quick-modal">
+  <div class="modal">
+    <h2>⚡ <span id="quick-modal-title">快速記帳</span></h2>
+    <p id="quick-modal-sub" style="margin-bottom:10px">只輸入金額，之後有空再補類別。</p>
+    <div class="form-group" style="margin-bottom:8px">
+      <input type="text" class="form-input" id="quick-amount" inputmode="decimal" placeholder="0" autocomplete="off">
+    </div>
+    <div id="quick-modal-msg" class="msg"></div>
+    <div id="quick-session-list" style="margin:6px 0 2px"></div>
+    <button class="submit-btn" id="quick-record-btn">記一筆</button>
+    <button class="secondary-btn" id="quick-done-btn" style="margin-top:8px;margin-bottom:0">完成</button>
+  </div>
+</div>
+
+<!-- Quick Organize Modal -->
+<div class="modal-overlay hidden" id="organize-modal">
+  <div class="modal">
+    <h2>📥 <span id="organize-title">快速記帳整理</span></h2>
+    <p id="organize-sub" style="margin-bottom:10px">點一筆去補類別與備註，補完就進正式帳。</p>
+    <div id="quick-list" style="max-height:50vh;overflow-y:auto"></div>
+    <button class="secondary-btn" id="organize-close-btn" style="margin-top:12px;margin-bottom:0">關閉</button>
+  </div>
+</div>
+
 <!-- Recurring Edit Modal -->
 <div class="modal-overlay hidden" id="recur-edit-modal">
   <div class="modal">
@@ -582,6 +616,10 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
   </div>
   <div class="content">
     <div id="add-msg" class="msg"></div>
+    <div class="quick-row">
+      <button class="quick-btn" id="quick-add-btn">⚡ <span id="quick-add-label">快速記帳</span></button>
+      <button class="quick-btn" id="quick-organize-btn">📥 <span id="quick-organize-label">快速整理</span> <span class="quick-badge hidden" id="quick-badge">0</span></button>
+    </div>
     <div class="form-group">
       <label class="form-label">誰支出的？</label>
       <div class="segmented-control" id="user-toggle">
@@ -956,6 +994,15 @@ const CURRENCIES=[
 // ===== i18n =====
 const I18N={
   zh:{
+    quick_add:'快速記帳', quick_organize:'快速整理',
+    quick_modal_sub:'只輸入金額，之後有空再補類別。',
+    quick_record:'記一筆', quick_done:'完成',
+    quick_err_amount:'請輸入正確金額',
+    quick_session_prefix:'這次已記',
+    organize_title:'快速記帳整理',
+    organize_sub:'點一筆去補類別與備註，補完就進正式帳。',
+    organize_empty:'目前沒有待整理的快速記帳',
+    organize_close:'關閉',
     app_title:'記帳本',
     nav_add:'新增',nav_today:'今日',nav_month:'本月',nav_report:'查詢',nav_settings:'設定',
     title_add:'新增記錄',title_today:'今日支出',title_month:'本月總覽',title_report:'自訂查詢',title_settings:'設定 / 匯率',
@@ -1037,6 +1084,15 @@ const I18N={
     chart_pie:'分類佔比',chart_tree:'分類樹狀圖',
   },
   en:{
+    quick_add:'Quick Add', quick_organize:'Sort Quick',
+    quick_modal_sub:'Just enter the amount; add the category later.',
+    quick_record:'Add one', quick_done:'Done',
+    quick_err_amount:'Enter a valid amount',
+    quick_session_prefix:'Added this round',
+    organize_title:'Sort Quick Entries',
+    organize_sub:'Tap one to add category & note, then it becomes a real entry.',
+    organize_empty:'No quick entries to sort',
+    organize_close:'Close',
     app_title:'Expense Tracker',
     nav_add:'Add',nav_today:'Today',nav_month:'Month',nav_report:'Report',nav_settings:'Settings',
     title_add:'Add Record',title_today:"Today's Expense",title_month:'Monthly Overview',title_report:'Custom Report',title_settings:'Settings / Rates',
@@ -1125,6 +1181,8 @@ function T(k){return (I18N[lang]&&I18N[lang][k])||I18N['zh'][k]||k;}
 // ===== 狀態 =====
 let records=[], selCat='food', selCurr='THB', repCatFilter=null, apiUrl='';
 let userNames=['Sam','Patty'], selectedUserIdx=0;
+let quickDrafts=[];      // 快速記帳暫存草稿：{id,amount,curr,date,user,ts}，只存本機、不進 records/統計
+let finalizingQuickId=null; // 目前正在整理（補全）的草稿 id；save-btn 成功後據此移除草稿
 let noteMemory={}, budgets={}, editingId=null;
 let editSelCat='food';
 let todayUserFilter=null, monthUserFilter=null, repUserFilter=null;
@@ -1173,6 +1231,7 @@ function loadLocal(){
   budgets=lsJSON('xp_budgets',{})||{};
   const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
   pendingOps=lsJSON('xp_pending',[])||[];
+  quickDrafts=lsJSON('xp_quick',[]);
   const rc=lsJSON('xp_recurring',null);
   if(Array.isArray(rc)){
     // dedup: keep first entry per cat+amount+freq+user combo（墓碑不參與去重，需保留以傳播刪除）
@@ -1189,6 +1248,14 @@ function loadLocal(){
   updateUserToggle();
 }
 function saveLocal(){localStorage.setItem('xp_records',JSON.stringify(records));}
+function saveQuick(){localStorage.setItem('xp_quick',JSON.stringify(quickDrafts));}
+function refreshQuickBadge(){
+  const b=document.getElementById('quick-badge');
+  if(!b)return;
+  const n=quickDrafts.length;
+  b.textContent=n;
+  b.classList.toggle('hidden',n===0);
+}
 function saveRates(){const m={};CURRENCIES.forEach(c=>m[c.code]=c.rate);localStorage.setItem('xp_rates',JSON.stringify(m));}
 function saveNoteMemory(){localStorage.setItem('xp_note_memory',JSON.stringify(noteMemory));}
 function saveRecurring(){localStorage.setItem('xp_recurring',JSON.stringify(recurringPayments));}
@@ -1483,6 +1550,15 @@ function applyLang(){
   document.getElementById('budget-cancel-btn').textContent=T('btn_cancel');
   document.querySelector('#identity-modal h2').textContent=T('identity_title');
   document.querySelector('#identity-modal p').textContent=T('identity_desc');
+  const qAddLbl=document.getElementById('quick-add-label');if(qAddLbl)qAddLbl.textContent=T('quick_add');
+  const qOrgLbl=document.getElementById('quick-organize-label');if(qOrgLbl)qOrgLbl.textContent=T('quick_organize');
+  const qModalTitle=document.getElementById('quick-modal-title');if(qModalTitle)qModalTitle.textContent=T('quick_add');
+  const qModalSub=document.getElementById('quick-modal-sub');if(qModalSub)qModalSub.textContent=T('quick_modal_sub');
+  const qRecordBtn=document.getElementById('quick-record-btn');if(qRecordBtn)qRecordBtn.textContent=T('quick_record');
+  const qDoneBtn=document.getElementById('quick-done-btn');if(qDoneBtn)qDoneBtn.textContent=T('quick_done');
+  const oTitle=document.getElementById('organize-title');if(oTitle)oTitle.textContent=T('organize_title');
+  const oSub=document.getElementById('organize-sub');if(oSub)oSub.textContent=T('organize_sub');
+  const oCloseBtn=document.getElementById('organize-close-btn');if(oCloseBtn)oCloseBtn.textContent=T('organize_close');
   buildCatGrid();buildCurrUI();
   refreshAll();
   updateDeviceIdentityDisplay();
@@ -2527,7 +2603,92 @@ document.getElementById('save-btn').onclick=async()=>{
   refreshAll();
   setTimeout(()=>{msg.className='msg';},3000);
   enqueue({op:'upsert',id:rec.id,rec});
+  // 若這筆是從快速記帳整理而來，存成功後移除對應草稿
+  if(finalizingQuickId){
+    quickDrafts=quickDrafts.filter(d=>d.id!==finalizingQuickId);
+    saveQuick();refreshQuickBadge();
+    finalizingQuickId=null;
+  }
 };
+
+// ===== 快速記帳 / 快速整理 =====
+let quickSession=[]; // 本次開窗新增的草稿（僅供視覺回饋）
+function openQuickModal(){
+  quickSession=[];
+  document.getElementById('quick-amount').value='';
+  document.getElementById('quick-modal-msg').className='msg';
+  renderQuickSession();
+  document.getElementById('quick-modal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('quick-amount').focus(),50);
+}
+function closeQuickModal(){document.getElementById('quick-modal').classList.add('hidden');}
+function renderQuickSession(){
+  const box=document.getElementById('quick-session-list');
+  if(!quickSession.length){box.innerHTML='';return;}
+  box.innerHTML='<div style="font-size:12px;color:var(--ink-3);font-weight:700;margin-bottom:4px">'+T('quick_session_prefix')+' '+quickSession.length+' 筆</div>'
+    +quickSession.map(d=>'<div style="font-size:13px;font-weight:700;color:var(--ink-2)">・'+fmtAmt(d.amount,d.curr)+'</div>').join('');
+}
+document.getElementById('quick-record-btn').onclick=()=>{
+  const raw=document.getElementById('quick-amount').value.trim();
+  const msg=document.getElementById('quick-modal-msg');
+  const v=safeMathEval(raw);
+  if(!isFinite(v)||v<=0){msg.className='msg error';msg.textContent=T('quick_err_amount');return;}
+  const amt=Math.round(v*100)/100;
+  const d={id:uid(),amount:amt,curr:selCurr,date:today(),user:userNames[selectedUserIdx],ts:Date.now()};
+  quickDrafts.push(d);saveQuick();refreshQuickBadge();
+  quickSession.push(d);renderQuickSession();
+  msg.className='msg';
+  document.getElementById('quick-amount').value='';
+  document.getElementById('quick-amount').focus();
+};
+document.getElementById('quick-done-btn').onclick=()=>closeQuickModal();
+function renderQuickList(){
+  const box=document.getElementById('quick-list');
+  if(!quickDrafts.length){box.innerHTML='<div class="empty" style="padding:20px">'+T('organize_empty')+'</div>';return;}
+  box.innerHTML='';
+  quickDrafts.forEach(d=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--border)';
+    const info=document.createElement('div');
+    info.style.cssText='flex:1;cursor:pointer';
+    info.innerHTML='<div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink)">'+fmtAmt(d.amount,d.curr)+'</div>'
+      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+d.date+' · '+d.user+'</div>';
+    info.onclick=()=>startFinalize(d.id);
+    const del=document.createElement('button');
+    del.textContent='✕';
+    del.style.cssText='border:none;background:var(--danger-soft);color:var(--danger);width:30px;height:30px;border-radius:8px;font-weight:800;cursor:pointer;flex:none';
+    del.onclick=(e)=>{e.stopPropagation();discardQuick(d.id);};
+    row.appendChild(info);row.appendChild(del);
+    box.appendChild(row);
+  });
+}
+function openOrganizeModal(){renderQuickList();document.getElementById('organize-modal').classList.remove('hidden');}
+function closeOrganizeModal(){document.getElementById('organize-modal').classList.add('hidden');}
+function discardQuick(id){
+  quickDrafts=quickDrafts.filter(d=>d.id!==id);
+  saveQuick();refreshQuickBadge();renderQuickList();
+}
+document.getElementById('organize-close-btn').onclick=()=>closeOrganizeModal();
+function startFinalize(id){
+  const d=quickDrafts.find(x=>x.id===id);
+  if(!d)return;
+  // 幣別
+  selCurr=d.curr;localStorage.setItem('xp_last_curr',selCurr);buildCurrUI();
+  // 使用者
+  const ui=userNames.indexOf(d.user);
+  if(ui>=0){selectedUserIdx=ui;localStorage.setItem(DEVICE_KEY,selectedUserIdx);updateUserToggle();}
+  // 金額 / 日期 / 清空備註（類別留給使用者補）
+  document.getElementById('inp-amount').value=d.amount;
+  document.getElementById('inp-date').value=d.date;
+  document.getElementById('inp-note').value='';
+  finalizingQuickId=id;
+  closeOrganizeModal();
+  // 切到「新增」頁（觸發既有 nav 邏輯）
+  document.querySelector('.nav-btn[data-screen="add"]').click();
+  window.scrollTo(0,0);
+}
+document.getElementById('quick-add-btn').onclick=()=>openQuickModal();
+document.getElementById('quick-organize-btn').onclick=()=>openOrganizeModal();
 
 // ===== 更新匯率 =====
 document.getElementById('rate-fetch-btn').onclick=async()=>{
@@ -2602,6 +2763,7 @@ document.getElementById('rep-to').value=today();
 setTheme(localStorage.getItem('xp_theme')||'boba');
 bobaInjectArt();
 loadLocal();buildCatGrid();buildCurrUI();
+refreshQuickBadge();
 buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});
 updateLangBtns();
 applyLang();
