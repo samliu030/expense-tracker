@@ -2624,7 +2624,8 @@ function openQuickModal(){
   document.getElementById('quick-modal-msg').className='msg';
   renderQuickSession();
   document.getElementById('quick-modal').classList.remove('hidden');
-  setTimeout(()=>document.getElementById('quick-amount').focus(),50);
+  // iOS Safari 只在 user gesture 同步呼叫 focus() 才會自動彈鍵盤；setTimeout 會斷掉手勢鏈
+  document.getElementById('quick-amount').focus({preventScroll:true});
 }
 function closeQuickModal(){document.getElementById('quick-modal').classList.add('hidden');}
 function renderQuickSession(){
