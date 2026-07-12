@@ -1669,7 +1669,8 @@ async function syncSettingsFromCloud(){
         saveRates();
       }
     }
-    if(b&&b.budgets){budgets={...budgets,...b.budgets};localStorage.setItem('xp_budgets',JSON.stringify(budgets));}
+    // 雲端 getBudgets 回的是後端合併後的完整表（含 null=刪 key 的結果），整包為準才能讓「清除預算」跨裝置傳播
+    if(b&&b.budgets){budgets=b.budgets;localStorage.setItem('xp_budgets',JSON.stringify(budgets));}
     if(rc&&rc.recurring)mergeRecurring(rc.recurring);
     updateUserToggle();
     document.getElementById('set-user-0').value=userNames[0];
@@ -1752,7 +1753,7 @@ function updateUserToggle(){
   btns.forEach((b,i)=>{
     const name=userNames[i]||['Sam','Patty'][i];
     const art=(typeof BOBA_ASSETS!=='undefined')?BOBA_ASSETS[bearKeys[i]]:null;
-    b.innerHTML=(art?`<img class="user-bear" src="${art}" alt="">`:'')+`<span>${name}</span>`;
+    b.innerHTML=(art?`<img class="user-bear" src="${art}" alt="">`:'')+`<span>${escapeHtml(name)}</span>`;
     b.classList.toggle('active',i===selectedUserIdx);
     b.classList.toggle('u1',i===1);
   });
@@ -2658,7 +2659,7 @@ function renderQuickList(){
     const info=document.createElement('div');
     info.style.cssText='flex:1;cursor:pointer';
     info.innerHTML='<div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink)">'+fmtAmt(d.amount,d.curr)+'</div>'
-      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+d.date+' · '+d.user+'</div>';
+      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+d.date+' · '+escapeHtml(d.user)+'</div>';
     info.onclick=()=>startFinalize(d.id);
     const del=document.createElement('button');
     del.textContent='✕';
@@ -2774,7 +2775,7 @@ buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshRepo
 updateLangBtns();
 applyLang();
 
-function runRecurring(syncToCloud){
+function runRecurring(){
   const gen=processRecurring();
   if(!gen.length)return;
   refreshAll();
@@ -2788,15 +2789,15 @@ function runRecurring(syncToCloud){
 
 const hasDeviceId=localStorage.getItem(DEVICE_KEY)!==null;
 if(!hasDeviceId){
-  runRecurring(false);
+  runRecurring();
   setTimeout(()=>showIdentityModal(),400);
 }else if(!apiUrl){
-  runRecurring(false);
+  runRecurring();
   setTimeout(()=>showSetupModal(),400);
 }else{
   setSyncStatus(true);
-  Promise.all([syncSettingsFromCloud(),syncFromCloud()]).then(([,ok])=>{
-    runRecurring(ok);
+  Promise.all([syncSettingsFromCloud(),syncFromCloud()]).then(()=>{
+    runRecurring();
     refreshAll();
   });
 }
