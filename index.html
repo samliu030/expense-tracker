@@ -672,6 +672,12 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
           <button id="voice-lang-th" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);color:var(--ink-2);font-size:13px;font-weight:800;cursor:pointer;font-family:var(--sans)">ไทย</button>
         </div>
       </div>
+      <div id="voice-text-row" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-input" id="voice-text-input" placeholder="按鍵盤 🎤 講話，例：午餐麥當勞250泰銖" style="flex:1" autocomplete="off" enterkeyhint="done">
+          <button id="voice-text-go" style="padding:0 18px;background:var(--ink);color:#fbf9f2;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;flex-shrink:0">✓</button>
+        </div>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">日期</label>
@@ -1083,6 +1089,7 @@ const I18N={
     // Voice
     voice_btn:'語音記帳',ai_busy:'🤖 AI 辨識中...',ai_fail:'辨識失敗',ai_filled:'已填入資料',ai_low_conf:'（信心度低）',
     ai_listening:'🎤 請說話，例如「午餐麥當勞250泰銖」',ai_voice_fallback:'此瀏覽器不支援語音，請直接輸入，例如：午餐麥當勞250泰銖',
+    ai_voice_dictate:'⌨️ 按鍵盤上的 🎤 講話，或直接打字，例如「午餐麥當勞250泰銖」，完成按 ✓',
     // Charts
     chart_pie:'分類佔比',chart_tree:'分類樹狀圖',
   },
@@ -1173,6 +1180,7 @@ const I18N={
     // Voice
     voice_btn:'Voice Entry',ai_busy:'🤖 Recognizing...',ai_fail:'Recognition failed',ai_filled:'Filled in',ai_low_conf:' (low confidence)',
     ai_listening:'🎤 Speak now, e.g. "lunch McDonald\'s 250 baht"',ai_voice_fallback:'Speech not supported. Type instead, e.g.: lunch McDonald\'s 250 baht',
+    ai_voice_dictate:'⌨️ Tap the 🎤 on your keyboard to speak, or just type, e.g. "lunch McDonald\'s 250 baht", then press ✓',
     voice_lang_en:'EN',voice_lang_th:'ไทย',
     // Charts
     chart_pie:'Category Share',chart_tree:'Category Treemap',
@@ -1519,7 +1527,8 @@ function applyLang(){
   const voiceBtnLabel=document.getElementById('voice-btn-label');
   if(voiceBtnLabel)voiceBtnLabel.textContent=T('voice_btn');
   const vlt=document.getElementById('voice-lang-toggle');
-  if(vlt)vlt.style.display=(lang==='en')?'flex':'none';
+  const isIOSua=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
+  if(vlt)vlt.style.display=(lang==='en'&&!isIOSua)?'flex':'none';
   document.querySelectorAll('#screen-settings .section-title').forEach((el,i)=>{
     [T('sec_lang'),T('sec_theme'),T('sec_users'),T('sec_cloud'),T('sec_rates'),T('sec_recurring'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
   });
@@ -2500,6 +2509,9 @@ const PS_SUPABASE_URL='https://hyrfnylsmgwcjngqdbbd.supabase.co';
 const PS_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5cmZueWxzbWd3Y2puZ3FkYmJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODY3MTIsImV4cCI6MjA5NjQ2MjcxMn0.qATijjdL2uKBbqyjLbqPvknWTD4ljAS2msImivJYdVI';
 const AI_ENDPOINT=PS_SUPABASE_URL+'/functions/v1/scan-receipt';
 let voiceLang='en-US';
+// iOS(含 iPadOS）的 webkitSpeechRecognition 不可靠（standalone 靜默、Safari 回 aborted）；
+// 改走 iOS 鍵盤原生聽寫：聚焦文字框 → 使用者按鍵盤🎤 → 後端解析。
+const IS_IOS=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
 async function callScanApi(payload){
   const r=await fetch(AI_ENDPOINT,{
     method:'POST',
@@ -2542,7 +2554,29 @@ document.getElementById('voice-lang-th').onclick=()=>{
   document.getElementById('voice-lang-th').style.background='var(--ink)';document.getElementById('voice-lang-th').style.color='#fbf9f2';
   document.getElementById('voice-lang-en').style.background='var(--surface)';document.getElementById('voice-lang-en').style.color='var(--ink-2)';
 };
+// iOS 鍵盤聽寫送出：讀文字框 → 收起 → 打後端解析
+function submitVoiceText(){
+  const el=document.getElementById('voice-text-input');
+  const t=(el.value||'').trim();
+  document.getElementById('voice-text-row').style.display='none';
+  el.value='';
+  if(t)parseVoiceText(t);
+}
+document.getElementById('voice-text-go').onclick=submitVoiceText;
+document.getElementById('voice-text-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();submitVoiceText();}
+});
 document.getElementById('voice-btn').onclick=()=>{
+  // iOS：叫出文字框並「同步」聚焦（focus 不能包 setTimeout，否則手勢鏈斷、鍵盤不彈）
+  if(IS_IOS){
+    const row=document.getElementById('voice-text-row');
+    const el=document.getElementById('voice-text-input');
+    row.style.display='block';
+    el.value='';
+    el.focus();
+    aiMsg('success',T('ai_voice_dictate'));
+    return;
+  }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const recLang=lang==='zh'?'zh-TW':voiceLang;
   if(!SR){
