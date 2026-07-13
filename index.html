@@ -1090,6 +1090,7 @@ const I18N={
     voice_btn:'語音記帳',ai_busy:'🤖 AI 辨識中...',ai_fail:'辨識失敗',ai_filled:'已填入資料',ai_low_conf:'（信心度低）',
     ai_listening:'🎤 請說話，例如「午餐麥當勞250泰銖」',ai_voice_fallback:'此瀏覽器不支援語音，請直接輸入，例如：午餐麥當勞250泰銖',
     ai_voice_dictate:'⌨️ 按鍵盤上的 🎤 講話，或直接打字，例如「午餐麥當勞250泰銖」，完成按 ✓',
+    voice_saved:'已記帳 ',undo:'復原',undo_done:'已復原，該筆已刪除',
     // Charts
     chart_pie:'分類佔比',chart_tree:'分類樹狀圖',
   },
@@ -1181,6 +1182,7 @@ const I18N={
     voice_btn:'Voice Entry',ai_busy:'🤖 Recognizing...',ai_fail:'Recognition failed',ai_filled:'Filled in',ai_low_conf:' (low confidence)',
     ai_listening:'🎤 Speak now, e.g. "lunch McDonald\'s 250 baht"',ai_voice_fallback:'Speech not supported. Type instead, e.g.: lunch McDonald\'s 250 baht',
     ai_voice_dictate:'⌨️ Tap the 🎤 on your keyboard to speak, or just type, e.g. "lunch McDonald\'s 250 baht", then press ✓',
+    voice_saved:'Recorded ',undo:'Undo',undo_done:'Undone — entry removed',
     voice_lang_en:'EN',voice_lang_th:'ไทย',
     // Charts
     chart_pie:'Category Share',chart_tree:'Category Treemap',
@@ -2539,9 +2541,34 @@ function fillFromAI(res){
 }
 async function parseVoiceText(text){
   setVoiceBusy(true);aiMsg('success',T('ai_busy'));
-  try{const res=await callScanApi({text});fillFromAI(res);}
+  try{
+    const res=await callScanApi({text});
+    fillFromAI(res);                 // 填入表單（金額無效會 throw，不會誤存）
+    const r=commitRecordFromForm();  // 直接存檔，省去手動按「儲存」
+    if(r)showVoiceSaved(r.rec,res.confidence);
+  }
   catch(e){console.error(e);aiMsg('error',T('ai_fail')+'：'+e.message);}
   setVoiceBusy(false);
+}
+// 語音自動存後的確認 + 7 秒撤銷窗（連雲端一起刪）
+function showVoiceSaved(rec,confidence){
+  const msg=document.getElementById('add-msg');
+  const cat=getCat(rec.cat);
+  const conf=confidence==='low'?' ⚠️':'';
+  msg.className='msg success';msg.textContent='';
+  const span=document.createElement('span');
+  span.textContent=T('voice_saved')+cat.icon+' '+fmtAmt(rec.amount,rec.curr)+(rec.note?' · '+rec.note:'')+conf+'　';
+  const undo=document.createElement('button');
+  undo.textContent=T('undo');
+  undo.style.cssText='border:none;background:var(--ink);color:#fbf9f2;padding:4px 12px;border-radius:10px;font-weight:800;cursor:pointer;font-size:13px';
+  undo.onclick=()=>{
+    records=records.filter(x=>x.id!==rec.id);saveLocal();refreshAll();
+    enqueue({op:'delete',id:rec.id});
+    msg.className='msg success';msg.textContent=T('undo_done');
+    setTimeout(()=>{msg.className='msg';msg.textContent='';},2500);
+  };
+  msg.appendChild(span);msg.appendChild(undo);
+  setTimeout(()=>{if(msg.contains(undo)){msg.className='msg';msg.textContent='';}},7000);
 }
 // 英文模式語言切換按鈕
 document.getElementById('voice-lang-en').onclick=()=>{
@@ -2599,7 +2626,9 @@ document.getElementById('voice-btn').onclick=()=>{
 };
 
 // ===== 儲存記錄 =====
-document.getElementById('save-btn').onclick=async()=>{
+// 從表單建立一筆紀錄並完成寫入（本機 + 雲端同步 + 定期支出 + 清空表單）。
+// 成功回 {rec,successMsg}；驗證失敗回 null 並已在 add-msg 顯示錯誤。訊息顯示交給呼叫端。
+function commitRecordFromForm(){
   const rawVal=document.getElementById('inp-amount').value.trim();
   let amt=0;
   const evalResult=safeMathEval(rawVal);
@@ -2609,8 +2638,8 @@ document.getElementById('save-btn').onclick=async()=>{
   const date=document.getElementById('inp-date').value;
   const msg=document.getElementById('add-msg');
   msg.className='msg';
-  if(!amt||amt<=0){msg.className='msg error';msg.textContent=T('err_amount');return;}
-  if(!date){msg.className='msg error';msg.textContent=T('err_date');return;}
+  if(!amt||amt<=0){msg.className='msg error';msg.textContent=T('err_amount');return null;}
+  if(!date){msg.className='msg error';msg.textContent=T('err_date');return null;}
   let finalCat=selCat;
   if(selCat==='other'){const c=document.getElementById('inp-custom-cat').value.trim();if(c)finalCat=c;}
   const rec={id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,date:normalizeDate(date),ts:Date.now(),user:userNames[selectedUserIdx]};
@@ -2636,12 +2665,10 @@ document.getElementById('save-btn').onclick=async()=>{
     document.getElementById('recurring-options').style.display='none';
   }
 
-  msg.className='msg success';msg.textContent=successMsg;
   document.getElementById('inp-amount').value='';document.getElementById('inp-note').value='';
   document.getElementById('note-suggestions').className='note-suggestions';
   document.getElementById('inp-date').value=today();
   refreshAll();
-  setTimeout(()=>{msg.className='msg';},3000);
   enqueue({op:'upsert',id:rec.id,rec});
   // 若這筆是從快速記帳整理而來，存成功後移除對應草稿
   if(finalizingQuickId){
@@ -2649,6 +2676,14 @@ document.getElementById('save-btn').onclick=async()=>{
     saveQuick();refreshQuickBadge();
     finalizingQuickId=null;
   }
+  return {rec,successMsg};
+}
+document.getElementById('save-btn').onclick=()=>{
+  const r=commitRecordFromForm();
+  if(!r)return;
+  const msg=document.getElementById('add-msg');
+  msg.className='msg success';msg.textContent=r.successMsg;
+  setTimeout(()=>{msg.className='msg';},3000);
 };
 
 // ===== 快速記帳 / 快速整理 =====
