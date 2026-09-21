@@ -26,6 +26,7 @@
   --ink:#221e18;
   --ink-2:#6f6553;
   --ink-3:#9a8f78;
+  --ink-fn:#6b6250;      /* 功能性小字（金額換算/類別/日期）：對 surface 5.7:1 */
   --accent:#9a7b3c;        /* 金棕：金額/數據強調 */
   --accent-line:#c79a52;
   --accent-soft:#f1e7d3;
@@ -163,10 +164,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 .entry-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;background:var(--surface2)}
 .entry-info{flex:1;min-width:0}
 .entry-name{font-size:14.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.entry-meta{font-size:11.5px;color:var(--ink-3);margin-top:3px;font-weight:600}
+/* 人名 badge 移到第二行：第一行再長也不會把「誰付的」吃掉 */
+.entry-meta{font-size:11.5px;color:var(--ink-fn);margin-top:4px;font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+.entry-meta-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .entry-amt{text-align:right;flex-shrink:0}
-.entry-orig{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
-.entry-aux{font-size:10.5px;color:var(--ink-3);margin-top:2px;font-weight:600;font-variant-numeric:tabular-nums}
+.entry-orig{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;justify-content:flex-end;gap:3px}
+/* 幣別符號獨立一欄：Fraunces/Zen Maru 沒有 ฿，落回備援字型會撞上數字 */
+.entry-cur{font-family:var(--sans);font-size:13.5px;font-weight:700;color:var(--accent)}
+.entry-aux{font-size:10.5px;color:var(--ink-fn);margin-top:2px;font-weight:600;font-variant-numeric:tabular-nums}
 .entry-actions{display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:6px}
 .edit-btn,.del-btn{background:var(--surface2);border:1px solid var(--border);cursor:pointer;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:all 0.18s;font-size:15px}
 .edit-btn{color:var(--accent)}
@@ -197,9 +202,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 /* ── User colors ── */
 .user-color-0{color:var(--sam)}
 .user-color-1{color:var(--patty)}
-.user-badge{font-size:9.5px;padding:2px 8px;border-radius:999px;background:var(--sam-soft);color:var(--sam);font-weight:800;margin-left:5px;vertical-align:middle;display:inline-block;line-height:1.6}
+.user-badge{font-size:10px;padding:2px 8px;border-radius:999px;background:var(--sam-soft);color:var(--sam);font-weight:800;vertical-align:middle;display:inline-block;line-height:1.6;flex-shrink:0}
 .user-badge.u1{background:var(--patty-soft);color:var(--patty)}
-.recur-badge{font-size:9.5px;padding:2px 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);font-weight:800;margin-left:4px;vertical-align:middle;display:inline-block;line-height:1.6}
+.recur-badge{font-size:10px;padding:2px 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);font-weight:800;vertical-align:middle;display:inline-block;line-height:1.6;flex-shrink:0}
 
 /* ── Form ── */
 .form-group{margin-bottom:18px}
@@ -301,12 +306,22 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 .bar-wrap{margin-bottom:15px}
 .bar-label{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:6px}
 .bar-track{height:8px;background:var(--surface2);border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+/* 條長＝相對最大類別，條內再用綠/橘分兩人 */
+.bar-fill{display:flex;height:100%;border-radius:999px;overflow:hidden;transition:width .8s cubic-bezier(0.34,1.56,0.64,1)}
+/* 趨勢圖標題列：圖例放這裡，不再壓在資料上 */
+.chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:20px 2px 11px;padding-bottom:9px;border-bottom:1px solid var(--border)}
+.chart-head .section-title{margin:0;padding:0;border-bottom:none;flex:1}
+.chart-legend{display:flex;gap:11px;flex-shrink:0}
+.chart-legend span{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--ink-fn)}
+.chart-legend i{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0}
+.rate-more-btn{width:100%;margin-top:4px;padding:11px;border:1.5px dashed var(--border-strong);border-radius:12px;background:transparent;color:var(--ink-fn);font-size:12.5px;font-weight:700;font-family:var(--sans);cursor:pointer}
+.rate-more-btn:active{background:var(--surface2)}
 .bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent-line),var(--accent));transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}
 
 /* ── Date row ── */
 .date-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .day-group{margin-bottom:6px}
-.day-header{font-size:11.5px;font-weight:700;color:var(--ink-3);padding:16px 2px 6px;letter-spacing:0.04em;display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--border);margin-bottom:2px}
+.day-header{font-size:11.5px;font-weight:700;color:var(--ink-fn);padding:16px 2px 6px;letter-spacing:0.04em;display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--border);margin-bottom:2px}
 
 /* ── Rate row ── */
 .rate-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:9px 12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)}
@@ -377,7 +392,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 /* ── Token 覆寫：靠 cascade 自動把全 app 換色換字 ── */
 body[data-theme="boba"]{
   --bg:#f8f3ea;--surface:#fffdf8;--surface2:#efe7d6;--border:#e7dcc8;--border-strong:#ddd0b8;
-  --ink:#574e44;--ink-2:#7a7062;--ink-3:#9a9082;
+  --ink:#574e44;--ink-2:#7a7062;--ink-3:#9a9082;--ink-fn:#6f6658;
   --accent:#c79478;--accent-line:#d6a98a;--accent-soft:#eaddd0;
   --sam:#7fa392;--sam-soft:#e2ebdb;--patty:#c79478;--patty-soft:#f1e6d6;
   --danger:#b8765a;--danger-soft:#ead8cc;--ok:#7fa392;--ok-soft:#e2ebdb;--sage-soft:#e2ebdb;--cream-soft:#fbf2dd;--blue-soft:#e0eaf3;
@@ -764,7 +779,7 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
     <div id="rep-result" style="display:none">
       <div class="card">
         <div class="stat-label">期間合計 (THB)</div>
-        <div class="total-big" id="rep-total">0</div>
+        <div class="hero-amt" style="margin-bottom:4px"><span class="hero-cur" style="font-size:26px">฿</span><span class="total-big" id="rep-total" style="margin-bottom:0">0</span></div>
         <div style="font-size:12px;color:var(--ink-3);margin-top:4px" id="rep-sub"></div>
       </div>
       <div id="rep-compare"></div>
@@ -779,7 +794,7 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
       <div id="rep-bars" style="margin-bottom:12px"></div>
       <!-- Daily Chart -->
       <div id="rep-chart-wrap" style="display:none;margin-bottom:16px">
-        <div class="section-title" id="rep-chart-title">每日支出趨勢</div>
+        <div class="chart-head"><div class="section-title" id="rep-chart-title">每日支出趨勢</div><div class="chart-legend" id="rep-chart-legend"></div></div>
         <div class="card" style="padding:16px 12px 8px;overflow:hidden">
           <div id="rep-chart-svg-wrap"></div>
         </div>
@@ -1072,7 +1087,7 @@ const I18N={
     freq_monthly:'每月',freq_weekly:'每週',freq_daily:'每天',freq_workday:'工作日',
     sec_recurring:'定期支出管理',
     recurring_empty:'尚無定期支出',
-    recurring_added:'已加入定期支出！',recurring_dup:'定期支出已存在，未重複新增',
+    recurring_added:'已加入定期支出！',recurring_dup:'定期支出已存在，未重複新增',recur_badge:'定期',rate_more:'顯示其餘幣別',rate_less:'收起其餘幣別',
     recurring_generated:'已自動生成定期記錄：',
     hint_monthly:'📅 每月在相同日期自動產生一筆記錄',
     hint_weekly:'📅 每週在相同星期幾自動產生一筆記錄',
@@ -1164,7 +1179,7 @@ const I18N={
     freq_monthly:'Monthly',freq_weekly:'Weekly',freq_daily:'Daily',freq_workday:'Weekdays',
     sec_recurring:'Recurring Payments',
     recurring_empty:'No recurring payments',
-    recurring_added:'Added to recurring payments!',recurring_dup:'Recurring payment already exists — not added again',
+    recurring_added:'Added to recurring payments!',recurring_dup:'Recurring payment already exists — not added again',recur_badge:'Recurring',rate_more:'Show other currencies',rate_less:'Hide other currencies',
     recurring_generated:'Auto-generated recurring: ',
     hint_monthly:'📅 Auto-creates a record on the same date each month',
     hint_weekly:'📅 Auto-creates a record on the same weekday each week',
@@ -1902,7 +1917,11 @@ function toTHB(a,c){return Math.round(a*getRate(c)*100)/100;}
 function getCat(id){const c=CATS.find(x=>x.id===id);if(c)return{...c,label:T(c.lkey)};return{id,label:id,icon:'📌',color:'#f5f5f0'};}
 function getCurr(c){return CURRENCIES.find(x=>x.code===c)||CURRENCIES[0];}
 function fmtTHB(v){return '฿ '+Math.round(v).toLocaleString();}
-function fmtAmt(a,c){const x=getCurr(c);return x.symbol+parseFloat(a).toLocaleString(undefined,{maximumFractionDigits:2});}
+// 小數位一致：有小數就固定兩位（避免同一欄出現 1,110.1 與 1,457.43）；฿ 與數字之間留一格
+function fmtNum(a){const n=parseFloat(a);const f=Math.abs(n%1)>0.0001;return n.toLocaleString(undefined,{minimumFractionDigits:f?2:0,maximumFractionDigits:f?2:0});}
+function fmtAmt(a,c){return getCurr(c).symbol+' '+fmtNum(a);}
+// 列表用：符號獨立一個 span，字型與字級都和數字分開，฿ 才不會撞上第一個數字
+function fmtAmtHtml(a,c){return '<span class="entry-cur">'+getCurr(c).symbol+'</span><span>'+fmtNum(a)+'</span>';}
 function escapeHtml(s){if(s==null)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function safeMathEval(expr){
   const s=expr.replace(/\s/g,'');
@@ -2055,10 +2074,10 @@ function renderDailyChart(list, from, to) {
   const allVals = [...vals0, ...vals1];
   const maxV = Math.max(...allVals, 1);
   const n = dates.length;
-  const padL = 50, padR = 12, padT = 16, padB = 30;
+  const padL = 50, padR = 12, padT = 10, padB = 30; // 圖例移到標題列後，上緣不用再留位子
   const W = 360, H = 200;
   const cW = W - padL - padR, cH = H - padT - padB;
-  const barW = Math.max(2, Math.floor(cW / n / 2) - 1);
+  const barW = Math.min(7, Math.max(3, Math.floor(cW / n / 2) - 1)); // 下限 3px：長區間時才看得見、點得到
   const slotW = cW / n;
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="100%" style="display:block">`;
   svg += `<defs>
@@ -2096,18 +2115,17 @@ function renderDailyChart(list, from, to) {
     }
   });
   svg += `<line x1="${padL}" y1="${padT + cH}" x2="${W - padR}" y2="${padT + cH}" stroke="#d8cfb9" stroke-width="1"/>`;
-  const legendY = padT + 6;
-  svg += `<rect x="${W - padR - 68}" y="${legendY}" width="10" height="10" rx="2" fill="url(#cg0)"/>`;
-  svg += `<text x="${W - padR - 55}" y="${legendY + 9}" font-size="9" fill="#3f5e54" font-family="sans-serif" font-weight="700">${escapeHtml(u0)}</text>`;
-  svg += `<rect x="${W - padR - 68}" y="${legendY + 14}" width="10" height="10" rx="2" fill="url(#cg1)"/>`;
-  svg += `<text x="${W - padR - 55}" y="${legendY + 23}" font-size="9" fill="#b07a3f" font-family="sans-serif" font-weight="700">${escapeHtml(u1)}</text>`;
+  // 圖例改放標題列的 #rep-chart-legend：舊版畫在圖區右上角、沒有底色，期末花費一高就蓋住長條
+  const lgEl = document.getElementById('rep-chart-legend');
+  if (lgEl) lgEl.innerHTML = `<span><i style="background:#5b8375"></i>${escapeHtml(u0)}</span><span><i style="background:#c08d55"></i>${escapeHtml(u1)}</span>`;
   svg += `</svg>`;
   document.getElementById('rep-chart-svg-wrap').innerHTML = svg;
   wrap.style.display = 'block';
 }
 
 // ===== 圓餅圖 & 樹狀圖 =====
-const PIE_PALETTE=['#b8860b','#c2410c','#0d9488','#7c3aed','#be185d','#2563eb','#65a30d','#d97706','#0891b2','#9333ea','#dc2626','#059669','#4f46e5','#db2777','#78716c'];
+// 暖色系、且每色對白字都 >= 4.78:1（舊的是飽和網頁原色，跟手帳熊不同調且白字讀不出來）
+const PIE_PALETTE=['#936a36','#a1573f','#4f7565','#6d5f7d','#9c5b72','#4f6684','#69753f','#9c6730','#4a6f78','#7a5c8c','#94513f','#3f6f5c','#5a5c8a','#94507a','#6f675b'];
 function renderCategoryPie(list,wrapId,bodyId){
   const wrap=document.getElementById(wrapId);if(!wrap)return;
   const body=document.getElementById(bodyId);
@@ -2133,17 +2151,19 @@ function renderCategoryPie(list,wrapId,bodyId){
     }
     ang=a1;
   });
+  // 中央改三行、字級縮到塞得進 rIn=44 的洞（舊版 16px 六位數會爆出色環），฿ 與數字之間留一格
   const svg=`<svg viewBox="0 0 160 160" width="160" height="160" style="flex-shrink:0" xmlns="http://www.w3.org/2000/svg">${paths}
-    <text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="11" fill="#9a8f78" font-family="sans-serif" font-weight="700">TOTAL</text>
-    <text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="16" fill="#3c3018" font-family="serif" font-weight="700">฿${Math.round(grand).toLocaleString()}</text></svg>`;
+    <text x="${cx}" y="${cy-7}" text-anchor="middle" font-size="9.5" letter-spacing="1.4" fill="#6f6658" font-family="sans-serif" font-weight="700">TOTAL</text>
+    <text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="13" fill="#574e44" font-family="sans-serif" font-weight="700">฿ ${Math.round(grand).toLocaleString()}</text>
+    <text x="${cx}" y="${cy+23}" text-anchor="middle" font-size="8.5" fill="#6f6658" font-family="sans-serif" font-weight="600">${list.length} ${T('count_sub')}</text></svg>`;
   let legend='';
   rows.forEach(([cid,v])=>{
     const cat=getCat(cid);const pct=(v/grand*100);
     legend+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 0">
       <span style="width:11px;height:11px;border-radius:3px;background:${colorOf[cid]};flex-shrink:0"></span>
       <span style="font-size:13px;font-weight:700;color:var(--ink)">${catMini(cat.id,cat.icon,18)} ${escapeHtml(cat.label)}</span>
-      <span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--ink-2);font-variant-numeric:tabular-nums">${pct.toFixed(pct<10?1:0)}%</span>
-      <span style="font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;min-width:62px;text-align:right">${fmtTHB(v)}</span>
+      <span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--ink-2);font-variant-numeric:tabular-nums">${pct.toFixed(1)}%</span>
+      <span style="font-size:12px;color:var(--ink-fn);font-variant-numeric:tabular-nums;min-width:62px;text-align:right">${fmtTHB(v)}</span>
     </div>`;
   });
   body.innerHTML=`<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center">
@@ -2161,36 +2181,47 @@ function renderCategoryTreemap(list,wrapId,bodyId){
   const grand=rows.reduce((s,[,v])=>s+v,0);
   if(!rows.length||grand<=0){wrap.style.display='none';return;}
   const W=body.offsetWidth||340, H=200;
-  // Slice-and-dice: alternate horizontal/vertical at each level
-  function sliceDice(items,x,y,w,h,vert){
-    const total=items.reduce((s,[,v])=>s+v,0);
-    let pos=vert?y:x;
-    return items.map(([cid,v],i)=>{
-      const frac=v/total;
-      const slice=vert?h*frac:w*frac;
-      const rect=vert?{x,y:pos,w,h:slice}:{x:pos,y,w:slice,h};
-      pos+=slice;
-      return {cid,v,rect};
-    });
+  // Squarified treemap：逐列鋪排讓每塊盡量接近正方形。
+  // 舊版只呼叫一次 sliceDice、沒有遞迴，結果是 N 條垂直長條（右半邊全是 1-3px 碎片，一個字都放不下）。
+  function squarify(items,x,y,w,h){
+    const out=[];let rest=items.slice();
+    const worst=(row,len,sc)=>{
+      const s=row.reduce((a,b)=>a+b[1],0)*sc;
+      const mx=Math.max(...row.map(r=>r[1]))*sc,mn=Math.min(...row.map(r=>r[1]))*sc;
+      return Math.max(len*len*mx/(s*s),(s*s)/(len*len*mn));
+    };
+    while(rest.length&&w>0.5&&h>0.5){
+      const sc=(w*h)/rest.reduce((a,b)=>a+b[1],0);
+      const len=Math.min(w,h);
+      let row=[rest[0]],i=1;
+      while(i<rest.length&&worst(row.concat([rest[i]]),len,sc)<=worst(row,len,sc)){row.push(rest[i]);i++;}
+      const s=row.reduce((a,b)=>a+b[1],0)*sc;
+      if(w>=h){
+        const rw=s/h;let oy=y;
+        row.forEach(([cid,v])=>{const rh=(v*sc)/rw;out.push({cid,v,rect:{x,y:oy,w:rw,h:rh}});oy+=rh;});
+        x+=rw;w-=rw;
+      }else{
+        const rh=s/w;let ox=x;
+        row.forEach(([cid,v])=>{const rw2=(v*sc)/rh;out.push({cid,v,rect:{x:ox,y,w:rw2,h:rh}});ox+=rw2;});
+        y+=rh;h-=rh;
+      }
+      rest=rest.slice(i);
+    }
+    return out;
   }
-  const rects=sliceDice(rows,0,0,W,H,false);
+  const rects=squarify(rows,0,0,W,H);
   let svgParts='';
   rects.forEach(({cid,v,rect:{x,y,w,h}},i)=>{
     const cat=getCat(cid);
     const color=PIE_PALETTE[i%PIE_PALETTE.length];
     const pctVal=v/grand*100;
-    const px=x.toFixed(1),py=y.toFixed(1),pw=Math.max(0,w-2).toFixed(1),ph=Math.max(0,h-2).toFixed(1);
-    svgParts+=`<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="5" fill="${color}" opacity="0.9"/>`;
-    if(w>36&&h>24){
-      const tx=(x+w/2).toFixed(1),ty=(y+h/2).toFixed(1);
-      svgParts+=`<text x="${tx}" y="${(parseFloat(ty)-6).toFixed(1)}" text-anchor="middle" font-size="14" fill="#fff" font-family="sans-serif">${cat.icon}</text>`;
-      if(w>60&&h>40){
-        const lblFontSize=Math.min(11,Math.floor(w/8));
-        svgParts+=`<text x="${tx}" y="${(parseFloat(ty)+8).toFixed(1)}" text-anchor="middle" font-size="${lblFontSize}" fill="rgba(255,255,255,0.9)" font-family="sans-serif" font-weight="700">${escapeHtml(cat.label)}</text>`;
-      }
-      if(w>80&&h>52){
-        svgParts+=`<text x="${tx}" y="${(parseFloat(ty)+22).toFixed(1)}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.8)" font-family="sans-serif" font-weight="600">${pctVal.toFixed(0)}%</text>`;
-      }
+    svgParts+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(0,w-2).toFixed(1)}" height="${Math.max(0,h-2).toFixed(1)}" rx="5" fill="${color}" opacity="0.95"/>`;
+    const cx2=(x+(w-2)/2).toFixed(1),cy2=y+(h-2)/2;
+    if(w>52&&h>34){
+      svgParts+=`<text x="${cx2}" y="${(cy2-1).toFixed(1)}" text-anchor="middle" font-size="11.5" fill="#fff" font-family="sans-serif" font-weight="700">${escapeHtml(cat.label)}</text>`;
+      svgParts+=`<text x="${cx2}" y="${(cy2+13).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="rgba(255,255,255,0.9)" font-family="sans-serif" font-weight="600">${pctVal.toFixed(1)}%</text>`;
+    }else if(w>30&&h>18){
+      svgParts+=`<text x="${cx2}" y="${(cy2+3.5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#fff" font-family="sans-serif" font-weight="700">${escapeHtml(cat.label)}</text>`;
     }
   });
   body.innerHTML=`<div style="overflow:hidden;border-radius:12px"><svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">${svgParts}</svg></div>`;
@@ -2221,16 +2252,16 @@ function renderEntries(list,cid){
       const recUser=r.user||userNames[0];
       const isU1=recUser===userNames[1];
       const badgeClass=isU1?'user-badge u1':'user-badge';
-      const recurBadge=r.isRecurring?'<span class="recur-badge">定期</span>':'';
+      const recurBadge=r.isRecurring?'<span class="recur-badge">'+T('recur_badge')+'</span>':'';
       const dv=document.createElement('div');dv.className='entry';
       dv.innerHTML=`
         <div class="entry-icon">${catMini(cat.id,cat.icon,34)}</div>
         <div class="entry-info">
-          <div class="entry-name">${escapeHtml(r.note||cat.label)} <span class="${badgeClass}">${escapeHtml(recUser)}</span>${recurBadge}</div>
-          <div class="entry-meta">${escapeHtml(cat.label)}${r.curr!=='THB'?' · '+escapeHtml(r.curr):''}</div>
+          <div class="entry-name">${escapeHtml(r.note||cat.label)}</div>
+          <div class="entry-meta"><span class="${badgeClass}">${escapeHtml(recUser)}</span>${recurBadge}<span class="entry-meta-text">${escapeHtml(cat.label)}${r.curr!=='THB'?' · '+escapeHtml(r.curr):''}</span></div>
         </div>
         <div class="entry-amt">
-          <div class="entry-orig">${fmtAmt(r.amount,r.curr)}</div>
+          <div class="entry-orig">${fmtAmtHtml(r.amount,r.curr)}</div>
           <div class="entry-aux">${auxHTML}</div>
         </div>
         <div class="entry-actions">
@@ -2249,9 +2280,7 @@ function renderEntries(list,cid){
   });
 }
 
-// FIX: renderBars - Sam (blue) always on left, Patty (pink) always on right
-// Each bar's absolute width = (user_amount / max_total) * 100%
-// This ensures correct left-to-right ordering regardless of who has spending
+// renderBars：條長＝該類別 / 最大類別（類別之間可比），條內綠(Sam)左、橘(Patty)右＝兩人分攤比例
 function renderBars(list,cid){
   const el=document.getElementById(cid);if(!list.length){el.innerHTML='';return;}
   const u0=userNames[0],u1=userNames[1];
@@ -2264,9 +2293,12 @@ function renderBars(list,cid){
     else bycat[r.cat].u1+=amt;
   });
   el.innerHTML='';
-  Object.entries(bycat).sort((a,b)=>b[1].total-a[1].total).forEach(([catId,data])=>{
+  const sorted=Object.entries(bycat).sort((a,b)=>b[1].total-a[1].total);
+  const maxTotal=sorted.length?sorted[0][1].total:0; // 已排序，第一筆即最大類別
+  sorted.forEach(([catId,data])=>{
     const cat=getCat(catId);
-    // 每條填滿：寬度 = 該人 / 該類別總額，綠橘合計 100%（只表達兩人分攤比例）
+    // rel＝整條的長度（類別間比大小）；p0abs/p1abs＝條內兩人分攤（合計 100%）
+    const rel=maxTotal>0?(data.total/maxTotal*100):0;
     const p0abs=data.total>0?(data.u0/data.total*100):0;
     const p1abs=data.total>0?(data.u1/data.total*100):0;
     const d=document.createElement('div');d.className='bar-wrap';
@@ -2277,7 +2309,7 @@ function renderBars(list,cid){
         <span class="user-color-1">${data.u1>0?escapeHtml(u1)+': '+fmtTHB(data.u1):''}</span>
       </div>
       <div class="bar-track">
-        <div style="display:flex;height:100%;width:100%;border-radius:4px;overflow:hidden">
+        <div class="bar-fill" style="width:0%" data-rel="${rel.toFixed(2)}">
           <div class="cmp-fill-0" style="width:0%;transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)" data-pct="${p0abs.toFixed(2)}"></div>
           <div class="cmp-fill-1" style="width:0%;transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)" data-pct="${p1abs.toFixed(2)}"></div>
         </div>
@@ -2286,6 +2318,7 @@ function renderBars(list,cid){
   });
   // Animate bars after DOM insertion
   setTimeout(()=>{
+    el.querySelectorAll('.bar-fill').forEach(b=>{if(b.dataset.rel)b.style.width=b.dataset.rel+'%';});
     el.querySelectorAll('.cmp-fill-0,.cmp-fill-1').forEach(b=>{
       if(b.dataset.pct)b.style.width=b.dataset.pct+'%';
     });
@@ -2485,14 +2518,24 @@ function updateDeviceIdentityDisplay(){
   const info=document.getElementById('device-identity-info');
   if(info)info.textContent=T('device_identity')+(deviceUserIdx===0?'💙':'💗')+' '+userNames[deviceUserIdx];
 }
+let rateMoreOpen=false; // 其餘幣別預設收起：19 行全展開會把定期支出/資料管理推到看不見
 function buildRateList(){
   const el=document.getElementById('rate-list');el.innerHTML='';
-  CURRENCIES.filter(c=>c.code!=='THB').forEach(c=>{
+  const mkRow=(c)=>{
     const row=document.createElement('div');row.className='rate-row';
     row.innerHTML=`<span style="font-size:13px;font-weight:800;min-width:40px;color:var(--ink);font-family:var(--sans)">${c.code}</span><span style="font-size:12px;color:var(--ink-2);font-weight:600;flex:1">${c.name}</span><span style="font-size:12px;color:var(--ink-3);font-weight:700;margin-right:4px">1=฿</span><input type="number" value="${c.rate}" step="0.0001" style="width:80px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);color:var(--ink);font-family:var(--sans);outline:none;font-weight:700;font-variant-numeric:tabular-nums" data-code="${c.code}">`;
     row.querySelector('input').onchange=e=>{const val=parseFloat(e.target.value);if(val>0){const cur=CURRENCIES.find(x=>x.code===e.target.dataset.code);if(cur){cur.rate=val;saveRates();pushSettings();}}};
-    el.appendChild(row);
-  });
+    return row;
+  };
+  const rest=CURRENCIES.filter(c=>c.code!=='THB'&&!QUICK_CURR.includes(c.code));
+  CURRENCIES.filter(c=>c.code!=='THB'&&QUICK_CURR.includes(c.code)).forEach(c=>el.appendChild(mkRow(c)));
+  if(rateMoreOpen)rest.forEach(c=>el.appendChild(mkRow(c)));
+  if(rest.length){
+    const more=document.createElement('button');more.type='button';more.className='rate-more-btn';
+    more.textContent=(rateMoreOpen?T('rate_less'):T('rate_more'))+'（'+rest.length+'）';
+    more.onclick=()=>{rateMoreOpen=!rateMoreOpen;buildRateList();};
+    el.appendChild(more);
+  }
   const twdRate=getRate('TWD');
   document.getElementById('twd-ref').textContent=twdRate>0?T('twd_ref')+(1/twdRate).toFixed(4):'';
 }
