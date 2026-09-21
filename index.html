@@ -571,6 +571,18 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
   </div>
 </div>
 
+<!-- Voice Batch Review Modal -->
+<div class="modal-overlay hidden" id="voice-review-modal">
+  <div class="modal">
+    <h2>🎤 <span id="voice-review-title">確認這幾筆</span></h2>
+    <p id="voice-review-sub" style="margin-bottom:10px"></p>
+    <div id="voice-review-list" style="max-height:48vh;overflow-y:auto"></div>
+    <div id="voice-review-msg" class="msg"></div>
+    <button class="submit-btn" id="voice-save-all-btn">全部存入</button>
+    <button class="secondary-btn" id="voice-review-cancel-btn" style="margin-top:8px;margin-bottom:0">取消，都不要存</button>
+  </div>
+</div>
+
 <!-- Recurring Edit Modal -->
 <div class="modal-overlay hidden" id="recur-edit-modal">
   <div class="modal">
@@ -1103,9 +1115,12 @@ const I18N={
     btn_delete:'刪除',
     // Voice
     voice_btn:'語音記帳',ai_busy:'🤖 AI 辨識中...',ai_fail:'辨識失敗',ai_filled:'已填入資料',ai_low_conf:'（信心度低）',
-    ai_listening:'🎤 請說話，例如「午餐麥當勞250泰銖」',ai_voice_fallback:'此瀏覽器不支援語音，請直接輸入，例如：午餐麥當勞250泰銖',
-    ai_voice_dictate:'⌨️ 按鍵盤上的 🎤 講話，或直接打字，例如「午餐麥當勞250泰銖」，完成按 ✓',
+    ai_listening:'🎤 請說話，可以一次講好幾筆，例如「星巴克150、晚餐水餃200、捷運80」',ai_voice_fallback:'此瀏覽器不支援語音，請直接輸入，可以一次打好幾筆',
+    ai_voice_dictate:'⌨️ 按鍵盤上的 🎤 講話，可以一次講好幾筆，例如「星巴克150、晚餐水餃200、捷運80」，完成按 ✓',
     voice_saved:'已記帳 ',undo:'復原',undo_done:'已復原，該筆已刪除',
+    voice_review_title:'確認這幾筆',voice_review_sub:'聽到 %n 筆。改一改、不要的取消勾選，然後一次存入。',
+    voice_save_all:'全部存入',voice_review_cancel:'取消，都不要存',voice_none_selected:'一筆都沒勾，沒有東西可以存',
+    voice_batch_saved:'已存入 %n 筆 ',voice_batch_undone:'已復原，那幾筆都刪掉了',
     // Charts
     chart_pie:'分類佔比',chart_tree:'分類樹狀圖',
   },
@@ -1195,9 +1210,12 @@ const I18N={
     btn_delete:'Delete',
     // Voice
     voice_btn:'Voice Entry',ai_busy:'🤖 Recognizing...',ai_fail:'Recognition failed',ai_filled:'Filled in',ai_low_conf:' (low confidence)',
-    ai_listening:'🎤 Speak now, e.g. "lunch McDonald\'s 250 baht"',ai_voice_fallback:'Speech not supported. Type instead, e.g.: lunch McDonald\'s 250 baht',
-    ai_voice_dictate:'⌨️ Tap the 🎤 on your keyboard to speak, or just type, e.g. "lunch McDonald\'s 250 baht", then press ✓',
+    ai_listening:'🎤 Speak now — several at once is fine, e.g. "Starbucks 150, dumplings 200, MRT 80"',ai_voice_fallback:'Speech not supported. Type instead — several at once is fine.',
+    ai_voice_dictate:'⌨️ Tap the 🎤 on your keyboard to speak — several at once is fine, e.g. "Starbucks 150, dumplings 200, MRT 80" — then press ✓',
     voice_saved:'Recorded ',undo:'Undo',undo_done:'Undone — entry removed',
+    voice_review_title:'Check these',voice_review_sub:'Heard %n entries. Edit them, untick what you don\'t want, then save all at once.',
+    voice_save_all:'Save all',voice_review_cancel:'Cancel, save none',voice_none_selected:'Nothing ticked — nothing to save',
+    voice_batch_saved:'Saved %n entries ',voice_batch_undone:'Undone — those entries were removed',
     voice_lang_en:'EN',voice_lang_th:'ไทย',
     // Charts
     chart_pie:'Category Share',chart_tree:'Category Treemap',
@@ -2575,7 +2593,7 @@ async function callScanApi(payload){
   });
   const data=await r.json().catch(()=>({}));
   if(!r.ok||!data.ok)throw new Error(data.error||('HTTP '+r.status));
-  return data.result;
+  return data; // 文字路回 {results:[...]}，照片路回 {result:{...}}
 }
 function aiMsg(type,text){
   const msg=document.getElementById('add-msg');
@@ -2595,10 +2613,18 @@ function fillFromAI(res){
 async function parseVoiceText(text){
   setVoiceBusy(true);aiMsg('success',T('ai_busy'));
   try{
-    const res=await callScanApi({text});
-    fillFromAI(res);                 // 填入表單（金額無效會 throw，不會誤存）
-    const r=commitRecordFromForm();  // 直接存檔，省去手動按「儲存」
-    if(r)showVoiceSaved(r.rec,res.confidence);
+    // today 一定要送：模型沒有「今天幾號」就算不出「昨天」。
+    // defaultCurrency 一定要送：口語沒有收據可以判斷國別，不給就只能亂猜。
+    const data=await callScanApi({text,today:today(),defaultCurrency:selCurr});
+    const list=data.results||(data.result?[data.result]:[]);
+    if(!list.length)throw new Error('no amount');
+    if(list.length===1){
+      fillFromAI(list[0]);             // 填入表單（金額無效會 throw，不會誤存）
+      const r=commitRecordFromForm();  // 單筆維持秒存，不拖慢日常記帳
+      if(r)showVoiceSaved(r.rec,list[0].confidence);
+    }else{
+      openVoiceReview(list);           // 多筆一律先審閱：三筆一起錯，7 秒復原來不及救
+    }
   }
   catch(e){console.error(e);aiMsg('error',T('ai_fail')+'：'+e.message);}
   setVoiceBusy(false);
@@ -2623,6 +2649,162 @@ function showVoiceSaved(rec,confidence){
   msg.appendChild(span);msg.appendChild(undo);
   setTimeout(()=>{if(msg.contains(undo)){msg.className='msg';msg.textContent='';}},7000);
 }
+// ===== 語音批量審閱（一句多筆）=====
+// 多筆不走 commitRecordFromForm（那支綁在新增頁的表單上），直接組 record。
+// 付款人固定用 deviceUserIdx＝這支手機的主人，不用 selectedUserIdx；
+// 否則表單剛好停在對方身上時，整批會靜靜記到錯的人頭上。
+let voiceRows=[];
+function openVoiceReview(list){
+  voiceRows=list.map(x=>({
+    rid:uid(),
+    amount:Math.round(Number(x.amount)*100)/100,
+    // 對不上清單就退回「你目前選的幣別」與 other，而且在清單上看得到，不靜默丟掉
+    curr:(x.currency&&CURRENCIES.some(c=>c.code===x.currency))?x.currency:selCurr,
+    cat:(x.category&&CATS.some(c=>c.id===x.category))?x.category:'other',
+    note:x.merchant||'',
+    date:(x.date&&/^\d{4}-\d{2}-\d{2}$/.test(x.date))?x.date:today(),
+    low:x.confidence==='low',
+    keep:true
+  }));
+  document.getElementById('voice-review-title').textContent=T('voice_review_title');
+  document.getElementById('voice-review-sub').textContent=T('voice_review_sub').replace('%n',voiceRows.length);
+  document.getElementById('voice-save-all-btn').textContent=T('voice_save_all');
+  document.getElementById('voice-review-cancel-btn').textContent=T('voice_review_cancel');
+  const msg=document.getElementById('voice-review-msg');msg.className='msg';msg.textContent='';
+  renderVoiceReview();
+  document.getElementById('voice-review-modal').classList.remove('hidden');
+}
+function closeVoiceReview(){
+  document.getElementById('voice-review-modal').classList.add('hidden');
+  voiceRows=[];
+}
+function renderVoiceReview(){
+  const box=document.getElementById('voice-review-list');
+  box.innerHTML='';
+  voiceRows.forEach(r=>{
+    const row=document.createElement('div');
+    row.style.cssText='padding:8px 4px;border-bottom:1px solid var(--border)';
+    if(!r.keep)row.style.opacity='0.45';
+
+    // 日期自成一行，但預設只在「不是今天」時展開。多數筆都是今天，
+    // 每列都擺日期框會讓三筆就撐破一屏；今天的那幾筆按第一行的 📅 叫出來。
+    const dtRow=document.createElement('div');
+    dtRow.style.cssText='margin-top:6px';
+    const dt=document.createElement('input');
+    dt.type='date';dt.className='form-input';dt.value=r.date;
+    dt.style.cssText='width:100%';
+    dt.onchange=()=>{r.date=dt.value;};
+    dtRow.appendChild(dt);
+    const isToday=r.date===today();
+    dtRow.style.display=isToday?'none':'block';
+
+    // 第一行：勾選 + 店家 + (📅) + 刪掉這筆
+    const head=document.createElement('div');
+    head.style.cssText='display:flex;align-items:center;gap:6px';
+    const cb=document.createElement('input');
+    cb.type='checkbox';cb.checked=r.keep;
+    cb.style.cssText='width:20px;height:20px;flex:none;accent-color:var(--accent)';
+    // 只淡化這一列，不整批重繪，否則會把你正在打的字洗掉
+    cb.onchange=()=>{r.keep=cb.checked;row.style.opacity=r.keep?'':'0.45';};
+    const note=document.createElement('input');
+    note.type='text';note.className='form-input';note.value=r.note;
+    note.placeholder=(lang==='zh')?'店家、說明':'Merchant / note';
+    note.style.cssText='flex:1;min-width:0';
+    note.oninput=()=>{r.note=note.value;};
+    head.appendChild(cb);head.appendChild(note);
+    if(isToday){
+      const cal=document.createElement('button');
+      cal.type='button';cal.textContent='📅';
+      cal.title=(lang==='zh')?'改日期':'Change date';
+      cal.style.cssText='border:1px solid var(--border);background:var(--surface);width:30px;height:30px;border-radius:8px;cursor:pointer;flex:none;font-size:14px;padding:0';
+      cal.onclick=()=>{dtRow.style.display='block';cal.style.display='none';};
+      head.appendChild(cal);
+    }
+    const del=document.createElement('button');
+    del.type='button';del.textContent='✕';
+    del.style.cssText='border:none;background:var(--danger-soft);color:var(--danger);width:30px;height:30px;border-radius:8px;font-weight:800;cursor:pointer;flex:none';
+    del.onclick=()=>{
+      voiceRows=voiceRows.filter(x=>x.rid!==r.rid);
+      if(!voiceRows.length){closeVoiceReview();return;}
+      document.getElementById('voice-review-sub').textContent=T('voice_review_sub').replace('%n',voiceRows.length);
+      renderVoiceReview();
+    };
+    head.appendChild(del);
+
+    // 第二行：金額 + 幣別 + 類別
+    const body=document.createElement('div');
+    body.style.cssText='display:flex;align-items:center;gap:6px;margin-top:6px';
+    const amt=document.createElement('input');
+    amt.type='number';amt.className='form-input';amt.inputMode='decimal';amt.step='any';amt.value=r.amount;
+    amt.style.cssText='flex:1 1 76px;min-width:0';
+    amt.oninput=()=>{r.amount=amt.value;};
+    const cur=document.createElement('select');
+    cur.className='curr-select';cur.style.cssText='flex:0 1 92px;min-width:0';
+    CURRENCIES.forEach(c=>{const o=document.createElement('option');o.value=c.code;o.textContent=c.symbol+' '+c.code;cur.appendChild(o);});
+    cur.value=r.curr;cur.onchange=()=>{r.curr=cur.value;};
+    const cat=document.createElement('select');
+    cat.className='curr-select';cat.style.cssText='flex:1 1 104px;min-width:0';
+    CATS.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.icon+' '+T(c.lkey);cat.appendChild(o);});
+    cat.value=r.cat;cat.onchange=()=>{r.cat=cat.value;};
+    body.appendChild(amt);body.appendChild(cur);body.appendChild(cat);
+
+    row.appendChild(head);row.appendChild(body);row.appendChild(dtRow);
+    if(r.low){
+      const warn=document.createElement('div');
+      warn.style.cssText='font-size:11px;color:var(--ink-3);font-weight:600;margin-top:4px';
+      warn.textContent='⚠️ '+T('ai_low_conf');
+      row.appendChild(warn);
+    }
+    box.appendChild(row);
+  });
+}
+function commitVoiceBatch(){
+  const msg=document.getElementById('voice-review-msg');
+  const rows=voiceRows.filter(r=>r.keep);
+  if(!rows.length){msg.className='msg error';msg.textContent=T('voice_none_selected');return;}
+  const owner=userNames[deviceUserIdx];
+  const saved=[];
+  rows.forEach(r=>{
+    const amt=Math.round(Number(r.amount)*100)/100;
+    if(!isFinite(amt)||amt<=0)return; // 金額被改壞的那筆跳過，不讓整批失敗
+    const rec={id:uid(),cat:r.cat,amount:amt,curr:r.curr,note:(r.note||'').trim(),
+               date:normalizeDate(r.date),ts:Date.now(),user:owner};
+    records.push(rec);
+    if(rec.note)addNoteMemory(rec.cat,rec.note);
+    enqueue({op:'upsert',id:rec.id,rec});
+    saved.push(rec);
+  });
+  if(!saved.length){msg.className='msg error';msg.textContent=T('err_amount');return;}
+  saveLocal();refreshAll();
+  flushQueue(); // 迴圈中的 enqueue 可能撞上同一次 flush 的快照，最後再推一次確保都上雲
+  closeVoiceReview();
+  showBatchSaved(saved);
+}
+// 批量存完的總結 + 全部復原（跟單筆一樣走 delete op，連雲端一起刪）
+function showBatchSaved(saved){
+  const msg=document.getElementById('add-msg');
+  msg.className='msg success';msg.textContent='';
+  const span=document.createElement('span');
+  span.textContent=T('voice_batch_saved').replace('%n',saved.length)
+    +saved.map(r=>fmtAmt(r.amount,r.curr)).join(' · ')+'　';
+  const undo=document.createElement('button');
+  undo.textContent=T('undo');
+  undo.style.cssText='border:none;background:var(--ink);color:#fbf9f2;padding:4px 12px;border-radius:10px;font-weight:800;cursor:pointer;font-size:13px';
+  undo.onclick=()=>{
+    const ids=saved.map(r=>r.id);
+    records=records.filter(x=>ids.indexOf(x.id)<0);
+    saveLocal();refreshAll();
+    ids.forEach(id=>enqueue({op:'delete',id}));
+    msg.className='msg success';msg.textContent=T('voice_batch_undone');
+    setTimeout(()=>{msg.className='msg';msg.textContent='';},2500);
+  };
+  msg.appendChild(span);msg.appendChild(undo);
+  // 多筆要讀的東西比單筆多，復原窗給 9 秒
+  setTimeout(()=>{if(msg.contains(undo)){msg.className='msg';msg.textContent='';}},9000);
+}
+document.getElementById('voice-save-all-btn').onclick=commitVoiceBatch;
+document.getElementById('voice-review-cancel-btn').onclick=closeVoiceReview;
+
 // 英文模式語言切換按鈕
 document.getElementById('voice-lang-en').onclick=()=>{
   voiceLang='en-US';
