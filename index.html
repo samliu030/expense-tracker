@@ -383,6 +383,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 
 /* 插畫資產：預設藏起來，只有 boba 主題顯示（quant 主題完全不受影響） */
 .nav-bear,.cat-art,.topbar-bear,.user-bear,.save-bear{display:none}
+@keyframes recpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
 </style>
 
 <!-- ══════ BOBA 手帳風 skin（覆寫層，可整段刪除＋移除主題切換器即還原）══════ -->
@@ -697,6 +698,15 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
         <div id="voice-lang-toggle" style="display:none;gap:4px">
           <button id="voice-lang-en" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:12px;background:var(--ink);color:#fbf9f2;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--sans)">EN</button>
           <button id="voice-lang-th" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);color:var(--ink-2);font-size:13px;font-weight:800;cursor:pointer;font-family:var(--sans)">ไทย</button>
+        </div>
+      </div>
+      <div id="voice-rec-row" style="display:none;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:14px;background:var(--surface)">
+          <span id="voice-rec-dot" style="width:10px;height:10px;border-radius:50%;background:#c0392b;flex:none;animation:recpulse 1s infinite"></span>
+          <span id="voice-rec-time" style="font-family:var(--serif);font-weight:700;font-size:15px;color:var(--ink);flex:none;min-width:38px">0:00</span>
+          <span id="voice-rec-hint" style="flex:1;min-width:0;font-size:11px;color:var(--ink-3);font-weight:600"></span>
+          <button id="voice-rec-cancel" type="button" style="border:1px solid var(--border);background:var(--surface);color:var(--ink-2);padding:7px 11px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;flex:none"></button>
+          <button id="voice-rec-done" type="button" style="border:none;background:var(--ink);color:#fbf9f2;padding:7px 15px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;flex:none"></button>
         </div>
       </div>
       <div id="voice-text-row" style="display:none;margin-top:8px">
@@ -1118,6 +1128,9 @@ const I18N={
     ai_listening:'🎤 請說話，可以一次講好幾筆，例如「星巴克150、晚餐水餃200、捷運80」',ai_voice_fallback:'此瀏覽器不支援語音，請直接輸入，可以一次打好幾筆',
     ai_voice_dictate:'⌨️ 按鍵盤上的 🎤 講話，可以一次講好幾筆，例如「星巴克150、晚餐水餃200、捷運80」，完成按 ✓',
     voice_saved:'已記帳 ',undo:'復原',undo_done:'已復原，該筆已刪除',
+    voice_rec_hint:'錄音中…講完按「完成」',voice_rec_done:'完成',voice_rec_cancel:'取消',
+    voice_rec_empty:'沒有錄到聲音，再試一次',voice_rec_max:'已達 60 秒上限，自動送出',
+    voice_rec_sending:'🤖 聽寫中…',
     voice_review_title:'確認這幾筆',voice_review_sub:'聽到 %n 筆。改一改、不要的取消勾選，然後一次存入。',
     voice_save_all:'全部存入',voice_review_cancel:'取消，都不要存',voice_none_selected:'一筆都沒勾，沒有東西可以存',
     voice_batch_saved:'已存入 %n 筆 ',voice_batch_undone:'已復原，那幾筆都刪掉了',
@@ -1213,6 +1226,9 @@ const I18N={
     ai_listening:'🎤 Speak now — several at once is fine, e.g. "Starbucks 150, dumplings 200, MRT 80"',ai_voice_fallback:'Speech not supported. Type instead — several at once is fine.',
     ai_voice_dictate:'⌨️ Tap the 🎤 on your keyboard to speak — several at once is fine, e.g. "Starbucks 150, dumplings 200, MRT 80" — then press ✓',
     voice_saved:'Recorded ',undo:'Undo',undo_done:'Undone — entry removed',
+    voice_rec_hint:'Recording… tap Done when finished',voice_rec_done:'Done',voice_rec_cancel:'Cancel',
+    voice_rec_empty:'No audio captured — try again',voice_rec_max:'Hit the 60s limit, sending now',
+    voice_rec_sending:'🤖 Transcribing…',
     voice_review_title:'Check these',voice_review_sub:'Heard %n entries. Edit them, untick what you don\'t want, then save all at once.',
     voice_save_all:'Save all',voice_review_cancel:'Cancel, save none',voice_none_selected:'Nothing ticked — nothing to save',
     voice_batch_saved:'Saved %n entries ',voice_batch_undone:'Undone — those entries were removed',
@@ -2616,15 +2632,7 @@ async function parseVoiceText(text){
     // today 一定要送：模型沒有「今天幾號」就算不出「昨天」。
     // defaultCurrency 一定要送：口語沒有收據可以判斷國別，不給就只能亂猜。
     const data=await callScanApi({text,today:today(),defaultCurrency:selCurr});
-    const list=data.results||(data.result?[data.result]:[]);
-    if(!list.length)throw new Error('no amount');
-    if(list.length===1){
-      fillFromAI(list[0]);             // 填入表單（金額無效會 throw，不會誤存）
-      const r=commitRecordFromForm();  // 單筆維持秒存，不拖慢日常記帳
-      if(r)showVoiceSaved(r.rec,list[0].confidence);
-    }else{
-      openVoiceReview(list);           // 多筆一律先審閱：三筆一起錯，7 秒復原來不及救
-    }
+    handleVoiceResults(data);
   }
   catch(e){console.error(e);aiMsg('error',T('ai_fail')+'：'+e.message);}
   setVoiceBusy(false);
@@ -2805,6 +2813,127 @@ function showBatchSaved(saved){
 document.getElementById('voice-save-all-btn').onclick=commitVoiceBatch;
 document.getElementById('voice-review-cancel-btn').onclick=closeVoiceReview;
 
+// 文字路與錄音路共用：1 筆秒存、2 筆以上進審閱
+function handleVoiceResults(data){
+  const list=data.results||(data.result?[data.result]:[]);
+  if(!list.length)throw new Error('no amount');
+  if(list.length===1){
+    fillFromAI(list[0]);             // 填入表單（金額無效會 throw，不會誤存）
+    const r=commitRecordFromForm();  // 單筆維持秒存，不拖慢日常記帳
+    if(r)showVoiceSaved(r.rec,list[0].confidence);
+  }else{
+    openVoiceReview(list);           // 多筆一律先審閱：三筆一起錯，7 秒復原來不及救
+  }
+}
+
+// ===== 直接錄音（iOS 專用）=====
+// iOS 沒有任何 API 可以叫出系統聽寫，使用者一定得自己按鍵盤上的 🎤。
+// 改成自己錄音再送 Gemini（它同時做語音轉文字與拆筆），就省掉那一下，
+// 也順便繞過 iOS 聽寫在泰文／混語時最容易出錯的那一層。
+// 起不來就退回鍵盤聽寫，不讓使用者面對一顆按了沒反應的按鈕。
+const REC_MAX_SEC=60;
+let recorder=null,recChunks=[],recStream=null,recTimer=null,recStartMs=0;
+
+function recSupported(){
+  return !!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&typeof MediaRecorder!=='undefined');
+}
+function pickAudioMime(){
+  // iOS Safari 只給 audio/mp4；實測 Gemini 收（2026-09-21）
+  const cands=['audio/mp4','audio/aac','audio/webm;codecs=opus','audio/webm'];
+  if(!MediaRecorder.isTypeSupported)return '';
+  for(let i=0;i<cands.length;i++){if(MediaRecorder.isTypeSupported(cands[i]))return cands[i];}
+  return '';
+}
+function releaseRecStream(){
+  if(recStream){recStream.getTracks().forEach(t=>{try{t.stop();}catch(e){}});recStream=null;}
+}
+function showRecUI(){
+  document.getElementById('voice-rec-hint').textContent=T('voice_rec_hint');
+  document.getElementById('voice-rec-done').textContent=T('voice_rec_done');
+  document.getElementById('voice-rec-cancel').textContent=T('voice_rec_cancel');
+  document.getElementById('voice-rec-time').textContent='0:00';
+  document.getElementById('voice-rec-row').style.display='block';
+}
+function hideRecUI(){
+  document.getElementById('voice-rec-row').style.display='none';
+  if(recTimer){clearInterval(recTimer);recTimer=null;}
+}
+function tickRecTimer(){
+  const sec=Math.floor((Date.now()-recStartMs)/1000);
+  document.getElementById('voice-rec-time').textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
+  // 上限到了自動送出，免得錄成一個超大檔或忘了按完成
+  if(sec>=REC_MAX_SEC){aiMsg('success',T('voice_rec_max'));finishVoiceRecording();}
+}
+async function startVoiceRecording(){
+  if(!recSupported())return false;
+  try{recStream=await navigator.mediaDevices.getUserMedia({audio:true});}
+  catch(e){console.warn('getUserMedia 失敗，退回鍵盤聽寫',e);return false;}
+  try{
+    const m=pickAudioMime();
+    recorder=m?new MediaRecorder(recStream,{mimeType:m}):new MediaRecorder(recStream);
+  }catch(e){console.warn('MediaRecorder 建立失敗，退回鍵盤聽寫',e);releaseRecStream();return false;}
+  recChunks=[];
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data);};
+  try{recorder.start();}
+  catch(e){console.warn('recorder.start 失敗，退回鍵盤聽寫',e);releaseRecStream();recorder=null;return false;}
+  recStartMs=Date.now();
+  showRecUI();
+  if(recTimer)clearInterval(recTimer);
+  recTimer=setInterval(tickRecTimer,250);
+  aiMsg('',''); 
+  return true;
+}
+function finishVoiceRecording(){
+  if(!recorder||recorder.state==='inactive')return;
+  const mime=(recorder.mimeType||'audio/mp4').split(';')[0];
+  recorder.onstop=()=>{
+    releaseRecStream();hideRecUI();
+    const blob=new Blob(recChunks,{type:mime});
+    recorder=null;recChunks=[];
+    if(!blob.size){aiMsg('error',T('voice_rec_empty'));return;}
+    parseVoiceAudio(blob,mime);
+  };
+  try{recorder.stop();}catch(e){console.error(e);releaseRecStream();hideRecUI();recorder=null;}
+}
+function cancelVoiceRecording(){
+  if(recorder&&recorder.state!=='inactive'){
+    recorder.onstop=()=>{releaseRecStream();recorder=null;recChunks=[];};
+    try{recorder.stop();}catch(e){releaseRecStream();recorder=null;}
+  }else{releaseRecStream();recorder=null;}
+  hideRecUI();aiMsg('','');
+}
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{const s=String(fr.result||'');const i=s.indexOf(',');resolve(i>=0?s.slice(i+1):'');};
+    fr.onerror=()=>reject(new Error('read audio failed'));
+    fr.readAsDataURL(blob);
+  });
+}
+async function parseVoiceAudio(blob,mime){
+  setVoiceBusy(true);aiMsg('success',T('voice_rec_sending'));
+  try{
+    const b64=await blobToBase64(blob);
+    if(!b64)throw new Error('empty audio');
+    // today／defaultCurrency 跟文字路送一樣的，規則才一致
+    const data=await callScanApi({audio:b64,mime:mime,today:today(),defaultCurrency:selCurr});
+    handleVoiceResults(data);
+  }catch(e){console.error(e);aiMsg('error',T('ai_fail')+'：'+e.message);}
+  setVoiceBusy(false);
+}
+document.getElementById('voice-rec-done').onclick=finishVoiceRecording;
+document.getElementById('voice-rec-cancel').onclick=cancelVoiceRecording;
+
+// 鍵盤聽寫（錄音起不來時的退路，也是原本 iOS 的做法）
+function showKeyboardDictation(){
+  const row=document.getElementById('voice-text-row');
+  const el=document.getElementById('voice-text-input');
+  row.style.display='block';
+  el.value='';
+  el.focus(); // 不能包 setTimeout，否則手勢鏈斷掉、鍵盤不彈
+  aiMsg('success',T('ai_voice_dictate'));
+}
+
 // 英文模式語言切換按鈕
 document.getElementById('voice-lang-en').onclick=()=>{
   voiceLang='en-US';
@@ -2828,15 +2957,13 @@ document.getElementById('voice-text-go').onclick=submitVoiceText;
 document.getElementById('voice-text-input').addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();submitVoiceText();}
 });
-document.getElementById('voice-btn').onclick=()=>{
-  // iOS：叫出文字框並「同步」聚焦（focus 不能包 setTimeout，否則手勢鏈斷、鍵盤不彈）
+document.getElementById('voice-btn').onclick=async ()=>{
   if(IS_IOS){
-    const row=document.getElementById('voice-text-row');
-    const el=document.getElementById('voice-text-input');
-    row.style.display='block';
-    el.value='';
-    el.focus();
-    aiMsg('success',T('ai_voice_dictate'));
+    // 先試直接錄音；麥克風拿不到（權限被拒／PWA 限制）就退回鍵盤聽寫。
+    // 注意 getUserMedia 之後手勢鏈已斷，所以退路裡的 focus 可能彈不出鍵盤，
+    // 但使用者點一下輸入框就好，總比按鈕沒反應好。
+    if(await startVoiceRecording())return;
+    showKeyboardDictation();
     return;
   }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
