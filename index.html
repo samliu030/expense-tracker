@@ -1072,7 +1072,7 @@ const I18N={
     freq_monthly:'每月',freq_weekly:'每週',freq_daily:'每天',freq_workday:'工作日',
     sec_recurring:'定期支出管理',
     recurring_empty:'尚無定期支出',
-    recurring_added:'已加入定期支出！',
+    recurring_added:'已加入定期支出！',recurring_dup:'定期支出已存在，未重複新增',
     recurring_generated:'已自動生成定期記錄：',
     hint_monthly:'📅 每月在相同日期自動產生一筆記錄',
     hint_weekly:'📅 每週在相同星期幾自動產生一筆記錄',
@@ -1164,7 +1164,7 @@ const I18N={
     freq_monthly:'Monthly',freq_weekly:'Weekly',freq_daily:'Daily',freq_workday:'Weekdays',
     sec_recurring:'Recurring Payments',
     recurring_empty:'No recurring payments',
-    recurring_added:'Added to recurring payments!',
+    recurring_added:'Added to recurring payments!',recurring_dup:'Recurring payment already exists — not added again',
     recurring_generated:'Auto-generated recurring: ',
     hint_monthly:'📅 Auto-creates a record on the same date each month',
     hint_weekly:'📅 Auto-creates a record on the same weekday each week',
@@ -1194,6 +1194,8 @@ function T(k){return (I18N[lang]&&I18N[lang][k])||I18N['zh'][k]||k;}
 // ===== 狀態 =====
 let records=[], selCat='food', selCurr='THB', repCatFilter=null, apiUrl='';
 let userNames=['Sam','Patty'], selectedUserIdx=0;
+// deviceUserIdx＝這支手機是誰（只有身分 modal 會改）；selectedUserIdx＝這一筆是誰付的（新增頁切換用）
+let deviceUserIdx=0;
 let quickDrafts=[];      // 快速記帳暫存草稿：{id,amount,curr,date,user,ts}，只存本機、不進 records/統計
 let finalizingQuickId=null; // 目前正在整理（補全）的草稿 id；save-btn 成功後據此移除草稿
 let noteMemory={}, budgets={}, editingId=null;
@@ -1240,7 +1242,7 @@ function loadLocal(){
   const lu=localStorage.getItem('xp_last_user');if(lu!==null&&!isNaN(parseInt(lu)))selectedUserIdx=parseInt(lu);
   const un=lsJSON('xp_usernames',null);if(Array.isArray(un)&&un.length===2)userNames=un;
   const dv=localStorage.getItem(DEVICE_KEY);
-  if(dv!==null&&!isNaN(parseInt(dv)))selectedUserIdx=parseInt(dv);
+  if(dv!==null&&!isNaN(parseInt(dv))){deviceUserIdx=parseInt(dv);selectedUserIdx=deviceUserIdx;} // 每次開 app 都回到本機身分
   budgets=lsJSON('xp_budgets',{})||{};
   const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
   pendingOps=lsJSON('xp_pending',[])||[];
@@ -1251,7 +1253,7 @@ function loadLocal(){
     const seen=new Set();
     recurringPayments=rc.filter(rp=>{
       if(rp.deleted)return (rp.mtime||0)>Date.now()-90*86400000; // 過期墓碑（90 天）順手清掉
-      const key=rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user;
+      const key=rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user+'|'+(rp.note||'');
       if(seen.has(key))return false;
       seen.add(key);return true;
     });
@@ -1281,7 +1283,7 @@ function processRecurring(){
   recurringPayments.forEach(rp=>{
     if(rp.deleted)return; // 墓碑：已刪除的不再生成
     // 只生成「本機身分擁有」的定期支出，避免兩支手機各生成一份（跨裝置重複）
-    if(rp.user&&rp.user!==userNames[selectedUserIdx])return;
+    if(rp.user&&rp.user!==userNames[deviceUserIdx])return;
     const last=rp.lastGenerated;
     let shouldGen=false;
     if(rp.freq==='daily'){
@@ -1750,7 +1752,7 @@ function showIdentityModal(){
     b.style.cssText=`padding:20px;border:3px solid ${colors[i]};border-radius:16px;background:#fff;cursor:pointer;font-size:18px;font-weight:900;color:${colors[i]};font-family:'Noto Sans TC',sans-serif;transition:all 0.2s`;
     b.textContent=T('identity_prefix_'+i)+name+T('identity_suffix');
     b.onclick=()=>{
-      selectedUserIdx=i;localStorage.setItem(DEVICE_KEY,i);
+      deviceUserIdx=i;selectedUserIdx=i;localStorage.setItem(DEVICE_KEY,i);
       updateUserToggle();modal.classList.add('hidden');
       if(!apiUrl)setTimeout(()=>showSetupModal(),300); // 首次流程：選完身分接著設定雲端，不用重新整理
     };
@@ -1771,8 +1773,8 @@ function updateUserToggle(){
 }
 document.querySelectorAll('#user-toggle .segment-btn').forEach(b=>{
   b.onclick=function(){
+    // 只換「這一筆誰付的」，不動本機身分——幫對方記一筆不該讓之後每筆都記到對方頭上
     selectedUserIdx=parseInt(this.dataset.idx);
-    localStorage.setItem(DEVICE_KEY,selectedUserIdx);
     updateUserToggle();
   };
 });
@@ -2481,7 +2483,7 @@ function refreshSettings(){
 }
 function updateDeviceIdentityDisplay(){
   const info=document.getElementById('device-identity-info');
-  if(info)info.textContent=T('device_identity')+(selectedUserIdx===0?'💙':'💗')+' '+userNames[selectedUserIdx];
+  if(info)info.textContent=T('device_identity')+(deviceUserIdx===0?'💙':'💗')+' '+userNames[deviceUserIdx];
 }
 function buildRateList(){
   const el=document.getElementById('rate-list');el.innerHTML='';
@@ -2494,7 +2496,15 @@ function buildRateList(){
   const twdRate=getRate('TWD');
   document.getElementById('twd-ref').textContent=twdRate>0?T('twd_ref')+(1/twdRate).toFixed(4):'';
 }
-function refreshAll(){refreshToday();refreshMonth();}
+function refreshAll(){refreshToday();refreshMonth();refreshReportIfOpen();}
+// 查詢頁跑過一次之後，任何新增/編輯/刪除都要一起重算，否則結果與合計會停在舊值
+function refreshReportIfOpen(){
+  const res=document.getElementById('rep-result');
+  if(!res||res.style.display!=='block')return;
+  const from=document.getElementById('rep-from').value,to=document.getElementById('rep-to').value;
+  if(!from||!to)return; // 缺日期就別跑，runReport 會 alert
+  runReport();
+}
 
 // ===== Nav =====
 document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
@@ -2650,8 +2660,9 @@ function commitRecordFromForm(){
 
   const isRecurring=document.getElementById('inp-recurring').checked;
   if(isRecurring){
-    const dupKey=finalCat+'|'+amt+'|'+selCurr+'|'+selFreq+'|'+userNames[selectedUserIdx];
-    const isDup=recurringPayments.some(rp=>!rp.deleted&&rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user===dupKey);
+    // 備註要進 key，否則同金額同頻率的 Netflix/Spotify 只會留下一筆
+    const dupKey=finalCat+'|'+amt+'|'+selCurr+'|'+selFreq+'|'+userNames[selectedUserIdx]+'|'+noteVal;
+    const isDup=recurringPayments.some(rp=>!rp.deleted&&rp.cat+'|'+rp.amount+'|'+rp.curr+'|'+rp.freq+'|'+rp.user+'|'+(rp.note||'')===dupKey);
     if(!isDup){
       const rp={
         id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,
@@ -2660,6 +2671,8 @@ function commitRecordFromForm(){
       };
       recurringPayments.push(rp);saveRecurring();pushRecurring();
       successMsg+=' · '+T('recurring_added');
+    }else{
+      successMsg+=' · '+T('recurring_dup'); // 重複就要講，別讓使用者以為設好了
     }
     document.getElementById('inp-recurring').checked=false;
     document.getElementById('recurring-options').style.display='none';
@@ -2752,7 +2765,7 @@ function startFinalize(id){
   selCurr=d.curr;localStorage.setItem('xp_last_curr',selCurr);buildCurrUI();
   // 使用者
   const ui=userNames.indexOf(d.user);
-  if(ui>=0){selectedUserIdx=ui;localStorage.setItem(DEVICE_KEY,selectedUserIdx);updateUserToggle();}
+  if(ui>=0){selectedUserIdx=ui;updateUserToggle();} // 只對齊表單付款人，不改本機身分
   // 金額 / 日期 / 清空備註（類別留給使用者補）
   document.getElementById('inp-amount').value=d.amount;
   document.getElementById('inp-date').value=d.date;
