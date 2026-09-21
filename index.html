@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png?v=20260905">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=20260905">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png?v=20260905">
+<link rel="manifest" href="manifest-tracker.webmanifest?v=20260922">
 <title>記帳本</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@500;600;700&display=swap');
@@ -532,7 +533,18 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
     </div>
     <div class="form-group">
       <label class="form-label" id="edit-lbl-amt">金額</label>
-      <input type="number" class="form-input" id="edit-amount" inputmode="decimal" step="any">
+      <input type="text" class="form-input" id="edit-amount" inputmode="decimal" placeholder="0 或 130+50" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="edit-lbl-curr">幣別</label>
+      <select class="curr-select" id="edit-curr"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="edit-lbl-user">誰支出的？</label>
+      <div class="segmented-control" id="edit-user-toggle" style="margin-bottom:0">
+        <button class="segment-btn active" data-idx="0">Sam</button>
+        <button class="segment-btn" data-idx="1">Patty</button>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label" id="edit-lbl-date">日期</label>
@@ -832,7 +844,7 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
 <div id="screen-settings" class="screen">
   <div class="topbar"><div class="topbar-left"><div class="tb-eyebrow">SETTINGS</div><h1>設定 / 匯率</h1><p>依台灣中央銀行牌告匯率</p></div></div>
   <div class="content">
-    <div class="section-title">語言 / Language</div>
+    <div class="section-title" id="sec-lang-title">語言 / Language</div>
     <div class="card">
       <div style="display:flex;gap:10px">
         <button id="lang-zh-btn" onclick="setLang('zh')" style="flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);font-size:15px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:all 0.2s">🇹🇼 繁體中文</button>
@@ -846,7 +858,7 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
         <button id="theme-quant-btn" onclick="setTheme('quant')" style="flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);font-size:15px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:all 0.2s">📐 襯線</button>
       </div>
     </div>
-    <div class="section-title">使用者名稱</div>
+    <div class="section-title" id="sec-users-title">使用者名稱</div>
     <div class="card">
       <div class="form-group" style="margin-bottom:12px">
         <label class="form-label">使用者 1</label>
@@ -860,12 +872,12 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
       <div id="device-identity-info" style="margin-top:14px;padding:12px 16px;background:var(--surface2);border-radius:12px;font-size:13px;font-weight:700;color:var(--ink-2)"></div>
       <button class="secondary-btn" id="change-identity-btn" style="margin-top:8px;margin-bottom:0">更改此裝置身分</button>
     </div>
-    <div class="section-title">雲端連線狀態</div>
+    <div class="section-title" id="sec-cloud-title">雲端連線狀態</div>
     <div class="card">
       <div class="sync-status" style="margin-bottom:12px"><div class="sync-dot" id="conn-dot"></div><span id="conn-text">檢查中...</span></div>
       <button class="secondary-btn" id="change-api-btn" style="margin-bottom:0">重新設定 API 網址</button>
     </div>
-    <div class="section-title">幣別匯率（對泰銖）</div>
+    <div class="section-title" id="sec-rates-title">幣別匯率（對泰銖）</div>
     <div class="card">
       <div class="rate-header">
         <span style="font-size:13px;color:var(--ink-2);font-weight:700">即期匯率</span>
@@ -881,7 +893,7 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
       <div id="recurring-settings-list"></div>
       <div id="recurring-settings-empty" class="empty" style="padding:24px;display:none">尚無定期支出</div>
     </div>
-    <div class="section-title">資料管理</div>
+    <div class="section-title" id="sec-data-title">資料管理</div>
     <div class="card">
       <div style="font-size:13px;color:var(--ink-3);margin-bottom:14px;line-height:1.6">資料儲存於你的 Google Sheets，本機同時保留快取。</div>
       <button class="secondary-btn" id="refresh-btn">重新同步雲端資料</button>
@@ -1248,7 +1260,7 @@ let deviceUserIdx=0;
 let quickDrafts=[];      // 快速記帳暫存草稿：{id,amount,curr,date,user,ts}，只存本機、不進 records/統計
 let finalizingQuickId=null; // 目前正在整理（補全）的草稿 id；save-btn 成功後據此移除草稿
 let noteMemory={}, budgets={}, editingId=null;
-let editSelCat='food';
+let editSelCat='food', editSelCurr='THB', editSelUserIdx=0;
 let todayUserFilter=null, monthUserFilter=null, repUserFilter=null;
 let recurringPayments=[], selFreq='monthly';
 let pendingOps=[], flushing=false;
@@ -1276,6 +1288,8 @@ function lsJSON(key,fallback){
   catch(e){return fallback;}
 }
 function loadLocal(){
+  // 名字要先讀：晚讀的話，改過名之後空 user 會被補成舊的預設名字（等於記到另一個人頭上）
+  const un0=lsJSON('xp_usernames',null);if(Array.isArray(un0)&&un0.length===2)userNames=un0;
   const r=lsJSON('xp_records',null);
   if(Array.isArray(r)){
     records=r.map(rec=>{
@@ -1289,7 +1303,6 @@ function loadLocal(){
   const lc=localStorage.getItem('xp_last_curr');if(lc)selCurr=lc;
   noteMemory=lsJSON('xp_note_memory',{})||{};
   const lu=localStorage.getItem('xp_last_user');if(lu!==null&&!isNaN(parseInt(lu)))selectedUserIdx=parseInt(lu);
-  const un=lsJSON('xp_usernames',null);if(Array.isArray(un)&&un.length===2)userNames=un;
   const dv=localStorage.getItem(DEVICE_KEY);
   if(dv!==null&&!isNaN(parseInt(dv))){deviceUserIdx=parseInt(dv);selectedUserIdx=deviceUserIdx;} // 每次開 app 都回到本機身分
   budgets=lsJSON('xp_budgets',{})||{};
@@ -1557,15 +1570,14 @@ function applyLang(){
   document.getElementById('today-stat-lbl').textContent=T('today_total');
   document.getElementById('today-stat-sub').textContent=T('today_sub');
   document.getElementById('today-count-sub').textContent=T('count_sub');
-  document.querySelector('#screen-today .section-title').textContent=T('sec_details');
+  document.getElementById('today-detail-title').textContent=T('sec_details');
   document.getElementById('month-stat-lbl').textContent=T('month_total');
   document.getElementById('month-stat-sub').textContent=T('today_sub');
   document.getElementById('month-count-sub').textContent=T('count_sub');
-  document.querySelectorAll('#screen-month .section-title').forEach((el,i)=>{
-    const txt=[T('sec_cat_analysis'),T('sec_details')][i];if(!txt)return;
-    const arrow=el.querySelector('.collapse-arrow');
-    if(arrow){el.childNodes[0].nodeValue=txt;}else{el.textContent=txt;}
-  });
+  const mCat=document.getElementById('month-cat-title');
+  if(mCat)mCat.childNodes[0].nodeValue=T('sec_cat_analysis'); // 有收折箭頭，只改第一個文字節點
+  const mDet=document.getElementById('month-detail-title');
+  if(mDet)mDet.textContent=T('sec_details');
   document.querySelectorAll('#screen-report .form-label').forEach((el,i)=>{
     [T('start_date'),T('end_date'),T('filter_cat')].forEach((v,j)=>{if(i===j)el.textContent=v;});
   });
@@ -1577,13 +1589,17 @@ function applyLang(){
   if(repPieTitle)repPieTitle.textContent=T('chart_pie');
   const repTreeTitle=document.getElementById('rep-tree-title');
   if(repTreeTitle)repTreeTitle.textContent=T('chart_tree');
+  const repDetailTitle=document.getElementById('rep-detail-title');
+  if(repDetailTitle)repDetailTitle.textContent=T('sec_details');
   const voiceBtnLabel=document.getElementById('voice-btn-label');
   if(voiceBtnLabel)voiceBtnLabel.textContent=T('voice_btn');
   const vlt=document.getElementById('voice-lang-toggle');
   const isIOSua=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
   if(vlt)vlt.style.display=(lang==='en'&&!isIOSua)?'flex':'none';
-  document.querySelectorAll('#screen-settings .section-title').forEach((el,i)=>{
-    [T('sec_lang'),T('sec_theme'),T('sec_users'),T('sec_cloud'),T('sec_rates'),T('sec_recurring'),T('sec_data')].forEach((v,j)=>{if(i===j)el.textContent=v;});
+  [['sec-lang-title','sec_lang'],['sec-theme-title','sec_theme'],['sec-users-title','sec_users'],
+   ['sec-cloud-title','sec_cloud'],['sec-rates-title','sec_rates'],['sec-recurring-title','sec_recurring'],
+   ['sec-data-title','sec_data']].forEach(([id,key])=>{
+    const el=document.getElementById(id);if(el)el.textContent=T(key);
   });
   document.querySelectorAll('#screen-settings .form-label').forEach(el=>{
     if(el.textContent.includes('1')||el.textContent.includes('User 1'))el.textContent=T('lbl_user1');
@@ -1605,9 +1621,11 @@ function applyLang(){
   document.getElementById('save-api-btn').textContent=T('btn_test_conn');
   document.getElementById('skip-setup-btn').textContent=T('btn_skip');
   document.querySelector('#edit-modal h2').textContent=T('modal_edit_title');
-  document.querySelectorAll('#edit-modal .form-label').forEach((el,i)=>{
-    [T('lbl_amount'),T('lbl_date'),T('lbl_note')].forEach((v,j)=>{if(i===j)el.textContent=v;});
+  [['edit-lbl-cat','lbl_cat'],['edit-lbl-amt','lbl_amount'],['edit-lbl-curr','lbl_curr'],
+   ['edit-lbl-user','who_paid'],['edit-lbl-date','lbl_date'],['edit-lbl-note','lbl_note']].forEach(([id,key])=>{
+    const el=document.getElementById(id);if(el)el.textContent=T(key);
   });
+  updateEditUserToggle();
   document.getElementById('edit-save-btn').textContent=T('btn_save_edit');
   document.getElementById('edit-cancel-btn').textContent=T('btn_cancel');
   document.querySelector('#budget-modal h2').textContent=T('modal_budget_title');
@@ -1922,6 +1940,26 @@ function buildEditCatGrid(){
 document.getElementById('edit-cat-more').onchange=function(){
   if(this.value){editSelCat=this.value;buildEditCatGrid();}
 };
+(function initEditCurrSelect(){
+  const sel=document.getElementById('edit-curr');
+  if(!sel)return;
+  CURRENCIES.forEach(c=>{sel.innerHTML+='<option value="'+c.code+'">'+c.code+' '+c.name+'</option>';});
+})();
+// 編輯用的付款人切換：只改這一筆的歸屬，絕不寫 DEVICE_KEY
+function updateEditUserToggle(){
+  const btns=document.querySelectorAll('#edit-user-toggle .segment-btn');
+  const bearKeys=['sam_bear','patty_bear'];
+  btns.forEach((b,i)=>{
+    const name=userNames[i]||['Sam','Patty'][i];
+    const art=(typeof BOBA_ASSETS!=='undefined')?BOBA_ASSETS[bearKeys[i]]:null;
+    b.innerHTML=(art?`<img class="user-bear" src="${art}" alt="">`:'')+`<span>${escapeHtml(name)}</span>`;
+    b.classList.toggle('active',i===editSelUserIdx);
+    b.classList.toggle('u1',i===1);
+  });
+}
+document.querySelectorAll('#edit-user-toggle .segment-btn').forEach(b=>{
+  b.onclick=function(){editSelUserIdx=parseInt(this.dataset.idx);updateEditUserToggle();};
+});
 
 // ===== 使用者分頁 Tab =====
 function buildUserTabs(containerId,currentFilter,onChange){
@@ -2026,19 +2064,22 @@ document.getElementById('curr-select').onchange=function(){
 };
 
 // ===== 編輯 Modal =====
+document.getElementById('edit-curr').onchange=function(){if(this.value)editSelCurr=this.value;};
 document.getElementById('edit-cancel-btn').onclick=()=>{document.getElementById('edit-modal').classList.add('hidden');editingId=null;};
 document.getElementById('edit-save-btn').onclick=async()=>{
   if(!editingId)return;
   const amtRaw=document.getElementById('edit-amount').value.trim();
-  const amt=parseFloat(amtRaw);
+  const amt=safeMathEval(amtRaw); // 跟新增頁一致：吃 130+50 這種算式
   const date=document.getElementById('edit-date').value;
   const note=document.getElementById('edit-note').value.trim();
-  if(!amt||amt<=0){alert(T('err_amount'));return;}
+  if(!isFinite(amt)||amt<=0){alert(T('err_amount'));return;}
   const btn=document.getElementById('edit-save-btn');
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>'+T('saving');
   const idx=records.findIndex(x=>x.id===editingId);
   if(idx>-1){
-    records[idx]={...records[idx],cat:editSelCat,amount:amt,date:normalizeDate(date),note};
+    records[idx]={...records[idx],cat:editSelCat,amount:amt,curr:editSelCurr,
+      user:userNames[editSelUserIdx]||userNames[0], // user 欄存名字字串，不是索引
+      date:normalizeDate(date),note};
     saveLocal();refreshAll();
     enqueue({op:'upsert',id:records[idx].id,rec:records[idx]});
   }
@@ -2048,10 +2089,15 @@ document.getElementById('edit-save-btn').onclick=async()=>{
 function openEditModal(id){
   const r=records.find(x=>x.id===id);if(!r)return;
   editingId=id;editSelCat=r.cat||'food';
+  editSelCurr=r.curr||'THB';
+  const uIdx=userNames.indexOf(r.user);
+  editSelUserIdx=uIdx>-1?uIdx:deviceUserIdx;
   document.getElementById('edit-amount').value=r.amount;
+  document.getElementById('edit-curr').value=editSelCurr;
   document.getElementById('edit-date').value=r.date;
   document.getElementById('edit-note').value=r.note||'';
   buildEditCatGrid();
+  updateEditUserToggle();
   document.getElementById('edit-modal').classList.remove('hidden');
 }
 
@@ -2587,7 +2633,9 @@ function refreshReportIfOpen(){
 document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
   const id=b.dataset.screen;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+id).classList.add('active');
+  const scr=document.getElementById('screen-'+id);
+  scr.classList.add('active');
+  const c=scr.querySelector('.content');if(c)c.scrollTop=0; // 每個 screen 各有自己的捲動容器
   document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x===b));
   if(id==='today')refreshToday();else if(id==='month')refreshMonth();
   else if(id==='report')refreshReport();else if(id==='settings')refreshSettings();
@@ -3184,7 +3232,11 @@ document.getElementById('export-btn').onclick=()=>{
     rows.push([r.date,getCat(r.cat).label,r.amount,r.curr,Math.round(toTHB(r.amount,r.curr)),r.note||'',r.user||userNames[0]]);
   });
   const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='expenses_'+today()+'.csv';a.click();
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='expenses_'+today()+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 document.getElementById('clear-btn').onclick=()=>{
   if(confirm(T('confirm_clear'))){records=[];pendingOps=[];saveLocal();savePending();refreshAll();alert(T('cleared'));}
