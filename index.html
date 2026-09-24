@@ -385,6 +385,34 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 /* 插畫資產：預設藏起來，只有 boba 主題顯示（quant 主題完全不受影響） */
 .nav-bear,.cat-art,.topbar-bear,.user-bear,.save-bear{display:none}
 @keyframes recpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+
+/* Lavender stationery: shared surfaces, page-specific grouping. */
+.care-panel{display:contents}.care-sticker{display:none}
+body[data-theme="carebear"]{background:#f3edfb}
+body[data-theme="carebear"] .screen{background:linear-gradient(150deg,#f4effd,#f9f0f7 65%,#f1ecfa);min-height:100vh}
+body[data-theme="carebear"] .screen>.content{background:transparent}
+body[data-theme="carebear"] #screen-month{background:linear-gradient(145deg,#f0edfc,#f2f6f5)}
+body[data-theme="carebear"] #screen-report{background:linear-gradient(145deg,#f0edfc,#f7eff9)}
+body[data-theme="carebear"] #screen-settings{background:#f3eff8}
+body[data-theme="carebear"] .care-panel,body[data-theme="carebear"] .card{display:block;position:relative;background:#fffcff;border:1px solid #e5d9f3;border-radius:22px;padding:18px;margin-bottom:18px;box-shadow:0 4px 15px #7954a008;min-width:0}
+body[data-theme="carebear"] .care-panel>.form-group:last-of-type{margin-bottom:0}
+body[data-theme="carebear"] .care-panel>.section-title:first-child{margin-top:0;padding-right:40px}
+body[data-theme="carebear"] .care-sticker{display:block;position:absolute;right:14px;top:-12px;width:40px;height:40px;object-fit:contain;pointer-events:none;transform:rotate(7deg)}
+body[data-theme="carebear"] .care-details .care-sticker{width:34px;height:34px;transform:rotate(-7deg)}
+body[data-theme="carebear"] .care-panel .form-input,body[data-theme="carebear"] .care-panel .amount-line{background:#fcf9ff;border-color:#dfd0ef}
+body[data-theme="carebear"] .care-panel .cat-btn{background:#faf6ff;border-color:#e7dbf4}
+body[data-theme="carebear"] .care-panel .cat-btn.active{background:#eee3fb;border-color:#9874bf}
+body[data-theme="carebear"] .quick-btn{background:#fffbff;border-color:#dacbea}
+body[data-theme="carebear"] #quick-add-btn{background:#e7daf7}
+body[data-theme="carebear"] .hero{border:1px solid #ddcdef;box-shadow:0 4px 16px #7954a00a;background:linear-gradient(120deg,#e9def8,#f5e6f2)}
+body[data-theme="carebear"] #screen-month .hero{background:linear-gradient(120deg,#e6ddf8,#e9f3ef)}
+body[data-theme="carebear"] .entry{background:#fffcff;border-color:#e5d9f3}
+body[data-theme="carebear"] .empty{background:#fcf9ff;border:1px dashed #ddcdec;border-radius:18px}
+body[data-theme="carebear"] #screen-settings .card{border-radius:18px;box-shadow:none}
+body[data-theme="carebear"] #screen-add .topbar{background:linear-gradient(120deg,#ede7fb,#f9edf5)}
+body[data-theme="carebear"] #screen-add .topbar::after{display:none}
+@media(max-width:360px){body[data-theme="carebear"] .care-panel{padding:13px}body[data-theme="carebear"] .care-sticker{width:32px;height:32px}}
+
 </style>
 
 <!-- ══════ BOBA 手帳風 skin（覆寫層，可整段刪除＋移除主題切換器即還原）══════ -->
@@ -3479,6 +3507,26 @@ if(!hasDeviceId){
     refreshAll();
   });
 }
+
+// Move existing controls without cloning: listeners, IDs and state remain intact.
+function initCarePanels(){
+  function group(nodes,cls,key){
+    nodes=nodes.filter(Boolean);if(!nodes.length)return;
+    const panel=document.createElement('section');panel.className='care-panel '+cls;
+    nodes[0].before(panel);nodes.forEach(n=>panel.appendChild(n));
+    if(key){const img=document.createElement('img');img.className='care-sticker';img.alt='';img.setAttribute('aria-hidden','true');img.src=BOBA_ASSETS[key];panel.appendChild(img);}
+  }
+  const q=s=>document.querySelector(s);
+  const add=[...document.querySelectorAll('#screen-add>.content>.form-group')];
+  group(add.slice(0,2),'care-payment');group(add.slice(2,3),'care-categories','sam_bear');group(add.slice(3,5),'care-details','patty_bear');
+  group([q('#screen-report .date-row'),q('#screen-report .content>.form-group'),q('#rep-run-btn')],'care-query');
+  group([q('#month-cat-title'),q('#month-bars')],'care-analysis','sam_bear');
+  for(const prefix of ['today','month'])group([q('#'+prefix+'-detail-title'),q('#'+prefix+'-user-tabs'),q('#'+prefix+'-list')],'care-records',prefix==='today'?'patty_bear':null);
+  const names=q('#set-user-0').closest('.card');names.style.position='relative';
+  const img=document.createElement('img');img.className='care-sticker';img.alt='';img.setAttribute('aria-hidden','true');img.src=BOBA_ASSETS.patty_bear;names.appendChild(img);
+}
+initCarePanels();
+
 </script>
 </body>
 </html>
