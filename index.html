@@ -513,6 +513,9 @@ body[data-theme="carebear"]{--care-header:url("data:image/webp;base64,UklGRhafAA
 body[data-theme="carebear"] .screen:not(#screen-add) .topbar{aspect-ratio:2 / 1;height:auto;min-height:0}
 /* Compact daily path; long history still scrolls independently of navigation. */
 .date-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+/* iOS date controls must respect the same border-box width as other fields. */
+.form-input[type="date"]{-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%}
+.form-input[type="date"]::-webkit-date-and-time-value{min-width:0}
 .date-row>div{min-width:0}.date-row .form-input{min-width:0;max-width:100%;padding-inline:9px}
 
 body[data-theme="carebear"] #screen-today .day-header{display:none}
