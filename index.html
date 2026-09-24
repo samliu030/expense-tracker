@@ -534,9 +534,10 @@ body[data-theme="carebear"] #screen-add .msg{scroll-margin-top:8px}
 
 /* Today: the user's rainbow bear hugs a heart, matching the chef portrait treatment. */
 .care-today-bear{display:none}
-body[data-theme="carebear"] #screen-today .topbar{background-image:linear-gradient(100deg,#edf4ff,#f5f0ff 70%,#ffeef5);overflow:hidden}
-body[data-theme="carebear"] #screen-today .topbar::after{content:'';position:absolute;inset:auto 0 0;height:35px;background:linear-gradient(transparent,#fff);pointer-events:none}
-body[data-theme="carebear"] .care-today-bear{display:block;position:absolute;right:20px;bottom:20px;width:33%;height:68%;object-fit:contain;pointer-events:none}
+body[data-theme="carebear"] .screen#screen-today .topbar{aspect-ratio:auto;height:clamp(140px,42vw,176px);min-height:0;padding-top:clamp(24px,7vw,35px);background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNDAiIGhlaWdodD0iMTIwIiB2aWV3Qm94PSIwIDAgMjQwIDEyMCI+PHBhdGggZD0iTTE4NSA4YTM0IDM0IDAgMSAwIDM3IDU1IDM0IDM0IDAgMSAxLTM3LTU1WiIgZmlsbD0iI2ZmZjBiNCIgc3Ryb2tlPSIjZjVkODg3IiBzdHJva2Utd2lkdGg9IjEuNSIvPjxwYXRoIGQ9Im00MyAyMSAyLjggOC41TDU0IDMybC04LjIgMi42TDQzIDQzbC0yLjgtOC40TDMyIDMybDguMi0yLjVaIiBmaWxsPSIjZmZlNWE0IiBzdHJva2U9IiNmNGNlNzIiIHN0cm9rZS13aWR0aD0iMSIvPjxwYXRoIGQ9Im04MiA3MCAyLjMgNi44TDkxIDc5bC02LjcgMi4yTDgyIDg4bC0yLjMtNi44TDczIDc5bDYuNy0yLjJaIiBmaWxsPSIjY2ZlY2ZmIiBzdHJva2U9IiM5ZGM3ZTkiIHN0cm9rZS13aWR0aD0iMSIvPjxwYXRoIGQ9Im0yMTkgOTEgMi40IDYuOSA2LjYgMi4xLTYuNiAyLjItMi40IDYuOC0yLjMtNi44LTYuNy0yLjIgNi43LTIuMVoiIGZpbGw9IiNmZmUwZTkiIHN0cm9rZT0iI2YyYTRiYyIgc3Ryb2tlLXdpZHRoPSIxIi8+PGNpcmNsZSBjeD0iMTE2IiBjeT0iMjMiIHI9IjIiIGZpbGw9IiNmZmY0YmMiLz48Y2lyY2xlIGN4PSIxMTkiIGN5PSI5OCIgcj0iMS42IiBmaWxsPSIjZmZmNGJjIi8+PC9zdmc+"),linear-gradient(110deg,#f2f2ff 0%,#f8f1ff 62%,#fff0f3 100%);background-size:230px 118px,cover;background-position:right 8px top 8px,center;background-repeat:no-repeat;overflow:hidden}
+body[data-theme="carebear"] #screen-today .topbar::after{content:none}
+body[data-theme="carebear"] .care-today-bear{display:block;position:absolute;right:68px;bottom:8px;width:33%;height:86%;object-fit:contain;pointer-events:none}
+@media(max-width:360px){body[data-theme="carebear"] .care-today-bear{right:45px}}
 </style>
 <style id="boba-scrapbook-skin">
 @import url('https://fonts.googleapis.com/css2?family=Yomogi&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap');
