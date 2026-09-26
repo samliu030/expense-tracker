@@ -1076,7 +1076,7 @@ ASSET PROVENANCE: original character photos supplied by user (2026-08-20); heade
       </div>
       <div id="rate-list"></div>
       <div id="twd-ref" style="font-size:12px;font-weight:800;color:var(--accent);text-align:right;margin-top:12px;font-variant-numeric:tabular-nums"></div>
-      <p style="font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.6">點「更新匯率」從台灣銀行取得最新即期匯率並自動換算為泰銖基準。修改後自動儲存。</p>
+      <p id="rate-hint" style="font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.6">點「更新匯率」取得最新市場參考匯率（每日更新），自動換算為泰銖基準。也可以手動改，改完自動儲存。</p>
     </div>
     <!-- Recurring Payments Management -->
     <div class="section-title" id="sec-recurring-title">定期支出管理</div>
@@ -1262,7 +1262,7 @@ const I18N={
     app_title:'記帳本',
     nav_add:'新增',nav_today:'今日',nav_month:'本月',nav_report:'查詢',nav_settings:'設定',
     title_add:'記一筆',title_today:'今日記帳',title_month:'本月總覽',title_report:'自訂查詢',title_settings:'設定 / 匯率',
-    settings_subtitle:'依台灣中央銀行牌告匯率',
+    settings_subtitle:'匯率：每日更新的市場參考價',
     report_subtitle:'選擇期間與分類',
     who_paid:'誰支出的？',
     lbl_cat:'類別',lbl_amount:'金額',lbl_curr:'幣別',lbl_note:'備註（店家、說明）',lbl_date:'日期',
@@ -1284,8 +1284,8 @@ const I18N={
     theme_carebear:'熊熊彩虹（預設）',theme_boba:'舊版手帳熊',currency_shortcuts:'常用幣別',calculator:'計算機',add_one:'＋ 記一筆',theme_quant:'📐 襯線',
     eyebrow_add:'記一筆 · NEW ENTRY',amount_ph:'0 或 130+50',
     sec_cloud:'雲端連線狀態',btn_change_api:'重新設定 API 網址',
-    sec_rates:'幣別匯率（對泰銖）',rate_spot:'即期匯率',btn_update_rate:'🔄 更新匯率',
-    rate_hint:'點「更新匯率」從台灣銀行取得最新即期匯率並自動換算為泰銖基準。修改後自動儲存。',
+    sec_rates:'幣別匯率（對泰銖）',rate_spot:'參考匯率',btn_update_rate:'🔄 更新匯率',
+    rate_hint:'點「更新匯率」取得最新市場參考匯率（每日更新），自動換算為泰銖基準。也可以手動改，改完自動儲存。',
     sec_data:'資料管理',data_hint:'資料儲存於你的 Google Sheets，本機同時保留快取。',
     btn_resync:'重新同步雲端資料',btn_export:'匯出 CSV 備份',btn_clear:'清除本機快取',
     conn_ok:'已連線至 Google Sheets',conn_no:'尚未設定 API 網址',sync_ok:'已連線',sync_off:'離線',sync_none:'未連線',
@@ -1346,6 +1346,9 @@ const I18N={
     voice_batch_saved:'已存入 %n 筆 ',voice_batch_undone:'已復原，那幾筆都刪掉了',
     // Charts
     chart_pie:'分類佔比',chart_tree:'分類樹狀圖',
+    ai_cat_unknown:'（類別沒聽出來，先記在「其他」，可按 ✎ 修改）',ai_curr_unknown:'（沒聽出幣別，先用 %c）',
+    err_date_range:'請選擇日期範圍',btn_edit:'編輯',quick_unit:' 筆',
+    confirm_clear_pending:'還有 %n 筆還沒同步到雲端，清除後這些會永久消失。確定要清除？',
   },
   en:{
     quick_add:'Quick Add', quick_organize:'Sort Quick',
@@ -1360,7 +1363,7 @@ const I18N={
     app_title:'Expense Tracker',
     nav_add:'Add',nav_today:'Today',nav_month:'Month',nav_report:'Report',nav_settings:'Settings',
     title_add:'Add Record',title_today:"Today's Expense",title_month:'Monthly Overview',title_report:'Custom Report',title_settings:'Settings / Rates',
-    settings_subtitle:'Taiwan Central Bank Exchange Rates',
+    settings_subtitle:'Rates: daily market reference',
     report_subtitle:'Select period & category',
     who_paid:'Who paid?',
     lbl_cat:'Category',lbl_amount:'Amount',lbl_curr:'Currency',lbl_note:'Note (Store, Details)',lbl_date:'Date',
@@ -1382,8 +1385,8 @@ const I18N={
     theme_carebear:'Rainbow Bears (default)',theme_boba:'Classic Bears',currency_shortcuts:'Currency shortcuts',calculator:'Calculator',add_one:'+ Add an expense',theme_quant:'📐 Serif',
     eyebrow_add:'NEW ENTRY',amount_ph:'0 or 130+50',
     sec_cloud:'Cloud Connection',btn_change_api:'Reset API URL',
-    sec_rates:'Exchange Rates (to THB)',rate_spot:'Spot Rate',btn_update_rate:'🔄 Update Rates',
-    rate_hint:'Click "Update Rates" to fetch from Bank of Taiwan, auto-converted to THB base.',
+    sec_rates:'Exchange Rates (to THB)',rate_spot:'Reference Rate',btn_update_rate:'🔄 Update Rates',
+    rate_hint:'Click "Update Rates" to fetch the latest daily market reference rates, auto-converted to THB base. You can also edit them by hand.',
     sec_data:'Data Management',data_hint:'Data saved to Google Sheets. Local cache kept for offline access.',
     btn_resync:'Re-sync Cloud Data',btn_export:'Export CSV',btn_clear:'Clear Local Cache',
     conn_ok:'Connected to Google Sheets',conn_no:'API URL not set',sync_ok:'Connected',sync_off:'Offline',sync_none:'No Link',
@@ -1445,6 +1448,9 @@ const I18N={
     voice_lang_en:'EN',voice_lang_th:'ไทย',
     // Charts
     chart_pie:'Category Share',chart_tree:'Category Treemap',
+    ai_cat_unknown:' (category unclear — filed under Other, tap ✎ to fix)',ai_curr_unknown:' (currency unclear — used %c)',
+    err_date_range:'Please select a date range',btn_edit:'Edit',quick_unit:'',
+    confirm_clear_pending:'%n entries have not synced to the cloud yet and will be lost for good. Clear anyway?',
   }
 };
 let lang='zh';
@@ -1462,6 +1468,8 @@ let editSelCat='food', editSelCurr='THB', editSelUserIdx=0;
 let todayUserFilter=null, monthUserFilter=null, repUserFilter=null;
 let recurringPayments=[], selFreq='monthly';
 let pendingOps=[], flushing=false;
+// getAll 在途中時發生的本機變更要另外記：它們可能已經 flush 完、不在佇列裡，舊的雲端快照回來會把它們吃掉
+let opSeq=0, opLog=[], syncInFlight=0;
 const DEVICE_KEY='xp_device_user';
 
 // ===== 日期工具 =====
@@ -1622,7 +1630,7 @@ function refreshRecurringSettings(){
         <div style="font-size:11px;color:var(--ink-3);margin-top:1px;font-weight:600">${rp.lastGenerated?T('recurring_last_gen')+rp.lastGenerated:T('recurring_not_yet')}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-        <button class="recur-item-edit-btn" style="background:var(--accent-soft);border:none;border-radius:9px;color:var(--accent);padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--sans)" data-id="${rp.id}">✎ 編輯</button>
+        <button class="recur-item-edit-btn" style="background:var(--accent-soft);border:none;border-radius:9px;color:var(--accent);padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--sans)" data-id="${rp.id}">✎ ${T('btn_edit')}</button>
         <button class="recur-item-del-btn" style="background:var(--danger-soft);border:none;border-radius:9px;color:var(--danger);padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--sans)" data-id="${rp.id}">${T('btn_delete')}</button>
       </div>`;
     div.querySelector('.recur-item-edit-btn').onclick=()=>openRecurEditModal(rp.id);
@@ -1697,11 +1705,12 @@ document.getElementById('recur-edit-cancel-btn').onclick=function(){
 document.getElementById('recur-edit-save-btn').onclick=function(){
   if(!recurEditId)return;
   const note=document.getElementById('recur-edit-note').value.trim();
-  const amount=parseFloat(document.getElementById('recur-edit-amount').value);
+  const _v=safeMathEval(document.getElementById('recur-edit-amount').value.trim());
+  const amount=(isFinite(_v)&&_v>0)?Math.round(_v*100)/100:NaN;
   const curr=document.getElementById('recur-edit-curr').value;
   const freqBtn=document.querySelector('#recur-edit-modal .recur-freq-btn.active');
   const freq=freqBtn?freqBtn.dataset.freq:'monthly';
-  if(!amount||isNaN(amount)){alert('請輸入有效金額');return;}
+  if(!amount||isNaN(amount)){alert(T('err_amount'));return;}
   const idx=recurringPayments.findIndex(x=>x.id===recurEditId);
   if(idx!==-1){
     recurringPayments[idx]={...recurringPayments[idx],cat:recurEditSelCat,note,amount,curr,freq,mtime:Date.now()};
@@ -1715,15 +1724,27 @@ document.getElementById('recur-edit-save-btn').onclick=function(){
 document.getElementById('inp-recurring').onchange=function(){
   document.getElementById('recurring-options').style.display=this.checked?'block':'none';
 };
-document.querySelectorAll('.recur-freq-btn').forEach(b=>{
+// 只綁新增頁那 4 顆；編輯彈窗也用 .recur-freq-btn，一起綁的話在彈窗按一下就偷改新增頁的 selFreq
+const addFreqBtns=[...document.querySelectorAll('.recur-freq-btn')].filter(b=>!b.closest('#recur-edit-modal'));
+addFreqBtns.forEach(b=>{
   b.onclick=function(){
     selFreq=this.dataset.freq;
-    document.querySelectorAll('.recur-freq-btn').forEach(x=>x.classList.remove('active'));
+    addFreqBtns.forEach(x=>x.classList.remove('active'));
     this.classList.add('active');
     document.getElementById('recurring-hint').textContent=T('hint_'+selFreq);
   };
 });
 
+// 日期標籤依語言格式化（從背景回來跨日時也要重算）
+function updateDateLabels(){
+  const _now=new Date();
+  const _full=(lang==='en')?_now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})
+    :_now.getFullYear()+'年'+(_now.getMonth()+1)+'月'+_now.getDate()+'日';
+  const _month=(lang==='en')?_now.toLocaleDateString('en-US',{year:'numeric',month:'long'})
+    :_now.getFullYear()+'年'+(_now.getMonth()+1)+'月';
+  ['today-date','today-label'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=_full;});
+  const _ml=document.getElementById('month-label');if(_ml)_ml.textContent=_month;
+}
 // ===== 語言套用 =====
 function applyLang(){
 
@@ -1748,14 +1769,7 @@ function applyLang(){
   if(tb)tb.textContent=T('theme_boba');
   document.getElementById('theme-carebear-btn').textContent=T('theme_carebear');
   if(tq)tq.textContent=T('theme_quant');
-  // 日期標籤依語言格式化
-  const _now=new Date();
-  const _full=(lang==='en')?_now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})
-    :_now.getFullYear()+'年'+(_now.getMonth()+1)+'月'+_now.getDate()+'日';
-  const _month=(lang==='en')?_now.toLocaleDateString('en-US',{year:'numeric',month:'long'})
-    :_now.getFullYear()+'年'+(_now.getMonth()+1)+'月';
-  ['today-date','today-label'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=_full;});
-  const _ml=document.getElementById('month-label');if(_ml)_ml.textContent=_month;
+  updateDateLabels();
   document.querySelectorAll('#screen-add [data-i18n]').forEach(el=>{el.textContent=T(el.dataset.i18n);});
   document.getElementById('amount-currency').setAttribute('aria-label',T('lbl_curr'));
   document.getElementById('calculator-toggle').textContent=T('calculator');
@@ -1811,6 +1825,7 @@ function applyLang(){
   document.getElementById('change-identity-btn').textContent=T('btn_change_identity');
   document.getElementById('change-api-btn').textContent=T('btn_change_api');
   document.querySelector('#rate-fetch-btn').textContent=T('btn_update_rate');
+  const rh=document.getElementById('rate-hint');if(rh)rh.textContent=T('rate_hint');
   document.querySelector('#screen-settings .rate-header span').textContent=T('rate_spot');
   document.getElementById('refresh-btn').textContent=T('btn_resync');
   document.getElementById('export-btn').textContent=T('btn_export');
@@ -1867,6 +1882,7 @@ function enqueue(op){
   // 同 id 的舊操作用新的取代（add→edit 收斂成一次 upsert；任何操作後 delete 則由 delete 收尾）
   pendingOps=pendingOps.filter(o=>o.id!==op.id);
   pendingOps.push(op);
+  opSeq++;if(syncInFlight)opLog.push({seq:opSeq,op});
   savePending();
   flushQueue();
 }
@@ -1897,6 +1913,8 @@ function normRec(r){
 }
 async function syncFromCloud(){
   if(!apiUrl)return false;
+  syncInFlight++;
+  const startSeq=opSeq;
   try{
     await flushQueue(); // 先把本機未同步的推上去，再拉雲端，避免覆蓋
     const res=await apiCall('getAll');
@@ -1906,10 +1924,17 @@ async function syncFromCloud(){
       // 仍卡在佇列（剛剛 flush 失敗）的本機變更，蓋在雲端結果之上不被吃掉
       pendingOps.filter(o=>o.op==='upsert').forEach(o=>{map[o.rec.id]=normRec({...o.rec});});
       pendingOps.filter(o=>o.op==='delete').forEach(o=>{delete map[o.id];});
+      // 同步途中記的帳／刪的帳：就算已經 flush 完離開佇列，也要蓋在這份（可能較舊的）雲端快照上，
+      // 否則剛記的那筆會從畫面消失、剛刪的那筆會復活（2026-09-26 重現）
+      opLog.filter(o=>o.seq>startSeq).forEach(({op})=>{
+        if(op.op==='upsert')map[op.rec.id]=normRec({...op.rec});
+        else if(op.op==='delete')delete map[op.id];
+      });
       records=Object.values(map);
       saveLocal();setSyncStatus(true);return true;
     }
   }catch(e){setSyncStatus(false,e.message);}
+  finally{syncInFlight--;if(!syncInFlight)opLog=[];}
   return false;
 }
 
@@ -2305,7 +2330,7 @@ document.getElementById('edit-save-btn').onclick=async()=>{
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>'+T('saving');
   const idx=records.findIndex(x=>x.id===editingId);
   if(idx>-1){
-    records[idx]={...records[idx],cat:editSelCat,amount:amt,curr:editSelCurr,
+    records[idx]={...records[idx],cat:editSelCat,amount:Math.round(amt*100)/100,curr:editSelCurr,
       user:userNames[editSelUserIdx]||userNames[0], // user 欄存名字字串，不是索引
       date:normalizeDate(date),note};
     saveLocal();refreshAll();
@@ -2794,7 +2819,7 @@ function refreshMonth(){
 function refreshReport(){buildCatFilters('rep-cat-filter',repCatFilter,(id)=>{repCatFilter=id;refreshReport();});}
 function runReport(){
   const from=document.getElementById('rep-from').value,to=document.getElementById('rep-to').value;
-  if(!from||!to){alert('請選擇日期範圍');return;}
+  if(!from||!to){alert(T('err_date_range'));return;}
   const cw=document.getElementById('rep-chart-wrap');if(cw)cw.style.display='none';
   const pw=document.getElementById('rep-pie-wrap');if(pw)pw.style.display='none';
   const tw=document.getElementById('rep-tree-wrap');if(tw)tw.style.display='none';
@@ -2891,15 +2916,27 @@ function aiMsg(type,text){
   msg.className=type?('msg '+type):'msg';msg.textContent=text||'';
 }
 function setVoiceBusy(busy){document.getElementById('voice-btn').disabled=busy;}
+// 回傳要顯示給使用者的警告（類別／幣別沒聽出來時退回預設值，一定要講出來，不能靜默入帳）
 function fillFromAI(res){
   if(!res||!isFinite(Number(res.amount))||Number(res.amount)<=0)throw new Error('no amount');
+  // 語音是一筆全新的帳，表單上殘留的狀態都不能沿用：
+  // 正在整理的快速草稿（否則語音那筆會被當成整理結果、草稿被刪掉）、勾著的定期、上一筆的備註／自訂類別／日期
+  finalizingQuickId=null; // 草稿留在清單裡，之後再整理
+  document.getElementById('inp-recurring').checked=false;
+  document.getElementById('recurring-options').style.display='none';
+  const warns=[];
   document.getElementById('inp-amount').value=Math.round(Number(res.amount)*100)/100;
   if(res.currency&&CURRENCIES.some(c=>c.code===res.currency)){selCurr=res.currency;localStorage.setItem('xp_last_curr',selCurr);buildCurrUI();}
-  if(res.category&&CATS.some(c=>c.id===res.category)){selCat=res.category;buildCatGrid();}
-  if(res.merchant)document.getElementById('inp-note').value=res.merchant;
-  if(res.date&&/^\d{4}-\d{2}-\d{2}$/.test(res.date))document.getElementById('inp-date').value=res.date;
+  else if(res.currency)warns.push(T('ai_curr_unknown').replace('%c',selCurr));
+  if(res.category&&CATS.some(c=>c.id===res.category))selCat=res.category;
+  else{selCat='other';warns.push(T('ai_cat_unknown'));}
+  document.getElementById('inp-custom-cat').value='';
+  buildCatGrid();
+  document.getElementById('inp-note').value=res.merchant||'';
+  document.getElementById('inp-date').value=(res.date&&/^\d{4}-\d{2}-\d{2}$/.test(res.date))?res.date:today();
   const conf=res.confidence==='low'?' '+T('ai_low_conf'):'';
   aiMsg('success',T('ai_filled')+conf);
+  return warns;
 }
 async function parseVoiceText(text){
   setVoiceBusy(true);aiMsg('success',T('ai_busy'));
@@ -2913,13 +2950,14 @@ async function parseVoiceText(text){
   setVoiceBusy(false);
 }
 // 語音自動存後的確認 + 7 秒撤銷窗（連雲端一起刪）
-function showVoiceSaved(rec,confidence){
+function showVoiceSaved(rec,confidence,warns){
+  warns=warns||[];
   const msg=document.getElementById('add-msg');
   const cat=getCat(rec.cat);
   const conf=confidence==='low'?' ⚠️':'';
   msg.className='msg success';msg.textContent='';
   const span=document.createElement('span');
-  span.textContent=T('voice_saved')+cat.icon+' '+fmtAmt(rec.amount,rec.curr)+(rec.note?' · '+rec.note:'')+conf+'　';
+  span.textContent=T('voice_saved')+cat.icon+' '+fmtAmt(rec.amount,rec.curr)+(rec.note?' · '+rec.note:'')+conf+warns.join('')+'　';
   const undo=document.createElement('button');
   undo.textContent=T('undo');
   undo.style.cssText='border:none;background:var(--ink);color:#fbf9f2;padding:4px 12px;border-radius:10px;font-weight:800;cursor:pointer;font-size:13px';
@@ -2930,7 +2968,7 @@ function showVoiceSaved(rec,confidence){
     setTimeout(()=>{msg.className='msg';msg.textContent='';},2500);
   };
   msg.appendChild(span);msg.appendChild(undo);
-  setTimeout(()=>{if(msg.contains(undo)){msg.className='msg';msg.textContent='';}},7000);
+  setTimeout(()=>{if(msg.contains(undo)){msg.className='msg';msg.textContent='';}},warns.length?12000:7000);
 }
 // ===== 語音批量審閱（一句多筆）=====
 // 多筆不走 commitRecordFromForm（那支綁在新增頁的表單上），直接組 record。
@@ -3093,9 +3131,9 @@ function handleVoiceResults(data){
   const list=data.results||(data.result?[data.result]:[]);
   if(!list.length)throw new Error('no amount');
   if(list.length===1){
-    fillFromAI(list[0]);             // 填入表單（金額無效會 throw，不會誤存）
+    const warns=fillFromAI(list[0]); // 填入表單（金額無效會 throw，不會誤存）
     const r=commitRecordFromForm();  // 單筆維持秒存，不拖慢日常記帳
-    if(r)showVoiceSaved(r.rec,list[0].confidence);
+    if(r)showVoiceSaved(r.rec,list[0].confidence,warns);
   }else{
     openVoiceReview(list);           // 多筆一律先審閱：三筆一起錯，7 秒復原來不及救
   }
@@ -3342,7 +3380,7 @@ function closeQuickModal(){document.getElementById('quick-modal').classList.add(
 function renderQuickSession(){
   const box=document.getElementById('quick-session-list');
   if(!quickSession.length){box.innerHTML='';return;}
-  box.innerHTML='<div style="font-size:12px;color:var(--ink-3);font-weight:700;margin-bottom:4px">'+T('quick_session_prefix')+' '+quickSession.length+' 筆</div>'
+  box.innerHTML='<div style="font-size:12px;color:var(--ink-3);font-weight:700;margin-bottom:4px">'+T('quick_session_prefix')+' '+quickSession.length+T('quick_unit')+'</div>'
     +quickSession.map(d=>'<div style="font-size:13px;font-weight:700;color:var(--ink-2)">・'+fmtAmt(d.amount,d.curr)+'</div>').join('');
 }
 document.getElementById('quick-record-btn').onclick=()=>{
@@ -3412,35 +3450,27 @@ document.getElementById('rate-fetch-btn').onclick=async()=>{
   const btn=document.getElementById('rate-fetch-btn');
   btn.textContent=T('rate_updating');btn.disabled=true;
   try{
-    // 兩個 CORS proxy 依序嘗試，單一服務掛掉不影響更新
-    const RATE_URL='https://rate.bot.com.tw/xrt/flcsv/0/day';
-    let csvText=null;
-    try{
-      const res=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(RATE_URL));
-      csvText=(await res.json()).contents;
-    }catch(e){}
-    if(!csvText){
-      const res=await fetch('https://corsproxy.io/?url='+encodeURIComponent(RATE_URL));
-      csvText=await res.text();
-    }
-    if(!csvText)throw new Error('proxy failed');
-    const rawRates={TWD:1};
-    csvText.split('\n').forEach(line=>{
-      const cols=line.split(',');if(cols.length<4)return;
-      const code=cols[0].trim();const buy=parseFloat(cols[2]);const sell=parseFloat(cols[3]);
-      if(buy>0&&sell>0)rawRates[code]=(buy+sell)/2;
-    });
-    const thbToTwd=rawRates['THB'];
+    // 台銀 CSV 已加機器人驗證頁、allorigins／corsproxy.io 兩個 proxy 也都失效（2026-09-26 實測）
+    // → 改用免金鑰、有開 CORS 的匯率 API，兩個來源依序試。
+    // 兩邊回的都是「1 泰銖＝多少外幣」，App 存的是「1 外幣＝多少泰銖」，要取倒數。
+    const SOURCES=[
+      async()=>{const r=await fetch('https://open.er-api.com/v6/latest/THB');const j=await r.json();
+        if(j.result!=='success'||!j.rates)throw new Error('er-api');return j.rates;},
+      async()=>{const r=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/thb.json');const j=await r.json();
+        if(!j.thb)throw new Error('currency-api');const o={};Object.keys(j.thb).forEach(k=>{o[k.toUpperCase()]=j.thb[k];});return o;}
+    ];
+    let perThb=null;
+    for(const src of SOURCES){try{const r=await src();if(r&&r.TWD>0){perThb=r;break;}}catch(e){}}
+    if(!perThb)throw new Error('all rate sources failed');
     let updated=0;
-    if(thbToTwd){
-      CURRENCIES.forEach(c=>{
-        if(c.code==='THB'){c.rate=1;}
-        else if(c.code==='TWD'){c.rate=Math.round((1/thbToTwd)*10000)/10000;updated++;}
-        else if(rawRates[c.code]){c.rate=Math.round((rawRates[c.code]/thbToTwd)*10000)/10000;updated++;}
-      });
-      saveRates();buildRateList();pushSettings();
-      btn.textContent=T('rate_updated')+updated+T('rate_types');
-    }else throw new Error('No THB rate');
+    CURRENCIES.forEach(c=>{
+      if(c.code==='THB'){c.rate=1;return;}
+      const v=Number(perThb[c.code]);
+      // 取 6 位有效數字：越南盾、印尼盾一單位不到 0.01 泰銖，固定小數四位會差到 1% 以上
+      if(v>0){c.rate=Number((1/v).toPrecision(6));updated++;}
+    });
+    saveRates();buildRateList();pushSettings();refreshAll();
+    btn.textContent=T('rate_updated')+updated+T('rate_types');
   }catch(e){btn.textContent=T('rate_fail');}
   setTimeout(()=>{btn.textContent=T('btn_update_rate');btn.disabled=false;},3000);
 };
@@ -3467,7 +3497,8 @@ document.getElementById('export-btn').onclick=()=>{
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 document.getElementById('clear-btn').onclick=()=>{
-  if(confirm(T('confirm_clear'))){records=[];pendingOps=[];saveLocal();savePending();refreshAll();alert(T('cleared'));}
+  const _n=pendingOps.length; // 還沒上雲的會跟著清掉，要講清楚，不能只說「雲端不受影響」
+  if(confirm(_n?T('confirm_clear_pending').replace('%n',_n):T('confirm_clear'))){records=[];pendingOps=[];saveLocal();savePending();refreshAll();alert(T('cleared'));}
 };
 
 // ===== Init =====
@@ -3517,6 +3548,31 @@ if(!hasDeviceId){
     refreshAll();
   });
 }
+
+// ===== 從背景回來 =====
+// iOS 主畫面 App 常直接從記憶體恢復、不重新載入：不處理的話隔天打開日期欄還是昨天（帳會記成昨天）、
+// 當天定期支出不會產生、也看不到對方新記的帳。跨日或離開超過一分鐘就重跑一次開 App 的流程。
+let lastDay=today(),hiddenAt=0;
+function onResume(){
+  const t=today();
+  if(t!==lastDay){
+    const inp=document.getElementById('inp-date');if(inp.value===lastDay)inp.value=t; // 使用者自己改過的日期不動
+    const rf=document.getElementById('rep-from'),rt=document.getElementById('rep-to');
+    if(rf.value===lastDay.slice(0,7)+'-01'&&t.slice(0,7)!==lastDay.slice(0,7))rf.value=t.slice(0,7)+'-01';
+    if(rt.value===lastDay)rt.value=t;
+    lastDay=t;updateDateLabels();
+  }
+  if(apiUrl&&localStorage.getItem(DEVICE_KEY)!==null){
+    Promise.all([syncSettingsFromCloud(),syncFromCloud()]).then(()=>{runRecurring();refreshAll();});
+  }else{runRecurring();refreshAll();}
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){hiddenAt=Date.now();return;}
+  if(hiddenAt&&(today()!==lastDay||Date.now()-hiddenAt>60000))onResume();
+});
+window.addEventListener('pageshow',e=>{if(e.persisted)onResume();});
+// 離線時記的帳：恢復連線就送，不用等下一次存檔或重開 App
+window.addEventListener('online',()=>{flushQueue();});
 
 // Move existing controls without cloning: listeners, IDs and state remain intact.
 function initCarePanels(){
