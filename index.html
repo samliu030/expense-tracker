@@ -890,7 +890,7 @@ ASSET PROVENANCE: original character photos supplied by user (2026-08-20); heade
 </div><div class="form-group">
 <label class="form-label" data-i18n="lbl_note" for="inp-note">備註（店家、說明）</label>
 <div class="note-wrap">
-<input autocomplete="off" class="form-input" id="inp-note" placeholder="例：全家、MK火鍋、Grab" type="text"/>
+<textarea autocomplete="off" class="form-input" id="inp-note" placeholder="例：全家、MK火鍋、Grab" rows="3"></textarea>
 <div class="note-suggestions" id="note-suggestions"></div>
 </div>
 </div><div class="form-group">
@@ -1462,6 +1462,7 @@ let userNames=['Sam','Patty'], selectedUserIdx=0;
 // deviceUserIdx＝這支手機是誰（只有身分 modal 會改）；selectedUserIdx＝這一筆是誰付的（新增頁切換用）
 let deviceUserIdx=0;
 let quickDrafts=[];      // 快速記帳暫存草稿：{id,amount,curr,date,user,ts}，只存本機、不進 records/統計
+let quickResolved={}; // 已確認或略過的雲端草稿，防止離線／舊快照復活
 let finalizingQuickId=null; // 目前正在整理（補全）的草稿 id；save-btn 成功後據此移除草稿
 let noteMemory={}, budgets={}, editingId=null;
 let editSelCat='food', editSelCurr='THB', editSelUserIdx=0;
@@ -1515,6 +1516,7 @@ function loadLocal(){
   const lg=localStorage.getItem('xp_lang');if(lg)lang=lg;
   pendingOps=lsJSON('xp_pending',[])||[];
   quickDrafts=lsJSON('xp_quick',[]);
+  quickResolved=lsJSON('xp_quick_resolved',{})||{};
   const rc=lsJSON('xp_recurring',null);
   if(Array.isArray(rc)){
     // dedup: keep first entry per cat+amount+freq+user combo（墓碑不參與去重，需保留以傳播刪除）
@@ -1532,6 +1534,29 @@ function loadLocal(){
 }
 function saveLocal(){localStorage.setItem('xp_records',JSON.stringify(records));}
 function saveQuick(){localStorage.setItem('xp_quick',JSON.stringify(quickDrafts));}
+function mergeNotificationDrafts(res){
+  if(!Array.isArray(res.quickDrafts))return; // 相容尚未更新的後端
+  const resolved=new Set(res.resolvedQuickIds||[]);
+  const own=userNames[deviceUserIdx];
+  const remote=res.quickDrafts.filter(d=>d.user===own&&!quickResolved[d.id]&&!resolved.has(d.id)&&!records.some(r=>r.id===d.id));
+  const incoming=new Map(remote.map(d=>[d.id,d]));
+  quickDrafts=quickDrafts.filter(d=>!d.notificationDraft || (d.user===own&&incoming.has(d.id)));
+  const localIds=new Set(quickDrafts.map(d=>d.id));
+  quickDrafts=quickDrafts.map(d=>d.notificationDraft&&d.id!==finalizingQuickId?incoming.get(d.id):d);
+  remote.forEach(d=>{if(!localIds.has(d.id))quickDrafts.push(d);});
+  if(finalizingQuickId&&resolved.has(finalizingQuickId)){
+    finalizingQuickId=null;
+    document.getElementById('inp-amount').value='';
+    const msg=document.getElementById('add-msg');msg.className='msg error';
+    msg.textContent=lang==='en'?'This draft was handled on another device.':'這份草稿已在其他裝置處理，請重新確認。';
+  }
+  saveQuick();refreshQuickBadge();
+  if(!document.getElementById('organize-modal').classList.contains('hidden'))renderQuickList();
+}
+function resolveQuickLocally(id){
+  quickResolved[id]=true;
+  localStorage.setItem('xp_quick_resolved',JSON.stringify(quickResolved));
+}
 function refreshQuickBadge(){
   const b=document.getElementById('quick-badge');
   if(!b)return;
@@ -1879,6 +1904,7 @@ async function apiCall(action,data={}){
 // ===== 未同步佇列 =====
 function savePending(){localStorage.setItem('xp_pending',JSON.stringify(pendingOps));}
 function enqueue(op){
+  if(op.op==='upsert'&&pendingOps.some(o=>o.id===op.id&&o.op==='finalizeQuick'))op.op='finalizeQuick';
   // 同 id 的舊操作用新的取代（add→edit 收斂成一次 upsert；任何操作後 delete 則由 delete 收尾）
   pendingOps=pendingOps.filter(o=>o.id!==op.id);
   pendingOps.push(op);
@@ -1895,6 +1921,24 @@ async function flushQueue(){
     const upserts=batch.filter(o=>o.op==='upsert').map(o=>o.rec);
     const deletes=batch.filter(o=>o.op==='delete').map(o=>o.id);
     if(upserts.length)await apiCall('addMany',{records:upserts});
+    for(const op of batch.filter(o=>o.op==='finalizeQuick')){
+      const result=await apiCall('finalizeNotification',{id:op.id,record:op.rec});
+      const newer=pendingOps.find(o=>o.id===op.id&&o!==op);
+      if(newer&&result.status!=='discarded'){
+        // 使用者在確認請求途中又編輯：下一次應更新已確認的帳，不能重送舊確認而洗掉新內容。
+        if(newer.op==='finalizeQuick')newer.op='upsert';
+        savePending();
+      }else{
+        if(result.status==='discarded')pendingOps=pendingOps.filter(o=>o.id!==op.id||o===op);
+        records=records.filter(r=>r.id!==op.id);
+        if(result.record)records.push(normRec(result.record));
+        saveLocal();
+        opSeq++;if(syncInFlight)opLog.push({seq:opSeq,op:result.record?{op:'upsert',id:op.id,rec:result.record}:{op:'delete',id:op.id}});
+      }
+      if(result.status==='discarded')alert(lang==='en'?'This draft was already discarded on another device.':'這份草稿已在其他裝置略過，未新增帳目。');
+      refreshAll();
+    }
+    for(const op of batch.filter(o=>o.op==='discardQuick'))await apiCall('discardNotification',{id:op.id});
     for(const id of deletes){
       try{await apiCall('delete',{id});}
       catch(e){if(!/not found/i.test(e.message))throw e;} // 雲端本來就沒有 → 視為已完成
@@ -1922,15 +1966,16 @@ async function syncFromCloud(){
       const map={};
       res.records.forEach(r=>{map[r.id]=normRec(r);});
       // 仍卡在佇列（剛剛 flush 失敗）的本機變更，蓋在雲端結果之上不被吃掉
-      pendingOps.filter(o=>o.op==='upsert').forEach(o=>{map[o.rec.id]=normRec({...o.rec});});
+      pendingOps.filter(o=>o.op==='upsert'||o.op==='finalizeQuick').forEach(o=>{map[o.rec.id]=normRec({...o.rec});});
       pendingOps.filter(o=>o.op==='delete').forEach(o=>{delete map[o.id];});
       // 同步途中記的帳／刪的帳：就算已經 flush 完離開佇列，也要蓋在這份（可能較舊的）雲端快照上，
       // 否則剛記的那筆會從畫面消失、剛刪的那筆會復活（2026-09-26 重現）
       opLog.filter(o=>o.seq>startSeq).forEach(({op})=>{
-        if(op.op==='upsert')map[op.rec.id]=normRec({...op.rec});
+        if(op.op==='upsert'||op.op==='finalizeQuick')map[op.rec.id]=normRec({...op.rec});
         else if(op.op==='delete')delete map[op.id];
       });
       records=Object.values(map);
+      mergeNotificationDrafts(res);
       saveLocal();setSyncStatus(true);return true;
     }
   }catch(e){setSyncStatus(false,e.message);}
@@ -3317,7 +3362,9 @@ function commitRecordFromForm(){
   if(!date){msg.className='msg error';msg.textContent=T('err_date');return null;}
   let finalCat=selCat;
   if(selCat==='other'){const c=document.getElementById('inp-custom-cat').value.trim();if(c)finalCat=c;}
-  const rec={id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,date:normalizeDate(date),ts:Date.now(),user:userNames[selectedUserIdx]};
+  const finalDraft=quickDrafts.find(d=>d.id===finalizingQuickId);
+  if(finalDraft&&finalDraft.notificationDraft&&selCurr!=='THB'){msg.className='msg error';msg.textContent=lang==='en'?'Notification drafts must use THB.':'通知草稿僅接受泰銖（THB）。';return null;}
+  const rec={id:finalDraft&&finalDraft.notificationDraft?finalDraft.id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,date:normalizeDate(date),ts:Date.now(),user:userNames[selectedUserIdx]};
   records.push(rec);saveLocal();
   if(noteVal)addNoteMemory(finalCat,noteVal);
   const cat=getCat(finalCat);
@@ -3347,7 +3394,8 @@ function commitRecordFromForm(){
   document.getElementById('note-suggestions').className='note-suggestions';
   document.getElementById('inp-date').value=today();
   refreshAll();
-  enqueue({op:'upsert',id:rec.id,rec});
+  if(finalDraft&&finalDraft.notificationDraft)resolveQuickLocally(finalDraft.id);
+  enqueue({op:finalDraft&&finalDraft.notificationDraft?'finalizeQuick':'upsert',id:rec.id,rec});
   // 若這筆是從快速記帳整理而來，存成功後移除對應草稿
   if(finalizingQuickId){
     quickDrafts=quickDrafts.filter(d=>d.id!==finalizingQuickId);
@@ -3405,9 +3453,15 @@ function renderQuickList(){
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--border)';
     const info=document.createElement('div');
-    info.style.cssText='flex:1;cursor:pointer';
-    info.innerHTML='<div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink)">'+fmtAmt(d.amount,d.curr)+'</div>'
-      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+d.date+' · '+escapeHtml(d.user)+'</div>';
+    info.style.cssText='flex:1;min-width:0;cursor:pointer;overflow-wrap:anywhere';
+    info.innerHTML='<div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink)">'+(d.amount?fmtAmt(d.amount,d.curr):(lang==='en'?'Amount needed · THB':'金額待補 · THB'))+'</div>'
+      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+escapeHtml(d.date)+' · '+escapeHtml(d.user)+'</div>';
+    if(d.notificationDraft){
+      const detail=document.createElement('div');detail.style.cssText='font-size:13px;line-height:1.6;white-space:pre-wrap;margin-top:6px';
+      detail.textContent=(lang==='en'?'Merchant: ':'商家：')+(d.merchant||(lang==='en'?'Needs review':'待補'))+'\n'+(lang==='en'?'Category: choose when reviewing':'分類：整理時選擇')+(d.dateEstimated?'\n'+(lang==='en'?'Date uses notification receipt; verify purchase date.':'日期採通知接收日，請核對消費日期。'):'')+'\n'+(d.note||'');
+      info.appendChild(detail);
+      if(d.possibleDuplicate||d.needsReview){const warn=document.createElement('div');warn.style.cssText='font-size:13px;color:var(--danger);margin-top:6px';warn.textContent=d.possibleDuplicate?(lang==='en'?'Possible duplicate — compare before saving':'可能重複，請比對後再儲存'):(lang==='en'?'Check notification details before saving':'通知資料待核對，請補齊後再儲存');info.appendChild(warn);}
+    }
     info.onclick=()=>startFinalize(d.id);
     const del=document.createElement('button');
     del.textContent='✕';
@@ -3417,9 +3471,12 @@ function renderQuickList(){
     box.appendChild(row);
   });
 }
-function openOrganizeModal(){renderQuickList();document.getElementById('organize-modal').classList.remove('hidden');}
+function openOrganizeModal(){renderQuickList();document.getElementById('organize-modal').classList.remove('hidden');if(apiUrl)syncFromCloud();}
 function closeOrganizeModal(){document.getElementById('organize-modal').classList.add('hidden');}
 function discardQuick(id){
+  const d=quickDrafts.find(x=>x.id===id);
+  if(d&&d.notificationDraft){resolveQuickLocally(id);enqueue({op:'discardQuick',id});}
+  if(finalizingQuickId===id)finalizingQuickId=null;
   quickDrafts=quickDrafts.filter(d=>d.id!==id);
   saveQuick();refreshQuickBadge();renderQuickList();
 }
@@ -3433,9 +3490,16 @@ function startFinalize(id){
   const ui=userNames.indexOf(d.user);
   if(ui>=0){selectedUserIdx=ui;updateUserToggle();} // 只對齊表單付款人，不改本機身分
   // 金額 / 日期 / 清空備註（類別留給使用者補）
-  document.getElementById('inp-amount').value=d.amount;
+  document.getElementById('inp-amount').value=d.amount||'';
   document.getElementById('inp-date').value=d.date;
-  document.getElementById('inp-note').value='';
+  document.getElementById('inp-note').value=d.note||'';
+  selCat=d.cat||'other';buildCatGrid();
+  document.getElementById('inp-custom-cat').value='';
+  document.getElementById('custom-cat-wrap').className=selCat==='other'?'custom-cat-wrap show':'custom-cat-wrap';
+  document.getElementById('inp-recurring').checked=false;
+  document.getElementById('recurring-options').style.display='none';
+  const msg=document.getElementById('add-msg');msg.className='msg';
+  if(d.notificationDraft){msg.className='msg success';msg.textContent=lang==='en'?'Review amount, date, payer, category and notes. Save to add this draft to your expenses.':'請核對金額、日期、付款人、分類與備註；按儲存後才會加入帳目。';}
   finalizingQuickId=id;
   closeOrganizeModal();
   // 切到「新增」頁（觸發既有 nav 邏輯）
