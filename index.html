@@ -2941,20 +2941,34 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
 // ===== 語音記帳 =====
 const PS_SUPABASE_URL='https://hyrfnylsmgwcjngqdbbd.supabase.co';
 const PS_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5cmZueWxzbWd3Y2puZ3FkYmJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODY3MTIsImV4cCI6MjA5NjQ2MjcxMn0.qATijjdL2uKBbqyjLbqPvknWTD4ljAS2msImivJYdVI';
-const AI_ENDPOINT=PS_SUPABASE_URL+'/functions/v1/scan-receipt';
+// 主要走 Supabase；它是免費方案，閒置 7 天會被暫停。暫停時自動改打 Cloudflare 備援（同一份邏輯，
+// 原始碼在 photo-split-tracker/cloudflare/scan-receipt）。
+const AI_ENDPOINTS=[
+  {url:PS_SUPABASE_URL+'/functions/v1/scan-receipt',headers:{'apikey':PS_ANON_KEY,'Authorization':'Bearer '+PS_ANON_KEY}},
+  {url:'https://scan-receipt-backup.24962tim.workers.dev',headers:{}}
+];
 let voiceLang='en-US';
 // iOS(含 iPadOS）的 webkitSpeechRecognition 不可靠（standalone 靜默、Safari 回 aborted）；
 // 改走 iOS 鍵盤原生聽寫：聚焦文字框 → 使用者按鍵盤🎤 → 後端解析。
 const IS_IOS=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
 async function callScanApi(payload){
-  const r=await fetch(AI_ENDPOINT,{
-    method:'POST',
-    headers:{'Content-Type':'application/json','apikey':PS_ANON_KEY,'Authorization':'Bearer '+PS_ANON_KEY},
-    body:JSON.stringify(payload)
-  });
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok||!data.ok)throw new Error(data.error||('HTTP '+r.status));
-  return data; // 文字路回 {results:[...]}，照片路回 {result:{...}}
+  const body=JSON.stringify(payload);
+  let lastErr=null;
+  for(const ep of AI_ENDPOINTS){
+    let r,data;
+    try{
+      r=await fetch(ep.url,{method:'POST',headers:{'Content-Type':'application/json',...ep.headers},body});
+      data=await r.json().catch(()=>null);
+    }catch(e){console.warn('AI 端點連不上，換下一個',ep.url,e);lastErr=e;continue;}
+    // 函式本人一定回 {ok} 或 {error}。不是這個形狀＝專案被暫停／閘道錯誤，換下一個。
+    // 是函式本人回的錯（Gemini 失敗、聽不出金額）就直接報，換端點也只是同一個 Gemini 再錯一次。
+    if(!data||typeof data!=='object'||(!('ok' in data)&&!('error' in data))){
+      console.warn('AI 端點不是函式本人回應，換下一個',ep.url,r.status);lastErr=new Error('HTTP '+r.status);continue;
+    }
+    if(!r.ok||!data.ok)throw new Error(data.error||('HTTP '+r.status));
+    return data; // 文字路回 {results:[...]}，照片路回 {result:{...}}
+  }
+  throw lastErr||new Error('AI unavailable');
 }
 function aiMsg(type,text){
   const msg=document.getElementById('add-msg');
