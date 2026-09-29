@@ -683,6 +683,202 @@ body[data-theme="boba"] .topbar-bear{display:block;position:absolute;right:14px;
 @media (max-width:380px){body[data-theme="boba"] .topbar-bear{width:66px;bottom:-12px}}
 </style>
 <style>.legacy-add-bear{display:none}body[data-theme="boba"] .legacy-add-bear{display:block;width:78px;height:auto;object-fit:contain}body[data-theme="boba"] #screen-add .topbar-left{display:flex;gap:10px;align-items:center}#theme-options{flex-wrap:wrap}#theme-options>button{min-width:110px;min-height:60px}</style>
+<!-- ══════ carebear 黏土立體層（2026-09-29，只作用在 carebear；整段刪除即回到扁平版）══════ -->
+<style id="carebear-clay">
+/* Carebear clay: soft extruded depth for the pastel bear world.
+   Raised = white face + top catch-light + 3px wall + soft ground shadow.
+   Selected = pressed into the surface. Remove this block to restore the flat skin. */
+body[data-theme="carebear"]{
+ --clay-wall:#e2d7f1;
+ --clay-ease:cubic-bezier(.34,1.56,.64,1);
+ --clay-raise:inset 0 2px 1px #fff,inset 0 -3px 6px -2px #7958a624,0 3px 0 var(--clay-wall),0 12px 18px -11px #49345f66;
+ --clay-raise-sm:inset 0 1.5px 1px #fff,inset 0 -2px 4px -2px #7958a624,0 2px 0 var(--clay-wall),0 7px 12px -8px #49345f59;
+ --clay-press:inset 0 3px 6px #5a3e8233,inset 0 -1px 0 #ffffffcc,0 0 0 var(--clay-wall),0 3px 6px -5px #49345f40;
+ --clay-well:inset 0 3px 6px -2px #5a3e8229,inset 0 -1px 0 #fff,0 1px 0 #fff;
+}
+
+/* Sheet: the working area is a thick slab resting over the painted header. */
+body[data-theme="carebear"] .app{position:relative;background:#f1ebfa}
+body[data-theme="carebear"] .screen{background:#f1ebfa}
+body[data-theme="carebear"] .screen>.content{position:relative;z-index:11;margin-top:-24px;border-radius:30px 30px 0 0;padding-top:24px;padding-bottom:calc(118px + env(safe-area-inset-bottom));background:linear-gradient(180deg,#f8f4ff 0,#f3edfc 240px,#f2ecfa);box-shadow:inset 0 2px 0 #fff,0 -14px 30px -18px #49345f73}
+body[data-theme="carebear"] #screen-month>.content{background:linear-gradient(180deg,#f7f5ff 0,#eff0fa 260px,#eef3f4)}
+body[data-theme="carebear"] #screen-report>.content{background:linear-gradient(180deg,#f9f4ff 0,#f5eefb 260px,#f6eff8)}
+body[data-theme="carebear"] #screen-settings>.content{background:linear-gradient(180deg,#f8f5ff,#f3eff9)}
+body[data-theme="carebear"] .screen#screen-today .topbar{height:clamp(164px,48vw,200px)}
+body[data-theme="carebear"] .care-today-bear{bottom:32px;filter:drop-shadow(0 12px 10px #49345f2e)}
+body[data-theme="carebear"] #screen-add .topbar{height:202px;min-height:202px}
+body[data-theme="carebear"] .care-chef{bottom:24px;mix-blend-mode:normal;filter:drop-shadow(0 12px 10px #49345f2e)}
+body[data-theme="carebear"] #screen-add .topbar>.sync-wrap{bottom:43px}
+@media(max-width:360px){body[data-theme="carebear"] #screen-add .topbar{height:192px;min-height:192px}}
+@media(max-height:650px){body[data-theme="carebear"] .topbar,body[data-theme="carebear"] #screen-add .topbar{height:154px;min-height:154px}body[data-theme="carebear"] #screen-add .topbar>.sync-wrap{bottom:31px}}
+
+/* Press physics: sink fast, spring back. */
+body[data-theme="carebear"] :is(.submit-btn,.secondary-btn,.danger-btn,.quick-btn,.cat-btn,.curr-btn,.cat-filter,.user-tab,.segment-btn,.recur-freq-btn,.calc-op-btn,.cat-dd-btn,.nav-btn,.edit-btn,.del-btn,.rate-update-btn,.rate-more-btn,.hero-pill,#lang-zh-btn,#lang-en-btn,#theme-options>button){transition:transform .24s var(--clay-ease),box-shadow .24s var(--clay-ease),background-color .18s,color .18s}
+body[data-theme="carebear"] :is(.submit-btn,.secondary-btn,.danger-btn,.quick-btn,.cat-btn,.curr-btn,.cat-filter,.user-tab,.segment-btn,.recur-freq-btn,.calc-op-btn,.cat-dd-btn,.nav-btn,.edit-btn,.del-btn,.rate-update-btn,.rate-more-btn,#lang-zh-btn,#lang-en-btn,#theme-options>button):active{transition-duration:.07s}
+
+/* Primary: purple keycap. */
+body[data-theme="carebear"] .submit-btn{background:linear-gradient(180deg,#8262b5,#6d4c9c);border:0;border-radius:18px;min-height:54px;text-shadow:0 1px 0 #3f2468;box-shadow:inset 0 2px 0 #ffffff47,inset 0 -5px 10px -3px #2c125066,0 4px 0 #56397f,0 16px 22px -12px #56397fb3}
+body[data-theme="carebear"] .submit-btn:hover{background:linear-gradient(180deg,#7a59ad,#644592)}
+body[data-theme="carebear"] .submit-btn:active{transform:translateY(4px);box-shadow:inset 0 3px 7px #2c125059,inset 0 -2px 4px -2px #2c125040,0 0 0 #56397f,0 5px 8px -6px #56397f99}
+body[data-theme="carebear"] .submit-btn:disabled{transform:none}
+
+/* Raised white clay controls. */
+body[data-theme="carebear"] :is(.secondary-btn,.quick-btn,.cat-btn,.curr-btn,.cat-filter,.user-tab,.recur-freq-btn,.calc-op-btn,.cat-dd-btn,.rate-update-btn,.rate-more-btn,#lang-zh-btn,#lang-en-btn,#theme-options>button){background:linear-gradient(180deg,#fff,#fbf8ff)!important;border:1px solid #efe8f8!important;box-shadow:var(--clay-raise)}
+body[data-theme="carebear"] :is(.curr-btn,.cat-filter,.user-tab,.calc-op-btn,.rate-update-btn){box-shadow:var(--clay-raise-sm)}
+body[data-theme="carebear"] :is(.secondary-btn,.quick-btn,.cat-btn,.curr-btn,.cat-filter,.user-tab,.recur-freq-btn,.calc-op-btn,.cat-dd-btn,.rate-update-btn,.rate-more-btn,#lang-zh-btn,#lang-en-btn,#theme-options>button):active{transform:translateY(3px);box-shadow:var(--clay-press)}
+body[data-theme="carebear"] .secondary-btn{border-radius:16px;color:var(--accent)}
+body[data-theme="carebear"] .danger-btn{background:linear-gradient(180deg,#fff3f6,#ffe7ee);border:1px solid #fbdbe4;border-radius:16px;box-shadow:inset 0 2px 1px #fff,inset 0 -3px 6px -2px #a23e5824,0 3px 0 #f2cdd8,0 12px 18px -11px #a23e5866}
+body[data-theme="carebear"] .danger-btn:active{transform:translateY(3px);box-shadow:inset 0 3px 6px #a23e5833,0 0 0 #f2cdd8}
+body[data-theme="carebear"] .quick-btn{border-radius:18px}
+body[data-theme="carebear"] #quick-add-btn{background:linear-gradient(180deg,#efe6fb,#e3d5f6)!important;border-color:#eadff8!important;box-shadow:inset 0 2px 1px #ffffffd9,inset 0 -3px 6px -2px #7958a633,0 3px 0 #d3c1ec,0 12px 18px -11px #49345f66}
+body[data-theme="carebear"] .rate-more-btn{border-style:solid!important}
+
+/* Selected = pressed in. */
+body[data-theme="carebear"] :is(.cat-btn.selected,.curr-btn.selected,.cat-filter.active,.user-tab[class*="active-"],.recur-freq-btn.active,#lang-zh-btn.is-on,#lang-en-btn.is-on,#theme-options>button.is-on){background:#eee4fb!important;border-color:transparent!important;color:var(--ink)!important;transform:translateY(3px);box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 4px 7px #5a3e8238,0 0 0 var(--clay-wall)}
+body[data-theme="carebear"] .user-tab.active-0{background:#e2f0fe!important;color:var(--sam)!important;box-shadow:inset 0 0 0 1.5px var(--sam),inset 0 4px 7px #35679833}
+body[data-theme="carebear"] .user-tab.active-1{background:#ffe6f1!important;color:var(--patty)!important;box-shadow:inset 0 0 0 1.5px var(--patty),inset 0 4px 7px #93477833}
+
+/* Category tiles: figurines standing on candy blocks. */
+body[data-theme="carebear"] .cat-grid{gap:12px}
+body[data-theme="carebear"] .cat-btn{border-radius:20px;min-height:74px;padding:10px 4px 9px}
+body[data-theme="carebear"] .cat-art{filter:drop-shadow(0 4px 3px #49345f33);transition:transform .24s var(--clay-ease)}
+body[data-theme="carebear"] .cat-btn:hover .cat-art{transform:translateY(-2px)}
+body[data-theme="carebear"] .cat-btn.selected .cat-art{transform:translateY(-1px) scale(1.06)}
+body[data-theme="carebear"] .cat-btn.selected::after{width:18px;height:18px;line-height:18px;top:6px;right:7px;background:linear-gradient(180deg,#8a6bbd,#6d4c9c);box-shadow:inset 0 1px 0 #ffffff59,0 2px 3px #49345f59}
+
+/* Payer choice: tinted clay panels. */
+body[data-theme="carebear"] #user-toggle{gap:12px}
+body[data-theme="carebear"] #user-toggle .segment-btn,body[data-theme="carebear"] #edit-user-toggle .segment-btn{border-radius:20px;min-height:62px;background:linear-gradient(180deg,#f1f8ff,#e2effd);border:1px solid #eaf3fd;box-shadow:inset 0 2px 1px #fff,inset 0 -3px 6px -2px #35679826,0 3px 0 #c9ddf2,0 12px 18px -11px #35679866}
+body[data-theme="carebear"] #user-toggle .segment-btn.u1,body[data-theme="carebear"] #edit-user-toggle .segment-btn.u1{background:linear-gradient(180deg,#fff4f9,#ffe5f0);border-color:#fff0f6;box-shadow:inset 0 2px 1px #fff,inset 0 -3px 6px -2px #93477826,0 3px 0 #f3cfe0,0 12px 18px -11px #93477866}
+body[data-theme="carebear"] #user-toggle .segment-btn.active,body[data-theme="carebear"] #edit-user-toggle .segment-btn.active{border-color:transparent;transform:translateY(3px);box-shadow:inset 0 0 0 2px var(--accent),inset 0 4px 8px #35679838,0 0 0 #c9ddf2}
+body[data-theme="carebear"] #user-toggle .segment-btn.u1.active,body[data-theme="carebear"] #edit-user-toggle .segment-btn.u1.active{box-shadow:inset 0 0 0 2px var(--accent),inset 0 4px 8px #93477838,0 0 0 #f3cfe0}
+body[data-theme="carebear"] .user-bear{mix-blend-mode:normal;filter:drop-shadow(0 4px 3px #49345f33)}
+
+/* Fields: carved wells. */
+body[data-theme="carebear"] :is(.form-input,.curr-select,.amount-line){background:#fbf8ff;border:1px solid #e3d8f0;box-shadow:var(--clay-well);border-radius:16px}
+body[data-theme="carebear"] .amount-line .form-input,body[data-theme="carebear"] .amount-line .curr-select{box-shadow:none!important}
+body[data-theme="carebear"] .amount-line:focus-within{border-color:var(--accent);outline:2px solid #b89ddc;outline-offset:2px}
+body[data-theme="carebear"] :is(.form-input,.curr-select):focus{background:#fff}
+
+/* Totals: a thick lavender slab with embossed numerals. */
+body[data-theme="carebear"] .hero{border-radius:26px;background:linear-gradient(160deg,#f1e9fd 0,#e4d6f8 100%);box-shadow:inset 0 2px 1px #ffffffd9,inset 0 -7px 14px -6px #62449233,0 5px 0 #d4c3ec,0 24px 30px -18px #49345f80;margin-bottom:24px}
+body[data-theme="carebear"] #screen-month .hero{background:linear-gradient(160deg,#eee9fd 0,#dcece6 100%);box-shadow:inset 0 2px 1px #ffffffd9,inset 0 -7px 14px -6px #3f6a5a2e,0 5px 0 #c9dcd6,0 24px 30px -18px #3d4f5f73}
+body[data-theme="carebear"] :is(.hero-value,.hero-cur,.total-big){text-shadow:0 1.5px 0 #ffffffe6}
+body[data-theme="carebear"] .hero-pill{background:linear-gradient(180deg,#fff,#faf6ff);box-shadow:var(--clay-raise-sm);padding:5px 10px}
+
+/* Comparison bar and budget bars: glossy tubes in a carved groove. */
+body[data-theme="carebear"] :is(.compare-bar-wrap,.bar-track){height:14px!important;background:#e9e1f5;border:0;box-shadow:inset 0 2px 4px #5a3e8238,0 1px 0 #fff;padding:2px;gap:2px}
+body[data-theme="carebear"] .compare-bar-wrap>*,body[data-theme="carebear"] .bar-track>div{border-radius:999px;box-shadow:inset 0 2px 1px #ffffff99,inset 0 -2px 2px #0000001a}
+body[data-theme="carebear"] .cmp-fill-0{background:linear-gradient(180deg,#bfe0ff,#8ec3fa)}
+body[data-theme="carebear"] .cmp-fill-1{background:linear-gradient(180deg,#ffc8e2,#f39ac6)}
+body[data-theme="carebear"] .compare-bear{mix-blend-mode:normal;filter:drop-shadow(0 5px 4px #49345f38)}
+
+/* Budget cards. */
+body[data-theme="carebear"] .budget-grid{gap:12px}
+body[data-theme="carebear"] .budget-card{border:1px solid #efe8f8;border-top:1px solid #efe8f8!important;border-radius:22px;background:linear-gradient(180deg,#eef6ff 0,#fff 54px);box-shadow:var(--clay-raise)}
+body[data-theme="carebear"] .budget-card.u1{background:linear-gradient(180deg,#fff0f7 0,#fff 54px)}
+body[data-theme="carebear"] #month-budget-section button[onclick^="openBudgetModal"]{background:linear-gradient(180deg,#fff,#faf6ff)!important;box-shadow:var(--clay-raise-sm);border-radius:12px!important}
+
+/* Record lists: one clay tray per day; icons sit on coins. */
+body[data-theme="carebear"] .day-group{background:linear-gradient(180deg,#fff,#fdfbff);border:1px solid #f1eaf9;border-radius:24px;padding:2px 14px;margin-bottom:18px;box-shadow:var(--clay-raise)}
+body[data-theme="carebear"] .day-group .entry{background:transparent;border-bottom:1px solid #f0e9f8}
+body[data-theme="carebear"] .day-group .entry:last-child{border-bottom:0}
+body[data-theme="carebear"] .day-group .day-header{padding:12px 2px 9px;border-bottom:1px solid #f0e9f8;color:var(--ink-fn)}
+body[data-theme="carebear"] .entry-icon{width:44px;height:44px;border-radius:15px;background:linear-gradient(180deg,#f8f3ff,#ece2fa);box-shadow:inset 0 1.5px 1px #fff,inset 0 -3px 5px -2px #7958a62e,0 2px 0 #ddd0ef,0 6px 10px -7px #49345f66}
+body[data-theme="carebear"] .entry-icon img{width:32px!important;height:32px!important;filter:drop-shadow(0 3px 2px #49345f33)}
+body[data-theme="carebear"] .entry-actions{gap:6px}
+body[data-theme="carebear"] :is(.edit-btn,.del-btn){width:28px;height:28px;border-radius:50%;background:linear-gradient(180deg,#fff,#f8f3ff);border:1px solid #efe8f8;box-shadow:var(--clay-raise-sm);font-size:13px}
+body[data-theme="carebear"] :is(.edit-btn,.del-btn):active{transform:translateY(2px);box-shadow:var(--clay-press)}
+body[data-theme="carebear"] .user-badge,body[data-theme="carebear"] .recur-badge{box-shadow:inset 0 1px 0 #ffffffb3,0 1px 2px #49345f1f}
+
+/* Dropdown, modal, messages. */
+body[data-theme="carebear"] .cat-dd-btn{border-radius:16px}
+body[data-theme="carebear"] .cat-dd-panel{border:1px solid #efe8f8;border-radius:20px;box-shadow:inset 0 2px 1px #fff,0 4px 0 var(--clay-wall),0 26px 40px -16px #49345f8c}
+body[data-theme="carebear"] .modal{border-radius:30px;background:linear-gradient(180deg,#fff,#fbf8ff);box-shadow:inset 0 2px 1px #fff,inset 0 -8px 16px -8px #7958a62e,0 6px 0 var(--clay-wall),0 36px 60px -20px #311e4a99}
+body[data-theme="carebear"] .msg{border-radius:16px;box-shadow:inset 0 1.5px 1px #ffffffb3,0 8px 14px -10px #49345f4d}
+body[data-theme="carebear"] .sync-status{box-shadow:var(--clay-raise-sm);border-color:#efe8f8}
+body[data-theme="carebear"] .rate-row{background:linear-gradient(180deg,#fff,#fbf8ff);border:1px solid #f1eaf9;border-radius:16px;box-shadow:var(--clay-raise-sm);margin-bottom:10px}
+body[data-theme="carebear"] #calc-eval-btn{background:linear-gradient(180deg,#8262b5,#6d4c9c)!important;border:0!important;box-shadow:inset 0 2px 0 #ffffff47,0 3px 0 #56397f,0 10px 14px -9px #56397fb3}
+
+/* Navigation: a floating clay dock. */
+body[data-theme="carebear"] .nav{position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:20;min-height:0;padding:7px;gap:4px;border:1px solid #ffffffb3;border-radius:28px;background:#fffffff0;-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);box-shadow:inset 0 2px 1px #fff,inset 0 -4px 8px -3px #7958a629,0 4px 0 #ded2ef,0 20px 34px -14px #49345f8c}
+body[data-theme="carebear"] .nav-btn{border-radius:21px;padding:8px 2px 7px}
+body[data-theme="carebear"] .nav-btn:active{transform:translateY(2px)}
+body[data-theme="carebear"] .nav-btn.active{background:#efe6fb;color:var(--accent);box-shadow:inset 0 3px 6px #5a3e8230,inset 0 -1px 0 #fff}
+body[data-theme="carebear"] .nav-btn.active .nav-icon{transform:none;filter:drop-shadow(0 1px 0 #fff)}
+
+/* Report result cards were a zero-padding outline; give them the slab treatment. */
+body[data-theme="carebear"] #screen-report .card{padding:18px 20px;margin-bottom:22px;border:1px solid #f1eaf9;border-radius:24px;background:linear-gradient(180deg,#fff,#fbf8ff);box-shadow:var(--clay-raise)}
+/* Soft floor under the dock so scrolling content fades instead of peeking. */
+body[data-theme="carebear"] .app::after{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(44px + env(safe-area-inset-bottom));z-index:19;pointer-events:none;background:linear-gradient(#f2ecfa00,#f2ecfaf2 70%)}
+body[data-theme="carebear"] .care-today-bear{height:78%}
+
+/* ── Round 2: the parts that still read flat ── */
+body[data-theme="carebear"]{--clay-well:inset 0 4px 8px -3px #5a3e823d,inset 0 1px 2px #5a3e821f,inset 0 -1px 0 #fff,0 1px 0 #fff}
+/* Extruded headings and totals. */
+body[data-theme="carebear"] .topbar-left h1{text-shadow:0 1px 0 #fff,0 2px 0 #ddd0f0,0 3px 0 #d1c0ea,0 4px 0 #c6b2e3,0 9px 12px #49345f40}
+body[data-theme="carebear"] :is(.hero-value,.hero-cur,.total-big){text-shadow:0 1.5px 0 #fff,0 3px 0 #cdbbe6,0 4px 0 #c2ade0,0 9px 10px #49345f3d}
+body[data-theme="carebear"] #screen-month .hero :is(.hero-value,.hero-cur){text-shadow:0 1.5px 0 #fff,0 3px 0 #c3d6cf,0 4px 0 #b7ccc4,0 9px 10px #3d4f5f3d}
+/* Deeper wells. */
+body[data-theme="carebear"] :is(.form-input,.curr-select,.amount-line){background:#f5f0fc;border-color:#dccfee}
+body[data-theme="carebear"] .amount-line .form-input{background:transparent!important}
+/* Sam / Patty totals sit on their own tinted tiles. */
+body[data-theme="carebear"] .stat-row .compare-stat{padding:10px 12px 10px 8px;border-radius:22px;background:linear-gradient(180deg,#f1f8ff,#e2effd);box-shadow:inset 0 2px 1px #fff,inset 0 -3px 6px -2px #35679826,0 3px 0 #c9ddf2,0 12px 18px -11px #35679866}
+body[data-theme="carebear"] .stat-row .compare-stat+.compare-stat{background:linear-gradient(180deg,#fff4f9,#ffe5f0);box-shadow:inset 0 2px 1px #fff,inset 0 -3px 6px -2px #93477826,0 3px 0 #f3cfe0,0 12px 18px -11px #93477866}
+body[data-theme="carebear"] .stat-row{margin-bottom:14px}
+/* Section rules give way to spacing. */
+body[data-theme="carebear"] :is(.section-title,.chart-head){border-bottom:0;padding-bottom:0}
+body[data-theme="carebear"] .section-title{margin-bottom:12px}
+/* Disclosure rows become clay bars. */
+body[data-theme="carebear"] .form-extras{border-bottom:0;margin-bottom:18px}
+body[data-theme="carebear"] .form-extras>summary,body[data-theme="carebear"] #month-cat-title{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:13px 16px;min-height:48px;border-radius:18px;background:linear-gradient(180deg,#fff,#fbf8ff);border:1px solid #efe8f8;box-shadow:var(--clay-raise);color:var(--ink);font-size:14px;font-weight:900;margin-bottom:14px;transition:transform .24s var(--clay-ease),box-shadow .24s var(--clay-ease)}
+body[data-theme="carebear"] .form-extras>summary::-webkit-details-marker{display:none}
+body[data-theme="carebear"] .form-extras>summary::after{content:'';width:8px;height:8px;border:solid var(--accent);border-width:0 2.5px 2.5px 0;transform:translateY(-2px) rotate(45deg);transition:transform .24s var(--clay-ease)}
+body[data-theme="carebear"] .form-extras[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
+body[data-theme="carebear"] :is(.form-extras>summary,#month-cat-title):active{transform:translateY(3px);box-shadow:var(--clay-press);transition-duration:.07s}
+body[data-theme="carebear"] #month-cat-title{position:relative;margin-top:26px}
+body[data-theme="carebear"] #month-cat-title .collapse-arrow{position:static;font-size:0;width:8px;height:8px;border:solid var(--accent);border-width:0 2.5px 2.5px 0;transform:translateY(2px) rotate(-135deg);transition:transform .24s var(--clay-ease)}
+body[data-theme="carebear"] #month-cat-title.collapsed .collapse-arrow{transform:translateY(-2px) rotate(45deg)}
+body[data-theme="carebear"] .care-panel:has(>#month-cat-title)>.care-sticker{right:46px;top:-5px}
+/* Analysis bars, pie and treemap sit in trays. */
+body[data-theme="carebear"] :is(#today-bars,#rep-bars,#month-bars:not(.collapsed),#rep-pie-body,#rep-tree-body):not(:empty){padding:16px 16px 4px;border-radius:24px;background:linear-gradient(180deg,#fff,#fdfbff);border:1px solid #f1eaf9;box-shadow:var(--clay-raise);margin-bottom:18px}
+body[data-theme="carebear"] :is(#rep-pie-body,#rep-tree-body):not(:empty){padding:16px}
+body[data-theme="carebear"] .bar-wrap{margin-bottom:16px}
+body[data-theme="carebear"] .bar-label img{filter:drop-shadow(0 2px 2px #49345f33)}
+body[data-theme="carebear"] #rep-pie-body svg{filter:drop-shadow(0 8px 8px #49345f40)}
+/* Recurring toggle: a clay row with a keycap checkbox. */
+body[data-theme="carebear"] label:has(#inp-recurring){background:linear-gradient(180deg,#fff,#fbf8ff)!important;border:1px solid #efe8f8!important;border-radius:18px!important;box-shadow:var(--clay-raise)}
+body[data-theme="carebear"] #inp-recurring{-webkit-appearance:none;appearance:none;width:26px!important;height:26px!important;margin:0;border-radius:9px;background:#f5f0fc;border:1px solid #d9cbed;box-shadow:var(--clay-well);display:grid;place-content:center;transition:background .18s,box-shadow .18s}
+body[data-theme="carebear"] #inp-recurring:checked{background:linear-gradient(180deg,#8262b5,#6d4c9c);border-color:#6d4c9c;box-shadow:inset 0 1.5px 0 #ffffff59,0 2px 0 #56397f,0 5px 8px -4px #56397fb3}
+body[data-theme="carebear"] #inp-recurring:checked::before{content:'';width:11px;height:6px;border:solid #fff;border-width:0 0 2.5px 2.5px;transform:translateY(-1px) rotate(-45deg)}
+body[data-theme="carebear"] #inp-recurring:focus-visible{outline:3px solid #9472bf;outline-offset:3px}
+/* Small things: calculator toggle, stickers, nav icons, empty and info wells. */
+body[data-theme="carebear"] .amount-tools button{padding:6px 13px;border-radius:999px;background:linear-gradient(180deg,#fff,#faf6ff);border:1px solid #efe8f8;box-shadow:var(--clay-raise-sm);transition:transform .24s var(--clay-ease),box-shadow .24s var(--clay-ease)}
+body[data-theme="carebear"] .amount-tools button[aria-expanded="true"],body[data-theme="carebear"] .amount-tools button:active{transform:translateY(2px);background:#eee4fb;box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 3px 6px #5a3e8238}
+body[data-theme="carebear"] .care-sticker{filter:drop-shadow(0 4px 3px #49345f38)}
+body[data-theme="carebear"] .nav-icon{filter:drop-shadow(0 1px 0 #fff) drop-shadow(0 2px 2px #49345f40)}
+body[data-theme="carebear"] .empty,body[data-theme="carebear"] #device-identity-info{background:#f5f0fc!important;border:1px solid #e6dcf3!important;border-radius:18px!important;box-shadow:var(--clay-well)}
+
+/* ── Round 3: calmer summary block. Payer split + bar share one tray; people sit in shallow pockets. ── */
+body[data-theme="carebear"] #screen-today .hero{margin-bottom:22px}
+body[data-theme="carebear"] :is(#today-compare,#rep-compare):not(:empty){padding:12px 12px 14px;margin-bottom:30px;border-radius:26px;background:linear-gradient(180deg,#fff,#fdfbff);border:1px solid #f1eaf9;box-shadow:var(--clay-raise)}
+body[data-theme="carebear"] #rep-compare>.section-title{margin:4px 6px 12px}
+body[data-theme="carebear"] :is(#today-compare,#rep-compare) .stat-row{gap:10px;margin-bottom:14px}
+body[data-theme="carebear"] :is(#today-compare,#rep-compare) .stat-row .compare-stat{padding:8px 10px 8px 6px;border-radius:18px;background:#eef6ff;box-shadow:inset 0 2px 5px -1px #35679829,inset 0 -1px 0 #fff}
+body[data-theme="carebear"] :is(#today-compare,#rep-compare) .stat-row .compare-stat+.compare-stat{background:#fff0f7;box-shadow:inset 0 2px 5px -1px #93477829,inset 0 -1px 0 #fff}
+body[data-theme="carebear"] :is(#today-compare,#rep-compare) .compare-stat .stat-value{font-size:19px!important}
+body[data-theme="carebear"] :is(#today-compare,#rep-compare) .compare-bear{width:44px;height:54px}
+body[data-theme="carebear"] #screen-today #today-compare .compare-bar-wrap,body[data-theme="carebear"] #rep-compare .compare-bar-wrap{margin:0 2px}
+body[data-theme="carebear"] #screen-today #today-compare+.section-title,body[data-theme="carebear"] #screen-today .care-panel:has(#today-compare)+*{margin-top:6px}
+
+/* ── Round 3: shorter Month / Report / Settings headers. Bears shrink to the right; the sky continues as a gradient behind the title. ── */
+body[data-theme="carebear"] .screen:is(#screen-month,#screen-report,#screen-settings) .topbar{aspect-ratio:auto;height:clamp(128px,35vw,150px);min-height:0;padding-top:34px;overflow:hidden;background:linear-gradient(180deg,#e2eefd 0,#eaeefd 45%,#f5f2fd 78%,#faf7fe)}
+body[data-theme="carebear"] .screen:is(#screen-month,#screen-report,#screen-settings) .topbar::before{content:'';position:absolute;right:0;top:-16%;height:119%;aspect-ratio:2/1;z-index:0;pointer-events:none;background:var(--care-header) center/100% 100% no-repeat;-webkit-mask-image:linear-gradient(to right,transparent,#000 30%);mask-image:linear-gradient(to right,transparent,#000 30%)}
+@media(max-width:360px){body[data-theme="carebear"] .screen:is(#screen-month,#screen-report,#screen-settings) .topbar{padding-top:26px}}
+
+/* Chart overlays from clayChartDepth() show only in carebear. */
+body:not([data-theme="carebear"]) .clay-depth{display:none}
+</style>
 </head>
 <body data-theme="carebear">
 <!-- THESIS: A shared daily ledger made personal by Sam and Patty's own bears.
@@ -2557,6 +2753,7 @@ function renderCategoryPie(list,wrapId,bodyId){
   body.innerHTML=`<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center">
     <div style="display:flex;justify-content:center">${svg}</div>
     <div style="flex:1;min-width:180px">${legend}</div></div>`;
+  clayChartDepth(body.querySelector('svg'),'pie');
   wrap.style.display='block';
 }
 function renderCategoryTreemap(list,wrapId,bodyId){
@@ -2613,8 +2810,32 @@ function renderCategoryTreemap(list,wrapId,bodyId){
     }
   });
   body.innerHTML=`<div style="overflow:hidden;border-radius:12px"><svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">${svgParts}</svg></div>`;
+  clayChartDepth(body.querySelector('svg'),'tree');
   wrap.style.display='block';
 }
+// carebear 黏土層：甜甜圈加圓管光影與凹洞、樹狀圖每格加枕頭光澤。
+// 疊加層帶 .clay-depth，其他主題由 CSS 隱藏，所以不必在切主題時重畫。
+function clayChartDepth(svg,kind){
+  if(!svg)return;
+  const NS='http://www.w3.org/2000/svg';
+  const defs=document.createElementNS(NS,'defs');
+  const mk=(tag,attrs)=>{const el=document.createElementNS(NS,tag);for(const k in attrs)el.setAttribute(k,attrs[k]);el.classList.add('clay-depth');return el;};
+  if(kind==='pie'){
+    defs.innerHTML='<radialGradient id="clayTorus" gradientUnits="userSpaceOnUse" cx="80" cy="80" r="72"><stop offset=".61" stop-color="#000" stop-opacity=".16"/><stop offset=".7" stop-color="#fff" stop-opacity=".05"/><stop offset=".76" stop-color="#fff" stop-opacity=".42"/><stop offset=".88" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></radialGradient><radialGradient id="clayHole" cx=".5" cy=".42" r=".6"><stop offset=".55" stop-color="#fff"/><stop offset="1" stop-color="#e7ddf4"/></radialGradient>';
+    svg.prepend(defs);
+    const firstText=svg.querySelector('text');
+    svg.insertBefore(mk('circle',{cx:80,cy:80,r:58,fill:'none',stroke:'url(#clayTorus)','stroke-width':28,'pointer-events':'none'}),firstText);
+    svg.insertBefore(mk('circle',{cx:80,cy:80,r:43.5,fill:'url(#clayHole)'}),firstText);
+  }else{
+    defs.innerHTML='<linearGradient id="clayPillow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".34"/><stop offset=".3" stop-color="#fff" stop-opacity=".06"/><stop offset=".72" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>';
+    svg.prepend(defs);
+    svg.querySelectorAll(':scope>rect').forEach(r=>{
+      r.after(mk('rect',{x:r.getAttribute('x'),y:r.getAttribute('y'),width:r.getAttribute('width'),height:r.getAttribute('height'),rx:r.getAttribute('rx'),fill:'url(#clayPillow)','pointer-events':'none'}));
+    });
+  }
+}
+// iOS Safari 要有 touch 監聽，:active 按壓回饋才會出現
+document.addEventListener('touchstart',()=>{},{passive:true});
 
 // ===== Render Helpers =====
 function renderEntries(list,cid){
@@ -2802,6 +3023,9 @@ function updateLangBtns(){
   const z=document.getElementById('lang-zh-btn'),e=document.getElementById('lang-en-btn');
   if(z){z.style.borderColor=lang==='zh'?'var(--ink)':'var(--border)';z.style.background=lang==='zh'?'var(--surface2)':'var(--surface)';z.style.color=lang==='zh'?'var(--ink)':'var(--ink-2)';}
   if(e){e.style.borderColor=lang==='en'?'var(--ink)':'var(--border)';e.style.background=lang==='en'?'var(--surface2)':'var(--surface)';e.style.color=lang==='en'?'var(--ink)':'var(--ink-2)';}
+  // carebear 黏土層靠 class 判斷選中（inline style 蓋不過）
+  if(z)z.classList.toggle('is-on',lang==='zh');
+  if(e)e.classList.toggle('is-on',lang==='en');
 }
 
 // ===== 主題切換（boba 手帳熊 / quant 襯線）=====
@@ -2824,6 +3048,7 @@ function updateThemeBtns(){
     b.style.background=on?'var(--accent-soft)':'var(--surface)';
     b.style.color=on?'var(--accent)':'var(--ink-2)';
     b.style.fontWeight=on?'800':'700';
+    b.classList.toggle('is-on',on);
   });
 }
 // 注入 boba 插畫資產（導覽列熊 + 四頁趴趴熊）；缺資產表也不會炸
