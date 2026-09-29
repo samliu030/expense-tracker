@@ -1925,10 +1925,10 @@ async function flushQueue(){
       let result;
       try{result=await apiCall('finalizeNotification',{id:op.id,record:op.rec});}
       catch(e){
-        // 後端永久拒絕（草稿列被刪、確認後改成非泰銖）：重送也不會過，改當一般帳目存，不讓它卡住後面的刪除與略過
+        // 後端永久拒絕（草稿列被刪、確認後改成非泰銖）：原樣重送也不會過，改帶 fallback 放寬這兩項，不讓它卡住後面的刪除與略過。
+        // 不可改用 addMany：那是無條件覆寫，會蓋掉另一台在這之間已確認的帳；fallback 仍在後端同一把鎖裡守「第一筆確認優先」。
         if(!/Draft not found|Complete amount/i.test(e.message))throw e;
-        await apiCall('addMany',{records:[op.rec]});
-        result={status:'saved',record:op.rec};
+        result=await apiCall('finalizeNotification',{id:op.id,record:op.rec,fallback:true});
       }
       const newer=pendingOps.find(o=>o.id===op.id&&o!==op);
       if(newer&&result.status!=='discarded'){
