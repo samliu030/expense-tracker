@@ -2409,6 +2409,14 @@ document.getElementById('inp-note').onblur=()=>{setTimeout(()=>{document.getElem
     updateAmountConversion();
   };
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){document.getElementById('calc-eval-btn').click();}});
+  // 計算機的按鍵不可搶走金額欄焦點：iPhone 上金額欄一失焦數字鍵盤就收起，而數字鍵盤沒有 +−×÷，
+  // 使用者每按一次運算鍵都得重點金額欄。只在「按下時正在輸入金額」才保留，否則不主動叫出鍵盤。
+  let keepAmountFocus=false;
+  [document.getElementById('calculator-toggle'),...document.querySelectorAll('.calc-op-btn'),document.getElementById('calc-eval-btn')].forEach(k=>{
+    k.addEventListener('pointerdown',()=>{keepAmountFocus=document.activeElement===inp;});
+    k.addEventListener('mousedown',e=>{if(keepAmountFocus)e.preventDefault();});
+    k.addEventListener('click',()=>{if(keepAmountFocus){inp.focus({preventScroll:true});keepAmountFocus=false;}});
+  });
 })();
 
 // ===== 編輯 Modal 類別 Grid =====
