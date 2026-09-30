@@ -3749,11 +3749,12 @@ function renderQuickList(){
     const info=document.createElement('div');
     info.style.cssText='flex:1;min-width:0;cursor:pointer;overflow-wrap:anywhere';
     info.innerHTML='<div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink)">'+(d.amount?fmtAmt(d.amount,d.curr):(lang==='en'?'Amount needed · THB':'金額待補 · THB'))+'</div>'
-      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+escapeHtml(d.date)+' · '+escapeHtml(d.user)+'</div>';
+      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+escapeHtml(d.date)+' · '+escapeHtml(d.user)+(d.notificationDraft&&d.merchant?' · '+escapeHtml(d.merchant):'')+'</div>';
     if(d.notificationDraft){
-      const detail=document.createElement('div');detail.style.cssText='font-size:13px;line-height:1.6;white-space:pre-wrap;margin-top:6px';
-      detail.textContent=(lang==='en'?'Merchant: ':'商家：')+(d.merchant||(lang==='en'?'Needs review':'待補'))+'\n'+(lang==='en'?'Category: choose when reviewing':'分類：整理時選擇')+(d.dateEstimated?'\n'+(lang==='en'?'Date uses notification receipt; verify purchase date.':'日期採通知接收日，請核對消費日期。'):'')+(d.note&&d.note!==d.merchant?'\n'+d.note:'');
-      info.appendChild(detail);
+      // 極簡兩行：解析齊全只看金額＋「日期 · 付款人 · 商家」；缺金額或待核對才附通知原文供對照。
+      if(!d.amount||d.needsReview){const detail=document.createElement('div');detail.style.cssText='font-size:13px;line-height:1.6;white-space:pre-wrap;margin-top:6px';
+      detail.textContent=d.note||'';
+      info.appendChild(detail);}
       if(d.possibleDuplicate||d.needsReview){const warn=document.createElement('div');warn.style.cssText='font-size:13px;color:var(--danger);margin-top:6px';warn.textContent=d.possibleDuplicate?(lang==='en'?'Possible duplicate — compare before saving':'可能重複，請比對後再儲存'):(lang==='en'?'Check notification details before saving':'通知資料待核對，請補齊後再儲存');info.appendChild(warn);}
     }
     info.onclick=()=>startFinalize(d.id);
