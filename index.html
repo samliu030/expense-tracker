@@ -1024,7 +1024,11 @@ ASSET PROVENANCE: original character photos supplied by user (2026-08-20); heade
   <div class="modal">
     <h2><img class="quick-bear-icon" data-quick-bear="sort_quick_bear" alt=""> <span id="organize-title">快速記帳整理</span></h2>
     <p id="organize-sub" style="margin-bottom:10px">點一筆去補類別與備註，補完就進正式帳。</p>
-    <div id="quick-list" style="max-height:50vh;overflow-y:auto"></div>
+    <button type="button" class="secondary-btn" id="payment-upload-btn" style="min-height:44px">📷 匯入付款截圖（可多選）</button>
+<input type="file" id="payment-files" accept="image/*" multiple hidden>
+<p id="payment-upload-hint" style="font-size:13px;color:var(--ink-2)">一次最多 10 張。圖片送至現有 AI 辨識服務，結果只存本機草稿，確認後才入帳。</p>
+<div id="payment-progress" role="status" aria-live="polite" style="font-size:13px;white-space:pre-line;margin-bottom:12px"></div>
+<div id="quick-list" style="max-height:50vh;overflow-y:auto"></div>
     <button class="secondary-btn" id="organize-close-btn" style="margin-top:12px;margin-bottom:0">關閉</button>
   </div>
 </div>
@@ -2126,6 +2130,8 @@ function applyLang(){
   document.getElementById('budget-cancel-btn').textContent=T('btn_cancel');
   document.querySelector('#identity-modal h2').textContent=T('identity_title');
   document.querySelector('#identity-modal p').textContent=T('identity_desc');
+  document.getElementById('payment-upload-btn').textContent=lang==='en'?'📷 Import payment screenshots':'📷 匯入付款截圖（可多選）';
+  document.getElementById('payment-upload-hint').textContent=lang==='en'?'Up to 10 images. Sent to the existing AI service; results stay in local drafts until you confirm.':'一次最多 10 張。圖片送至現有 AI 辨識服務，結果只存本機草稿，確認後才入帳。';
   const qAddLbl=document.getElementById('quick-add-label');if(qAddLbl)qAddLbl.textContent=T('quick_add');
   const qOrgLbl=document.getElementById('quick-organize-label');if(qOrgLbl)qOrgLbl.textContent=T('quick_organize');
   const qModalTitle=document.getElementById('quick-modal-title');if(qModalTitle)qModalTitle.textContent=T('quick_add');
@@ -3282,11 +3288,11 @@ async function callScanApi(payload){
   const body=JSON.stringify(payload);
   let lastErr=null;
   for(const ep of AI_ENDPOINTS){
-    let r,data;
+    let r,data;const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),60000);
     try{
-      r=await fetch(ep.url,{method:'POST',headers:{'Content-Type':'application/json',...ep.headers},body});
+      r=await fetch(ep.url,{method:'POST',headers:{'Content-Type':'application/json',...ep.headers},body,signal:controller.signal});
       data=await r.json().catch(()=>null);
-    }catch(e){console.warn('AI 端點連不上，換下一個',ep.url,e);lastErr=e;continue;}
+    }catch(e){console.warn('AI 端點連不上，換下一個',ep.url,e);lastErr=e;continue;}finally{clearTimeout(timeout);}
     // 函式本人一定回 {ok} 或 {error}。不是這個形狀＝專案被暫停／閘道錯誤，換下一個。
     // 是函式本人回的錯（Gemini 失敗、聽不出金額）就直接報，換端點也只是同一個 Gemini 再錯一次。
     if(!data||typeof data!=='object'||(!('ok' in data)&&!('error' in data))){
@@ -3704,8 +3710,8 @@ function commitRecordFromForm(){
   let finalCat=selCat;
   if(selCat==='other'){const c=document.getElementById('inp-custom-cat').value.trim();if(c)finalCat=c;}
   const finalDraft=quickDrafts.find(d=>d.id===finalizingQuickId);
-  if(finalDraft&&finalDraft.notificationDraft&&selCurr!=='THB'){msg.className='msg error';msg.textContent=lang==='en'?'Notification drafts must use THB.':'通知草稿僅接受泰銖（THB）。';return null;}
-  const rec={id:finalDraft&&finalDraft.notificationDraft?finalDraft.id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,date:normalizeDate(date),ts:Date.now(),user:userNames[selectedUserIdx]};
+  if(finalDraft&&finalDraft.notificationDraft&&!finalDraft.paymentScreenshot&&selCurr!=='THB'){msg.className='msg error';msg.textContent=lang==='en'?'Notification drafts must use THB.':'通知草稿僅接受泰銖（THB）。';return null;}
+  const rec={id:finalDraft&&(finalDraft.notificationDraft||finalDraft.paymentScreenshot)?finalDraft.id:uid(),cat:finalCat,amount:amt,curr:selCurr,note:noteVal,date:normalizeDate(date),ts:Date.now(),user:userNames[selectedUserIdx]};
   records.push(rec);saveLocal();
   if(noteVal)addNoteMemory(finalCat,noteVal);
   const cat=getCat(finalCat);
@@ -3796,7 +3802,8 @@ function renderQuickList(){
     const info=document.createElement('div');
     info.style.cssText='flex:1;min-width:0;cursor:pointer;overflow-wrap:anywhere';
     info.innerHTML='<div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink)">'+(d.amount?fmtAmt(d.amount,d.curr):(lang==='en'?'Amount needed · THB':'金額待補 · THB'))+'</div>'
-      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+escapeHtml(d.date)+' · '+escapeHtml(d.user)+(d.notificationDraft&&d.merchant?' · '+escapeHtml(d.merchant):'')+'</div>';
+      +'<div style="font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px">'+escapeHtml(d.date)+' · '+escapeHtml(d.user)+((d.notificationDraft||d.paymentScreenshot)&&d.merchant?' · '+escapeHtml(d.merchant):'')+'</div>';
+    if(d.paymentScreenshot){const hint=document.createElement('div');hint.style.cssText='font-size:13px;color:var(--ink-2);margin-top:5px';hint.textContent=(lang==='en'?'Screenshot · Check all fields':'付款截圖 · 請核對各欄位')+(d.reviewFields&&d.reviewFields.length?' · '+d.reviewFields.join(' / '):'');info.appendChild(hint);}
     if(d.notificationDraft){
       // 極簡兩行：解析齊全只看金額＋「日期 · 付款人 · 商家」；缺金額或待核對才附通知原文供對照。
       if(!d.amount||d.needsReview){const detail=document.createElement('div');detail.style.cssText='font-size:13px;line-height:1.6;white-space:pre-wrap;margin-top:6px';
@@ -3827,7 +3834,7 @@ function startFinalize(id){
   const d=quickDrafts.find(x=>x.id===id);
   if(!d)return;
   // 幣別
-  selCurr=d.curr;localStorage.setItem('xp_last_curr',selCurr);buildCurrUI();
+  selCurr=d.curr||'THB';localStorage.setItem('xp_last_curr',selCurr);buildCurrUI();
   // 使用者
   const ui=userNames.indexOf(d.user);
   if(ui>=0){selectedUserIdx=ui;updateUserToggle();} // 只對齊表單付款人，不改本機身分
@@ -3841,7 +3848,8 @@ function startFinalize(id){
   document.getElementById('inp-recurring').checked=false;
   document.getElementById('recurring-options').style.display='none';
   const msg=document.getElementById('add-msg');msg.className='msg';
-  if(d.notificationDraft){msg.className='msg success';msg.textContent=lang==='en'?'Review amount, date, payer, category and notes. Save to add this draft to your expenses.':'請核對金額、日期、付款人、分類與備註；按儲存後才會加入帳目。';}
+  if(d.notificationDraft||d.paymentScreenshot){msg.className='msg success';msg.textContent=lang==='en'?'Review amount, date, payer, category and notes. Save to add this draft to your expenses.':'請核對金額、日期、付款人、分類與備註；按儲存後才會加入帳目。';}
+  if(d.paymentScreenshot&&!d.curr){msg.className='msg error';msg.textContent=lang==='en'?'Currency was unreadable. THB is selected provisionally; choose the correct currency before saving.':'截圖幣別無法辨識，目前暫選 THB；請選擇正確幣別後再儲存。';}
   finalizingQuickId=id;
   closeOrganizeModal();
   // 切到「新增」頁（觸發既有 nav 邏輯）
@@ -3850,6 +3858,53 @@ function startFinalize(id){
 }
 document.getElementById('quick-add-btn').onclick=()=>openQuickModal();
 document.getElementById('quick-organize-btn').onclick=()=>openOrganizeModal();
+
+// Payment screenshots are local drafts, never automatic ledger entries.
+let paymentImportBusy=false;
+async function preparePaymentImage(file){
+  if(!file.type.startsWith('image/')||file.size>15*1024*1024)throw new Error(lang==='en'?'Use an image smaller than 15 MB':'請選擇小於 15 MB 的圖片');
+  const url=URL.createObjectURL(file);
+  try{
+    const img=new Image();img.src=url;await img.decode();
+    const scale=Math.min(1,1800/Math.max(img.naturalWidth,img.naturalHeight));
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+    const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',.88).split(',')[1];
+  }finally{URL.revokeObjectURL(url);}
+}
+async function importPaymentScreenshots(files){
+  if(paymentImportBusy||!files.length)return;
+  const status=document.getElementById('payment-progress');
+  if(files.length>10){status.textContent=lang==='en'?'Select up to 10 images.':'一次請選擇最多 10 張圖片。';return;}
+  paymentImportBusy=true;document.getElementById('payment-upload-btn').disabled=true;
+  const owner=userNames[selectedUserIdx],lines=[];
+  try{
+    for(let i=0;i<files.length;i++){
+      const file=files[i];status.textContent=(lang==='en'?'Analyzing ':'分析中 ')+(i+1)+' / '+files.length+'\n'+lines.join('\n');
+      try{
+        const bytes=await file.arrayBuffer();const digest=await crypto.subtle.digest('SHA-256',bytes);
+        const hash=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join('');
+        const id='shot_'+hash+'_'+owner;
+        if(quickDrafts.some(d=>d.id===id)||records.some(r=>r.id===id)){lines.push(file.name+' · '+(lang==='en'?'Already imported':'已匯入，略過'));continue;}
+        const image=await preparePaymentImage(file);
+        const data=await callScanApi({image,mime:'image/jpeg',paymentScreenshot:true});
+        const r=data.result;if(!r||typeof r!=='object')throw new Error(lang==='en'?'No readable result':'沒有可讀取的結果');
+        const amount=Number(r.amount)>0&&Number.isFinite(Number(r.amount))?Number(r.amount):null;
+        const curr=CURRENCIES.some(c=>c.code===r.currency)?r.currency:'';
+        const date=typeof r.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&!isNaN(Date.parse(r.date))?r.date:'';
+        const cat=CATS.some(c=>c.id===r.category)?r.category:'other';
+        const reviewFields=[];if(!amount)reviewFields.push(lang==='en'?'amount':'金額');if(!curr)reviewFields.push(lang==='en'?'currency':'幣別');if(!date)reviewFields.push(lang==='en'?'date':'日期');
+        const merchant=typeof r.merchant==='string'?r.merchant.slice(0,160):'';
+        const draft={id,paymentScreenshot:true,amount,curr,date,cat,note:merchant,merchant,user:owner,ts:Date.now(),reviewFields};
+        // Persist before publishing the new draft; storage failure keeps the queue unchanged.
+        localStorage.setItem('xp_quick',JSON.stringify([...quickDrafts,draft]));quickDrafts.push(draft);
+        refreshQuickBadge();renderQuickList();lines.push(file.name+' · '+(lang==='en'?'Added to Sort Quick':'已加入快速整理'));
+      }catch(e){lines.push(file.name+' · '+(lang==='en'?'Failed; select again to retry: ':'失敗，可重新選取重試：')+e.message);}
+    }
+  }finally{paymentImportBusy=false;document.getElementById('payment-upload-btn').disabled=false;status.textContent=lines.join('\n');}
+}
+document.getElementById('payment-upload-btn').onclick=()=>document.getElementById('payment-files').click();
+document.getElementById('payment-files').onchange=async function(){const files=Array.from(this.files);this.value='';await importPaymentScreenshots(files);};
 
 // ===== 更新匯率 =====
 document.getElementById('rate-fetch-btn').onclick=async()=>{
