@@ -2429,10 +2429,12 @@ function addNoteMemory(catId,note){
   saveNoteMemory();
 }
 function updateNoteSuggestions(){
+  const box=document.getElementById('note-suggestions');
+  // 只在使用者點進備註欄時才展開；點類別只換資料、不主動彈出
+  if(document.activeElement!==document.getElementById('inp-note')){box.className='note-suggestions';return;}
   const input=document.getElementById('inp-note').value;
   const catId=selCat==='other'?(document.getElementById('inp-custom-cat').value.trim()||'other'):selCat;
   const sugs=(noteMemory[catId]||[]).filter(n=>!input||n.toLowerCase().includes(input.toLowerCase()));
-  const box=document.getElementById('note-suggestions');
   if(!sugs.length){box.className='note-suggestions';return;}
   box.innerHTML='';
   sugs.forEach(s=>{
