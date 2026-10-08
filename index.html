@@ -3299,10 +3299,11 @@ let voiceLang='en-US';
 // iOS(含 iPadOS）的 webkitSpeechRecognition 不可靠（standalone 靜默、Safari 回 aborted）；
 // 改走 iOS 鍵盤原生聽寫：聚焦文字框 → 使用者按鍵盤🎤 → 後端解析。
 const IS_IOS=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
-async function callScanApi(payload){
+async function callScanApi(payload,onProgress){
   const body=JSON.stringify(payload);
   let lastErr=null;
-  for(const ep of AI_ENDPOINTS){
+  for(const [endpointIndex,ep] of AI_ENDPOINTS.entries()){
+    if(onProgress)onProgress(endpointIndex);
     let r,data;const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),60000);
     try{
       r=await fetch(ep.url,{method:'POST',headers:{'Content-Type':'application/json',...ep.headers},body,signal:controller.signal});
@@ -3313,9 +3314,14 @@ async function callScanApi(payload){
     if(!data||typeof data!=='object'||(!('ok' in data)&&!('error' in data))){
       console.warn('AI 端點不是函式本人回應，換下一個',ep.url,r.status);lastErr=new Error('HTTP '+r.status);continue;
     }
-    if(!r.ok||!data.ok)throw new Error(data.error||('HTTP '+r.status));
+    if(!r.ok||!data.ok){
+      const error=new Error(data.error||('HTTP '+r.status));
+      if(payload.paymentScreenshot&&(r.status>=500||r.status===429)){lastErr=error;continue;}
+      throw error;
+    }
     return data; // 文字路回 {results:[...]}，照片路回 {result:{...}}
   }
+  if(payload.paymentScreenshot)throw new Error(lang==='en'?'Image service is busy or unreachable. Please retry shortly; nothing was booked.':'圖片辨識服務忙碌或連線逾時，請稍後重新選取重試；這張尚未入帳。');
   throw lastErr||new Error('AI unavailable');
 }
 function aiMsg(type,text){
@@ -3948,7 +3954,10 @@ async function preparePaymentImage(file){
   if(!file.type.startsWith('image/')||file.size>15*1024*1024)throw new Error(lang==='en'?'Use an image smaller than 15 MB':'請選擇小於 15 MB 的圖片');
   const url=URL.createObjectURL(file);
   try{
-    const img=new Image();img.src=url;await img.decode();
+    const img=new Image();img.src=url;let decodeTimer;
+    try{await Promise.race([img.decode(),new Promise((_,reject)=>{decodeTimer=setTimeout(()=>reject(new Error("Image decode timeout")),15000);})]);}
+    catch(e){throw new Error(lang==='en'?'Cannot open this image. Try a PNG or JPEG screenshot.':'無法開啟這張圖片，請改選 PNG 或 JPEG 截圖。');}
+    finally{clearTimeout(decodeTimer);}
     const scale=Math.min(1,1800/Math.max(img.naturalWidth,img.naturalHeight));
     const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
     const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
@@ -3970,7 +3979,11 @@ async function importPaymentScreenshots(files){
         const id='shot_'+hash+'_'+owner;
         if(quickDrafts.some(d=>d.id===id)||records.some(r=>r.id===id)){lines.push(file.name+' · '+(lang==='en'?'Already imported':'已匯入，略過'));continue;}
         const image=await preparePaymentImage(file);
-        const data=await callScanApi({image,mime:'image/jpeg',paymentScreenshot:true});
+        const started=Date.now();let endpoint=0;
+        const updateProgress=()=>{status.textContent=(lang==='en'?'Analyzing ':'分析中 ')+(i+1)+' / '+files.length+' · '+Math.floor((Date.now()-started)/1000)+(lang==='en'?' seconds':' 秒')+(endpoint?(lang==='en'?' · Trying backup service':' · 正在使用備援服務'):'')+'\n'+(lang==='en'?'Keep this page open. Each service has a 60-second limit.':'請保持此頁開啟，每個服務最多等待 60 秒。')+'\n'+lines.join('\n');};
+        const progressTimer=setInterval(updateProgress,1000);let data;
+        try{data=await callScanApi({image,mime:'image/jpeg',paymentScreenshot:true},index=>{endpoint=index;updateProgress();});}
+        finally{clearInterval(progressTimer);}
         const r=data.result;if(!r||typeof r!=='object')throw new Error(lang==='en'?'No readable result':'沒有可讀取的結果');
         const amount=Number(r.amount)>0&&Number.isFinite(Number(r.amount))?Number(r.amount):null;
         const curr=CURRENCIES.some(c=>c.code===r.currency)?r.currency:'';
