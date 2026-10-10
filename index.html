@@ -1813,13 +1813,45 @@ function mergeNotificationDrafts(res){
   quickDrafts=quickDrafts.map(d=>d.notificationDraft&&d.id!==finalizingQuickId?incoming.get(d.id):d);
   remote.forEach(d=>{if(!localIds.has(d.id))quickDrafts.push(d);});
   if(finalizingQuickId&&resolved.has(finalizingQuickId)){
-    finalizingQuickId=null;
+    setFinalizing(null);
     document.getElementById('inp-amount').value='';
     const msg=document.getElementById('add-msg');msg.className='msg error';
     msg.textContent=lang==='en'?'This draft was handled on another device.':'這份草稿已在其他裝置處理，請重新確認。';
   }
   saveQuick();refreshQuickBadge();
   if(!document.getElementById('organize-modal').classList.contains('hidden'))renderQuickList();
+}
+// 「正在整理哪份草稿」只能經過這裡改：新增頁上方同步顯示提示列＋「取消整理」。
+// 以前沒有取消鍵：點開草稿沒存就離開，之後記的下一筆會被當成那份草稿（草稿被吃掉、沿用草稿日期、通知草稿還會擋非泰銖）。
+function setFinalizing(id){
+  finalizingQuickId=id||null;
+  let bar=document.getElementById('finalize-bar');
+  if(!finalizingQuickId){if(bar)bar.style.display='none';return;}
+  if(!bar){
+    bar=document.createElement('div');bar.id='finalize-bar';bar.setAttribute('role','status');
+    bar.style.cssText='align-items:center;gap:10px;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:var(--accent-soft);color:var(--ink);font-size:14px;font-weight:700;line-height:1.5';
+    const t=document.createElement('span');t.className='finalize-bar-text';t.style.cssText='flex:1;min-width:0;display:flex;flex-direction:column';
+    t.innerHTML='<b class="finalize-bar-title"></b><span class="finalize-bar-sub" style="font-size:13px;font-weight:600;color:var(--ink-2)"></span>';
+    const b=document.createElement('button');b.type='button';b.className='finalize-bar-cancel';
+    b.style.cssText='flex:none;min-height:40px;padding:6px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--ink);font-size:13px;font-weight:800;cursor:pointer;font-family:var(--sans)';
+    b.onclick=cancelFinalize;
+    bar.append(t,b);
+    const msg=document.getElementById('add-msg');msg.parentNode.insertBefore(bar,msg);
+  }
+  const d=quickDrafts.find(x=>x.id===finalizingQuickId)||{};
+  const en=lang==='en';
+  bar.querySelector('.finalize-bar-title').textContent=(en?'Sorting ':'正在整理')+(d.amount?(en?'':' ')+fmtAmt(d.amount,d.curr||'THB'):(en?'(amount needed)':'（金額待補）'))+(d.date?' · '+d.date.slice(5).replace('-','/'):'');
+  bar.querySelector('.finalize-bar-sub').textContent=en?'Added only when you save':'按儲存才入帳';
+  bar.querySelector('.finalize-bar-cancel').textContent=en?'Stop sorting':'取消整理';
+  bar.style.display='flex';
+}
+function cancelFinalize(){
+  setFinalizing(null); // 草稿留在快速整理清單裡
+  // 表單上草稿帶進來的內容一起清掉，下一筆才不會沿用草稿的金額、日期、備註、付款人
+  document.getElementById('inp-amount').value='';document.getElementById('inp-note').value='';
+  document.getElementById('inp-date').value=today();
+  selectedUserIdx=deviceUserIdx;updateUserToggle();updateAmountConversion();
+  aiMsg('','');
 }
 function resolveQuickLocally(id){
   quickResolved[id]=true;
@@ -1846,7 +1878,7 @@ function processRecurring(){
     // 只生成「本機身分擁有」的定期支出，避免兩支手機各生成一份（跨裝置重複）
     if(rp.user&&rp.user!==userNames[deviceUserIdx])return;
     const last=rp.lastGenerated;
-    let shouldGen=false;
+    let shouldGen=false;const backfill=[];
     if(rp.freq==='daily'){
       shouldGen=!last||last<t;
     }else if(rp.freq==='workday'){
@@ -1868,34 +1900,40 @@ function processRecurring(){
     }else if(rp.freq==='monthly'){
       if(!last){shouldGen=true;}
       else{
-        const lastMonth=last.slice(0,7);
+        // 從上次生成的下個月逐月看到本月：以前只看本月，到期日到月底之間沒開 App，那一期就永遠漏掉
+        // （例：每月 30 號，9/30 沒開、10/2 才開 → 九月那期不會產生）。漏掉的月份補一筆、日期記在該月到期日；本月照舊到期後生成、記在今天。
+        const dom0=parseInt(rp.startDate.split('-')[2]);
+        let y=parseInt(last.slice(0,4)),m=parseInt(last.slice(5,7));
         const curMonth=t.slice(0,7);
-        if(lastMonth<curMonth){
+        for(let k=0;k<12;k++){ // 最多補 12 個月，久沒開 App 也不會一次灌爆
+          m++;if(m>12){m=1;y++;}
+          const mk=y+'-'+String(m).padStart(2,'0');
+          if(mk>curMonth)break;
           // 定期日設 29/30/31 時，短月份取該月最後一天，避免整月漏生
-          const daysInMonth=new Date(parseInt(t.slice(0,4)),parseInt(t.slice(5,7)),0).getDate();
-          const dom=Math.min(parseInt(rp.startDate.split('-')[2]),daysInMonth);
-          const todayDay=parseInt(t.split('-')[2]);
-          shouldGen=todayDay>=dom;
+          const dom=Math.min(dom0,new Date(y,m,0).getDate());
+          if(mk<curMonth)backfill.push(mk+'-'+String(dom).padStart(2,'0'));
+          else shouldGen=parseInt(t.split('-')[2])>=dom;
         }
       }
     }
-    if(shouldGen){
-      const alreadyExists=records.some(r=>r.date===t&&(
+    const dates=backfill.concat(shouldGen?[t]:[]);
+    dates.forEach(d=>{
+      const alreadyExists=records.some(r=>r.date===d&&(
         r.recurringId===rp.id||
         (r.isRecurring&&r.cat===rp.cat&&Math.abs(r.amount-rp.amount)<0.01&&r.user===rp.user)
       ));
       if(!alreadyExists){
         const rec={
           id:uid(),cat:rp.cat,amount:rp.amount,curr:rp.curr,
-          note:rp.note||getCat(rp.cat).label,date:t,ts:Date.now(),
+          note:rp.note||getCat(rp.cat).label,date:d,ts:Date.now(),
           user:rp.user,isRecurring:true,recurringId:rp.id
         };
         records.push(rec);
-        rp.lastGenerated=t;
         generated.push(rec);
         changed=true;
       }
-    }
+      if(!rp.lastGenerated||d>rp.lastGenerated){rp.lastGenerated=d;changed=true;}
+    });
   });
   if(changed){saveLocal();saveRecurring();}
   return generated;
@@ -2157,6 +2195,7 @@ function applyLang(){
   buildCatGrid();buildCurrUI();
   refreshAll();
   updateDeviceIdentityDisplay();
+  if(finalizingQuickId)setFinalizing(finalizingQuickId); // 提示列跟著換語言
 }
 
 // ===== API =====
@@ -2182,15 +2221,35 @@ function enqueue(op){
   savePending();
   flushQueue();
 }
-async function flushQueue(){
-  if(!apiUrl||flushing||!pendingOps.length)return true;
+// 一次只送一小批、送成功一批就清掉一批：以前整包一起送，量大時（離線累積、重新設定網址整本重送）
+// 後端每筆都要讀遍所有月份分頁，超過 15 秒逾時 → 前端判失敗、下次整包＋新帳再送，越積越多永遠清不掉（伺服器其實有寫完）。
+const FLUSH_CHUNK=5;
+let flushPromise=null;
+function flushQueue(){
+  if(!apiUrl||!pendingOps.length)return Promise.resolve(true);
+  // 正在送的那批還沒寫完：回傳同一個 promise。同步要等它真的寫完再讀雲端，
+  // 否則雲端快照可能比它舊、它又已離開佇列，剛記的帳會從畫面消失、剛刪的會復活。
+  if(flushPromise)return flushPromise;
   flushing=true;
+  flushPromise=(async()=>{
+    let ok=true;
+    try{while(ok&&pendingOps.length)ok=await flushOnce();} // flush 期間有新操作 → 再跑一輪
+    finally{flushing=false;flushPromise=null;}
+    return ok;
+  })();
+  return flushPromise;
+}
+async function flushOnce(){
   const batch=pendingOps.slice(); // 快照，避免 flush 期間新進的操作被一起清掉
-  let ok=true;
+  const done=ops=>{pendingOps=pendingOps.filter(o=>!ops.includes(o));savePending();}; // 用物件參考比對，只清已送出的
+  done(batch.filter(o=>!['upsert','finalizeQuick','discardQuick','delete'].includes(o.op))); // 認不得的操作直接丟，免得無限重跑
   try{
-    const upserts=batch.filter(o=>o.op==='upsert').map(o=>o.rec);
-    const deletes=batch.filter(o=>o.op==='delete').map(o=>o.id);
-    if(upserts.length)await apiCall('addMany',{records:upserts});
+    const upserts=batch.filter(o=>o.op==='upsert');
+    for(let i=0;i<upserts.length;i+=FLUSH_CHUNK){
+      const chunk=upserts.slice(i,i+FLUSH_CHUNK);
+      await apiCall('addMany',{records:chunk.map(o=>o.rec)});
+      done(chunk);
+    }
     for(const op of batch.filter(o=>o.op==='finalizeQuick')){
       let result;
       try{result=await apiCall('finalizeNotification',{id:op.id,record:op.rec});}
@@ -2212,23 +2271,22 @@ async function flushQueue(){
         saveLocal();
         opSeq++;if(syncInFlight)opLog.push({seq:opSeq,op:result.record?{op:'upsert',id:op.id,rec:result.record}:{op:'delete',id:op.id}});
       }
+      done([op]);
       if(result.status==='discarded')alert(lang==='en'?'This draft was already discarded on another device.':'這份草稿已在其他裝置略過，未新增帳目。');
       refreshAll();
     }
     for(const op of batch.filter(o=>o.op==='discardQuick')){
       try{await apiCall('discardNotification',{id:op.id});}
       catch(e){if(!/not found/i.test(e.message))throw e;} // 雲端已無這份草稿 → 視為已略過
+      done([op]);
     }
-    for(const id of deletes){
-      try{await apiCall('delete',{id});}
+    for(const op of batch.filter(o=>o.op==='delete')){
+      try{await apiCall('delete',{id:op.id});}
       catch(e){if(!/not found/i.test(e.message))throw e;} // 雲端本來就沒有 → 視為已完成
+      done([op]);
     }
-    pendingOps=pendingOps.filter(o=>!batch.includes(o)); // 只移除這批已送出的（用物件參考比對）
-    savePending();setSyncStatus(true);
-  }catch(e){ok=false;setSyncStatus(false,e.message);}
-  finally{flushing=false;}
-  if(ok&&pendingOps.length)flushQueue(); // flush 期間有新操作 → 再跑一輪
-  return ok;
+    setSyncStatus(true);return true;
+  }catch(e){setSyncStatus(false,e.message);return false;}
 }
 function normRec(r){
   r.date=normalizeDate(r.date);
@@ -2244,7 +2302,13 @@ async function syncFromCloud(){
     const res=await apiCall('getAll');
     if(res.records){
       const map={};
-      res.records.forEach(r=>{map[r.id]=normRec(r);});
+      // 後端只存 8 欄，沒有「定期」標記：沿用本機那份的標記，否則同步一次「定期」標籤就全不見
+      const prev=new Map(records.map(r=>[r.id,r]));
+      res.records.forEach(r=>{
+        const old=prev.get(r.id);
+        if(old&&old.isRecurring&&!r.isRecurring){r.isRecurring=true;r.recurringId=old.recurringId;}
+        map[r.id]=normRec(r);
+      });
       // 仍卡在佇列（剛剛 flush 失敗）的本機變更，蓋在雲端結果之上不被吃掉
       pendingOps.filter(o=>o.op==='upsert'||o.op==='finalizeQuick').forEach(o=>{map[o.rec.id]=normRec({...o.rec});});
       pendingOps.filter(o=>o.op==='delete').forEach(o=>{delete map[o.id];});
@@ -2286,12 +2350,14 @@ function mergeRecurring(cloudArr){
 async function syncSettingsFromCloud(){
   if(!apiUrl)return;
   try{
+    await retryDirtySettings();
+    const dirty=getDirty(); // 補送後仍沒送上去的，不准被雲端舊值蓋掉
     const [s,b,rc]=await Promise.all([
       apiCall('getSettings').catch(()=>({})),
       apiCall('getBudgets').catch(()=>({})),
       apiCall('getRecurring').catch(()=>({}))
     ]);
-    if(s&&s.settings){
+    if(s&&s.settings&&!dirty.settings){
       if(Array.isArray(s.settings.usernames)&&s.settings.usernames.length===2){
         userNames=s.settings.usernames.map((n,i)=>n||['Sam','Patty'][i]);
         localStorage.setItem('xp_usernames',JSON.stringify(userNames));
@@ -2302,20 +2368,54 @@ async function syncSettingsFromCloud(){
       }
     }
     // 雲端 getBudgets 回的是後端合併後的完整表（含 null=刪 key 的結果），整包為準才能讓「清除預算」跨裝置傳播
-    if(b&&b.budgets){budgets=b.budgets;localStorage.setItem('xp_budgets',JSON.stringify(budgets));}
+    if(b&&b.budgets){
+      budgets=b.budgets;
+      Object.entries(dirty.budgets||{}).forEach(([k,v])=>{if(v===null)delete budgets[k];else budgets[k]=v;});
+      localStorage.setItem('xp_budgets',JSON.stringify(budgets));
+    }
     if(rc&&rc.recurring)mergeRecurring(rc.recurring);
     updateUserToggle();
     document.getElementById('set-user-0').value=userNames[0];
     document.getElementById('set-user-1').value=userNames[1];
   }catch(e){}
 }
+// 設定類（名字／匯率／預算／定期）上雲失敗要記著、之後重送，而且還沒送上去之前不能被雲端舊值蓋回：
+// 以前送出就不管，斷網時改預算、改名，下次同步就被雲端舊值蓋掉；改名更糟，帳目已改成新名字、名單卻變回舊的，
+// 那個人的帳在個人分頁消失、定期支出也不再產生。
+// xp_dirty：{settings:序號, recurring:序號, budgets:{key:值或 null}}；序號防「舊的那次成功」清掉「之後又改的」。
+function getDirty(){return lsJSON('xp_dirty',{})||{};}
+function setDirty(d){try{localStorage.setItem('xp_dirty',JSON.stringify(d));}catch(e){}}
+function markDirty(kind){const d=getDirty();d[kind]=(d[kind]||0)+1;setDirty(d);return d[kind];}
+function clearDirty(kind,seq){const d=getDirty();if(d[kind]===seq){delete d[kind];setDirty(d);}}
 function pushSettings(){
-  if(!apiUrl)return;
+  if(!apiUrl)return Promise.resolve();
+  const seq=markDirty('settings');
   const rates={};CURRENCIES.forEach(c=>{rates[c.code]=c.rate;});
-  apiCall('setSettings',{settings:{usernames:userNames,rates}}).catch(()=>{});
+  return apiCall('setSettings',{settings:{usernames:userNames,rates}}).then(()=>clearDirty('settings',seq)).catch(()=>{});
 }
-function pushBudgets(){if(apiUrl)apiCall('setBudgets',{budgets}).catch(()=>{});}
-function pushRecurring(){if(apiUrl)apiCall('setRecurring',{recurring:recurringPayments}).catch(()=>{});}
+function pushBudgetPatch(patch){ // patch：只送有改的 key；null＝刪除
+  if(!apiUrl)return Promise.resolve();
+  const d=getDirty();d.budgets=Object.assign({},d.budgets||{},patch);setDirty(d);
+  return apiCall('setBudgets',{budgets:patch}).then(()=>{
+    const d2=getDirty();if(!d2.budgets)return;
+    Object.keys(patch).forEach(k=>{if(d2.budgets[k]===patch[k])delete d2.budgets[k];}); // 送出後又改過的那格留著
+    if(!Object.keys(d2.budgets).length)delete d2.budgets;setDirty(d2);
+  }).catch(()=>{});
+}
+function pushBudgets(){return pushBudgetPatch({...budgets});}
+function pushRecurring(){
+  if(!apiUrl)return Promise.resolve();
+  const seq=markDirty('recurring');
+  return apiCall('setRecurring',{recurring:recurringPayments}).then(()=>clearDirty('recurring',seq)).catch(()=>{});
+}
+// 同步前先把還沒送上去的設定補送
+async function retryDirtySettings(){
+  const d=getDirty();const jobs=[];
+  if(d.settings)jobs.push(pushSettings());
+  if(d.budgets)jobs.push(pushBudgetPatch(d.budgets));
+  if(d.recurring)jobs.push(pushRecurring());
+  await Promise.all(jobs);
+}
 function setSyncStatus(ok,msg=''){
   const dot=document.getElementById('sync-dot-add'),text=document.getElementById('sync-text-add');
   const cdot=document.getElementById('conn-dot'),ctext=document.getElementById('conn-text');
@@ -2708,7 +2808,7 @@ document.getElementById('budget-save-btn').onclick=()=>{
     else{const v=parseFloat(raw)||0;budgets[key]=v;push[key]=v;}
   });
   localStorage.setItem('xp_budgets',JSON.stringify(budgets));
-  if(apiUrl)apiCall('setBudgets',{budgets:push}).catch(()=>{});
+  pushBudgetPatch(push);
   refreshMonth();document.getElementById('budget-modal').classList.add('hidden');
 };
 function openBudgetModal(){
@@ -3101,6 +3201,10 @@ function renderMonthBudget(list,m,cid){
   const rem0=bgt0-spent0;const rem1=bgt1-spent1;
   const pct0=bgt0>0?Math.min(spent0/bgt0*100,100):0;
   const pct1=bgt1>0?Math.min(spent1/bgt1*100,100):0;
+  // 沒設預算：別把「0 − 已支出」當結餘用紅字顯示（看起來像超支）
+  const unset=lang==='en'?'Not set':'未設定';
+  const bgtTxt=v=>v>0?fmtTHB(v):unset, remTxt=(b,r)=>b>0?fmtTHB(r):'—';
+  const remColor=(b,r)=>b>0?(r>=0?'var(--ok)':'var(--danger)'):'var(--ink-2)';
   el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div class="section-title" style="margin:0">${T('sec_budget')}</div>
@@ -3109,16 +3213,16 @@ function renderMonthBudget(list,m,cid){
     <div class="budget-grid">
       <div class="budget-card u0">
         <div style="font-weight:800;color:var(--sam);font-size:15px;margin-bottom:10px">${escapeHtml(u0)}</div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-bottom:2px"><span>${T('budget_lbl')}</span><span>${fmtTHB(bgt0)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-bottom:2px"><span>${T('budget_lbl')}</span><span>${bgtTxt(bgt0)}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-bottom:6px"><span>${T('spent_lbl')}</span><span style="color:var(--danger);font-weight:700">${fmtTHB(spent0)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:${rem0>=0?'var(--ok)':'var(--danger)'};padding-top:6px;border-top:1px solid var(--border)"><span>${T('remain_lbl')}</span><span>${fmtTHB(rem0)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:${remColor(bgt0,rem0)};padding-top:6px;border-top:1px solid var(--border)"><span>${T('remain_lbl')}</span><span>${remTxt(bgt0,rem0)}</span></div>
         <div class="bar-track" style="margin-top:8px;height:6px"><div style="height:100%;width:${pct0}%;border-radius:999px;background:${rem0<0?'var(--danger)':'var(--sam)'}"></div></div>
       </div>
       <div class="budget-card u1">
         <div style="font-weight:800;color:var(--patty);font-size:15px;margin-bottom:10px">${escapeHtml(u1)}</div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-bottom:2px"><span>${T('budget_lbl')}</span><span>${fmtTHB(bgt1)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-bottom:2px"><span>${T('budget_lbl')}</span><span>${bgtTxt(bgt1)}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-bottom:6px"><span>${T('spent_lbl')}</span><span style="color:var(--danger);font-weight:700">${fmtTHB(spent1)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:${rem1>=0?'var(--ok)':'var(--danger)'};padding-top:6px;border-top:1px solid var(--border)"><span>${T('remain_lbl')}</span><span>${fmtTHB(rem1)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:${remColor(bgt1,rem1)};padding-top:6px;border-top:1px solid var(--border)"><span>${T('remain_lbl')}</span><span>${remTxt(bgt1,rem1)}</span></div>
         <div class="bar-track" style="margin-top:8px;height:6px"><div style="height:100%;width:${pct1}%;border-radius:999px;background:${rem1<0?'var(--danger)':'var(--patty)'}"></div></div>
       </div>
     </div>`;
@@ -3334,7 +3438,7 @@ function fillFromAI(res){
   if(!res||!isFinite(Number(res.amount))||Number(res.amount)<=0)throw new Error('no amount');
   // 語音是一筆全新的帳，表單上殘留的狀態都不能沿用：
   // 正在整理的快速草稿（否則語音那筆會被當成整理結果、草稿被刪掉）、勾著的定期、上一筆的備註／自訂類別／日期
-  finalizingQuickId=null; // 草稿留在清單裡，之後再整理
+  setFinalizing(null); // 草稿留在清單裡，之後再整理
   document.getElementById('inp-recurring').checked=false;
   document.getElementById('recurring-options').style.display='none';
   const warns=[];
@@ -3370,7 +3474,7 @@ function showVoiceSaved(rec,confidence,warns){
   const conf=confidence==='low'?' ⚠️':'';
   msg.className='msg success';msg.textContent='';
   const span=document.createElement('span');
-  span.textContent=T('voice_saved')+cat.icon+' '+fmtAmt(rec.amount,rec.curr)+(rec.note?' · '+rec.note:'')+conf+warns.join('')+'　';
+  span.textContent=T('voice_saved')+cat.icon+' '+fmtAmt(rec.amount,rec.curr)+(rec.note?' · '+rec.note:'')+' ('+rec.user+')'+conf+warns.join('')+'　';
   const undo=document.createElement('button');
   undo.textContent=T('undo');
   undo.style.cssText='border:none;background:var(--ink);color:#fbf9f2;padding:4px 12px;border-radius:10px;font-weight:800;cursor:pointer;font-size:13px';
@@ -3467,17 +3571,17 @@ function renderVoiceReview(){
 
     // 第二行：金額 + 幣別 + 類別
     const body=document.createElement('div');
-    body.style.cssText='display:flex;align-items:center;gap:6px;margin-top:6px';
+    body.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px'; // 窄螢幕（320）類別換到下一行，三欄才都看得完整
     const amt=document.createElement('input');
     amt.type='number';amt.className='form-input';amt.inputMode='decimal';amt.step='any';amt.value=r.amount;
-    amt.style.cssText='flex:1 1 76px;min-width:0';
+    amt.style.cssText='flex:1 1 96px;min-width:0'; // 要看得到完整金額（12999.5 這種長度），審閱就是為了核對金額
     amt.oninput=()=>{r.amount=amt.value;};
     const cur=document.createElement('select');
-    cur.className='curr-select';cur.style.cssText='flex:0 1 92px;min-width:0';
-    CURRENCIES.forEach(c=>{const o=document.createElement('option');o.value=c.code;o.textContent=c.symbol+' '+c.code;cur.appendChild(o);});
+    cur.className='curr-select';cur.style.cssText='flex:0 1 78px;min-width:0';
+    CURRENCIES.forEach(c=>{const o=document.createElement('option');o.value=c.code;o.textContent=c.code;cur.appendChild(o);}); // 只放代碼：「NT$ TWD」在每種寬度都顯示不全
     cur.value=r.curr;cur.onchange=()=>{r.curr=cur.value;};
     const cat=document.createElement('select');
-    cat.className='curr-select';cat.style.cssText='flex:1 1 104px;min-width:0';
+    cat.className='curr-select';cat.style.cssText='flex:1 1 96px;min-width:0';
     CATS.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.icon+' '+T(c.lkey);cat.appendChild(o);});
     cat.value=r.cat;cat.onchange=()=>{r.cat=cat.value;};
     body.appendChild(amt);body.appendChild(cur);body.appendChild(cat);
@@ -3560,7 +3664,7 @@ function handleVoiceResults(data){
 // 也順便繞過 iOS 聽寫在泰文／混語時最容易出錯的那一層。
 // 起不來就退回鍵盤聽寫，不讓使用者面對一顆按了沒反應的按鈕。
 const REC_MAX_SEC=60;
-let recorder=null,recChunks=[],recStream=null,recTimer=null,recStartMs=0;
+let recorder=null,recChunks=[],recStream=null,recTimer=null,recStartMs=0,recStarting=false;
 
 function recSupported(){
   return !!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&typeof MediaRecorder!=='undefined');
@@ -3690,8 +3794,13 @@ document.getElementById('voice-btn').onclick=async ()=>{
     // 先試直接錄音；麥克風拿不到（權限被拒／PWA 限制）就退回鍵盤聽寫。
     // 注意 getUserMedia 之後手勢鏈已斷，所以退路裡的 focus 可能彈不出鍵盤，
     // 但使用者點一下輸入框就好，總比按鈕沒反應好。
-    if(await startVoiceRecording())return;
-    showKeyboardDictation();
+    // 錄音中再按一次＝講完了（當「完成」）；以前會再開一支麥克風，舊的那支永遠沒關，麥克風一直亮著到重開 App
+    if(recorder&&recorder.state!=='inactive'){finishVoiceRecording();return;}
+    if(recStarting)return; // 正在等麥克風權限時連點，只開一次
+    recStarting=true;
+    let started=false;
+    try{started=await startVoiceRecording();}finally{recStarting=false;}
+    if(!started)showKeyboardDictation();
     return;
   }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -3772,9 +3881,12 @@ function commitRecordFromForm(){
   if(finalizingQuickId){
     quickDrafts=quickDrafts.filter(d=>d.id!==finalizingQuickId);
     saveQuick();refreshQuickBadge();
-    finalizingQuickId=null;
+    setFinalizing(null);
   }
   checkSavingReminder([rec]);
+  // 付款人切換只管「這一筆」：存完回到本機身分。以前會一直停在對方，
+  // 之後用語音、快速記帳記的帳都靜靜記到對方頭上（語音訊息又不顯示付款人，完全看不出來）
+  if(selectedUserIdx!==deviceUserIdx){selectedUserIdx=deviceUserIdx;updateUserToggle();}
   return {rec,successMsg};
 }
 document.getElementById('save-btn').onclick=()=>{
@@ -3914,7 +4026,7 @@ function closeOrganizeModal(){document.getElementById('organize-modal').classLis
 function discardQuick(id){
   const d=quickDrafts.find(x=>x.id===id);
   if(d&&d.notificationDraft){resolveQuickLocally(id);enqueue({op:'discardQuick',id});}
-  if(finalizingQuickId===id)finalizingQuickId=null;
+  if(finalizingQuickId===id)setFinalizing(null);
   quickDrafts=quickDrafts.filter(d=>d.id!==id);
   saveQuick();refreshQuickBadge();renderQuickList();
 }
@@ -3939,7 +4051,7 @@ function startFinalize(id){
   const msg=document.getElementById('add-msg');msg.className='msg';
   if(d.notificationDraft||d.paymentScreenshot){msg.className='msg success';msg.textContent=lang==='en'?'Review amount, date, payer, category and notes. Save to add this draft to your expenses.':'請核對金額、日期、付款人、分類與備註；按儲存後才會加入帳目。';}
   if(d.paymentScreenshot&&!d.curr){msg.className='msg error';msg.textContent=lang==='en'?'Currency was unreadable. THB is selected provisionally; choose the correct currency before saving.':'截圖幣別無法辨識，目前暫選 THB；請選擇正確幣別後再儲存。';}
-  finalizingQuickId=id;
+  setFinalizing(id);
   closeOrganizeModal();
   // 切到「新增」頁（觸發既有 nav 邏輯）
   document.querySelector('.nav-btn[data-screen="add"]').click();
@@ -4129,7 +4241,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('pageshow',e=>{if(e.persisted)onResume();});
 // 離線時記的帳：恢復連線就送，不用等下一次存檔或重開 App
-window.addEventListener('online',()=>{flushQueue();});
+window.addEventListener('online',()=>{flushQueue();retryDirtySettings();});
 
 // Move existing controls without cloning: listeners, IDs and state remain intact.
 function initCarePanels(){
