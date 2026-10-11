@@ -3873,7 +3873,8 @@ function commitRecordFromForm(){
 
   document.getElementById('inp-amount').value='';document.getElementById('inp-note').value='';
   document.getElementById('note-suggestions').className='note-suggestions';
-  document.getElementById('inp-date').value=today();
+  // Keep the selected day for consecutive manual backfills; imported drafts must not leak their date.
+  if(finalDraft)document.getElementById('inp-date').value=today();
   refreshAll();
   if(finalDraft&&finalDraft.notificationDraft)resolveQuickLocally(finalDraft.id);
   enqueue({op:finalDraft&&finalDraft.notificationDraft?'finalizeQuick':'upsert',id:rec.id,rec});
@@ -4240,6 +4241,9 @@ document.addEventListener('visibilitychange',()=>{
   if(hiddenAt&&(today()!==lastDay||Date.now()-hiddenAt>60000))onResume();
 });
 window.addEventListener('pageshow',e=>{if(e.persisted)onResume();});
+// Also roll over when the app remains visible across midnight.
+setInterval(()=>{if(document.visibilityState==='visible'&&today()!==lastDay)onResume();},30000);
+window.addEventListener('focus',()=>{if(today()!==lastDay)onResume();});
 // 離線時記的帳：恢復連線就送，不用等下一次存檔或重開 App
 window.addEventListener('online',()=>{flushQueue();retryDirtySettings();});
 
