@@ -161,6 +161,23 @@
     .panel-head{flex-direction:column;align-items:flex-start}
     .panel-head .hint{text-align:left}
   }
+  .connection-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+  .connection-actions a{text-decoration:none;display:inline-flex;align-items:center}
+  .connection-form{padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:13px;margin-bottom:16px}
+  .connection-form label{display:block;font-weight:600;margin-bottom:8px}
+  .connection-form input{width:100%;min-height:44px;font:16px var(--font-body);padding:10px;border:1px solid var(--ink-soft);border-radius:8px;background:var(--bg);color:var(--ink)}
+  .connection-form p,.data-warnings,.future-control,.empty-state{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+  .connection-form p{margin:10px 0;color:var(--ink-soft)}
+  .data-warnings{color:var(--danger);margin:12px 0;white-space:pre-line}
+  .future-control{display:flex;align-items:center;gap:8px;min-height:44px;margin-bottom:12px}
+  .future-control input{width:20px;height:20px;accent-color:var(--accent)}
+  .empty-state{padding:16px;background:var(--surface2);margin:12px 0}
+  .chip,.ubtn,.tab,.lbtn{min-height:44px}
+  button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  button:disabled{opacity:.6;cursor:wait}
+  .card,.chartcard{min-width:0}.big{font-size:clamp(26px,5vw,42px);overflow-wrap:anywhere}
+  .userbar{flex-wrap:wrap}.ubtn{overflow-wrap:anywhere;max-width:100%}
+  ::selection{background:var(--surface2);color:var(--ink)}
 </style>
 </head>
 <body data-theme="ivory">
@@ -169,11 +186,25 @@
     <button class="lbtn" data-l="zh" onclick="setLang('zh')">中</button>
     <button class="lbtn" data-l="en" onclick="setLang('en')">EN</button>
   </div>
-  <div class="eyebrow">Expense Analytics</div>
   <h1 data-i18n="h1">消費分析儀表板</h1>
   <div class="sub"><span data-i18n="subBase">基準幣別 ฿ THB · 即時讀取 · </span><span id="todayStr"></span></div>
-  <div class="mock-banner"><span data-i18n="bannerPrefix">即時讀取 Google Sheets · </span><span id="loadStatus">載入中…</span></div>
+  <div class="mock-banner"><span data-i18n="bannerPrefix">即時讀取 Google Sheets · </span><span id="loadStatus" role="status" aria-live="polite">載入中…</span></div>
 
+  <div class="connection-actions">
+    <button class="chip" id="refreshBtn" onclick="loadData()" data-i18n="refresh">重新整理</button>
+    <button class="chip" onclick="setupApiUrl()" data-i18n="connection">連線設定</button>
+    <a class="chip" href="./index.html" data-i18n="openTracker">開啟記帳本</a>
+  </div>
+  <form id="connectionForm" class="connection-form" hidden onsubmit="event.preventDefault();connectApi()">
+    <label for="apiInput" data-i18n="promptUrl">貼上與記帳 App 相同的 Apps Script 網址：</label>
+    <input id="apiInput" type="url" required autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+    <p data-i18n="connectionHelp">測試成功後儲存；同一瀏覽器中的記帳本也會使用此連線。主畫面 App 若未帶入設定，請在這裡貼上相同網址。</p>
+    <button class="chip solid" type="submit" data-i18n="connect">測試並連線</button>
+    <button class="chip" type="button" onclick="document.getElementById('connectionForm').hidden=true" data-i18n="ssCancel">取消</button>
+  </form>
+  <div id="dataWarnings" class="data-warnings" role="status"></div>
+  <label class="future-control"><input type="checkbox" id="showFuture" onchange="showFuture=this.checked;rebuildFromRaw()"><span data-i18n="showFuture">包含未來日期（僅供核對）</span></label>
+  <div id="emptyState" class="empty-state" hidden data-i18n="noData">此視角無資料</div>
   <div class="userbar" id="userbar"></div>
   <div class="tabs" id="tabs"></div>
 
@@ -240,38 +271,48 @@
     </div>
   </div>
 
-  <div class="foot" data-i18n="foot">即時讀取 Google Sheets · 基準幣別 ฿ THB</div>
+  <div class="foot"><span data-i18n="foot">讀取 Google Sheets · 基準幣別 ฿ THB</span> · v2026.10.12.1</div>
 </div>
 
 <script>
 // ---------- transform 層 ----------
-function convertToBase(amount, curr, rates){
-  const a = Number(amount)||0;
-  if(!curr || curr==="THB") return Math.round(a);
-  const r = rates && rates[curr];
-  if(!r) return Math.round(a); // 缺匯率：暫當原值，並由 buildData 收集警告
-  return Math.round(a * Number(r));
+function normalizeDateKey(value){
+  const date=String(value||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return null;
+  const d=new Date(date+'T12:00:00');
+  return Number.isFinite(d.getTime())&&d.getFullYear()===Number(date.slice(0,4))&&d.getMonth()+1===Number(date.slice(5,7))&&d.getDate()===Number(date.slice(8,10))?date:null;
 }
-function buildData(records, rates){
-  const data={}, missing=new Set();
+function normalizeCategory(value){return String(value||'未分類').trim().toLowerCase()||'未分類';}
+function convertToBase(amount,curr,rates){
+  if(amount===null||amount===undefined||String(amount).trim()==='')return null;
+  const a=Number(amount),currency=String(curr||'THB').trim().toUpperCase();
+  const rate=currency==='THB'?1:Number(rates&&rates[currency]);
+  return Number.isFinite(a)&&Number.isFinite(rate)&&rate>0?Math.round(a*rate*100)/100:null;
+}
+function buildData(records,rates,includeFuture=false){
+  const data=Object.create(null),missing=new Set(),future=[];let invalid=0;
   (records||[]).forEach(r=>{
-    if(!r || !r.date) return;
-    const month=String(r.date).slice(0,7);
-    if(!/^\d{4}-\d{2}$/.test(month)) return;
-    const cat=String(r.cat||"未分類");
-    if(r.curr && r.curr!=="THB" && !(rates&&rates[r.curr])) missing.add(r.curr);
-    const amt=convertToBase(r.amount, r.curr, rates);
-    (data[month]=data[month]||{});
-    (data[month][cat]=data[month][cat]||[]).push([String(r.date), String(r.note||""), amt]);
+    const date=r&&normalizeDateKey(r.date);
+    if(!date){invalid++;return;}
+    if(date>todayStr()){future.push(r);if(!includeFuture)return;}
+    const currency=String(r.curr||'THB').trim().toUpperCase();
+    const amt=convertToBase(r.amount,currency,rates);
+    if(amt===null){if(currency!=='THB'&&!(Number(rates&&rates[currency])>0))missing.add(currency);else invalid++;return;}
+    const month=date.slice(0,7),cat=normalizeCategory(r.cat);
+    (data[month]=data[month]||Object.create(null));
+    (data[month][cat]=data[month][cat]||[]).push([date,String(r.note||''),amt]);
   });
-  return { data, missingCurrencies:[...missing] };
+  return {data,missingCurrencies:[...missing],future,invalid};
 }
 
 // ---------- utils ----------
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 
 // ---------- i18n ----------
-let CURRENT_LANG=(function(){try{return localStorage.getItem("dash_lang")||"zh";}catch(e){return "zh";}})();
+let storageUnavailable=false;
+function readLocal(key){try{return localStorage.getItem(key);}catch(e){storageUnavailable=true;return null;}}
+function writeLocal(key,value){try{localStorage.setItem(key,value);return true;}catch(e){storageUnavailable=true;return false;}}
+let CURRENT_LANG=readLocal('dash_lang')==='en'?'en':'zh';
 // 類別中→英對照（方案 B：對不到的 fallback 顯示原中文，備註一律不翻）
 const CAT_EN={
   "餐飲":"Food","飲食":"Food","食物":"Food","三餐":"Meals","外食":"Eating out","早餐":"Breakfast","午餐":"Lunch","晚餐":"Dinner","宵夜":"Late snack",
@@ -285,7 +326,8 @@ const CAT_EN={
   "投資":"Investment","保險":"Insurance","稅金":"Tax","稅":"Tax","手續費":"Fees","孝親":"Family support","家用":"Household",
   "其他":"Other","其它":"Other","未分類":"Uncategorized"
 };
-function catLabel(c){return CURRENT_LANG==="en"?(CAT_EN[c]||c):c;}
+const CATEGORY_LABELS={food:['餐飲','Food'],drink:['飲料','Drinks'],dessert:['甜點','Dessert'],transport:['交通','Transport'],shopping:['購物','Shopping'],home:['生活用品','Daily goods'],travel:['旅遊','Travel'],entertainment:['娛樂','Entertainment'],medical:['醫療','Medical'],beauty:['美妝','Beauty'],education:['教育','Education'],bills:['帳單','Bills'],subscription:['訂閱','Subscriptions'],housing:['居住','Housing'],work:['工作','Work'],other:['其他','Other'],pray:['拜拜','Worship']};
+function catLabel(c){return CATEGORY_LABELS[c]?.[CURRENT_LANG==='en'?1:0]||(CURRENT_LANG==='en'?(CAT_EN[c]||c):c);}
 const I18N={
   zh:{
     htmlLang:"zh-Hant", localeTag:"zh-TW", listComma:"、", catComma:"、",
@@ -352,30 +394,63 @@ const I18N={
     statusNoUrl:()=>`Apps Script URL not set — <a href="#" onclick="if(setupApiUrl())loadData();return false" style="color:var(--accent);font-weight:600">set it here</a>`
   }
 };
+Object.assign(I18N.zh,{
+  refresh:'重新整理',connection:'連線設定',openTracker:'開啟記帳本',connect:'測試並連線',
+  connectionHelp:'測試成功後儲存；同一瀏覽器中的記帳本也會使用此連線。主畫面 App 若未帶入設定，請在這裡貼上相同網址。',
+  showFuture:'包含未來日期（僅供核對）',futureTag:'未來',selectedMonth:m=>m+' 累計',
+  futureWarning:(n,first,last,included)=>`${n} 筆未來日期（${first}～${last}），${included?'已納入核對視圖':'未計入消費統計'}。請在記帳本核對日期；原帳目未更動。`,
+  invalidWarning:n=>`${n} 筆日期或金額無效，未計入統計。請在記帳本核對。`,
+  storageWarning:'此環境無法儲存設定，關閉後需重新連線。',chartUnavailable:'圖表元件未載入，金額與明細仍可查看。請重新整理。',
+  badUrl:'請使用 https://script.google.com/macros/s/…/exec 格式的部署網址。',
+  timeout:'連線超過 20 秒，請確認網路後重試。',badResponse:'回應格式不正確，請確認部署網址與存取權限。',
+  networkError:'無法連線，請確認網路、部署網址與 Apps Script 的存取權限，再按重新整理。',
+  oldData:'（以下保留上次成功讀取的資料，尚未更新）',
+  warnRates:list=>`缺匯率：${list}，相關帳目未計入總額。請在記帳本設定匯率並同步。`,
+  noData:'所選月份與使用者沒有可統計的帳目。',heroMonth:'所選月份累計',donutTitle:'🍩 所選月份類別占比',dailyTitle:'📊 所選月份每日消費',cmpAllD:'所選月份全部消費',
+  subBase:'基準幣別 ฿ THB · ',bannerPrefix:'Google Sheets · ',foot:'讀取 Google Sheets · 基準幣別 ฿ THB',
+  statusNoUrl:()=> '尚未連線，請點「連線設定」貼上記帳本使用的網址。'
+});
+Object.assign(I18N.en,{
+  refresh:'Refresh',connection:'Connection settings',openTracker:'Open tracker',connect:'Test and connect',
+  connectionHelp:'Saved only after a successful test. The tracker in this browser shares this connection. If your Home Screen app has no setting, paste the same URL here.',
+  showFuture:'Include future dates for review',futureTag:'Future',selectedMonth:m=>m+' total',
+  futureWarning:(n,first,last,included)=>`${n} future-dated entries (${first}–${last}), ${included?'included for review':'excluded from spending totals'}. Check dates in the tracker; source entries are unchanged.`,
+  invalidWarning:n=>`${n} entries have invalid dates or amounts and are excluded. Check them in the tracker.`,
+  storageWarning:'Settings cannot be saved in this environment. Reconnect after closing.',chartUnavailable:'Charts did not load. Totals and details remain available. Refresh to retry.',
+  badUrl:'Use a deployment URL in the form https://script.google.com/macros/s/…/exec.',
+  timeout:'Connection timed out after 20 seconds. Check your network and retry.',badResponse:'Unexpected response. Check the deployment URL and access permissions.',
+  networkError:'Cannot connect. Check your network, deployment URL and Apps Script access permissions, then refresh.',
+  oldData:'(Showing the last successful data; not updated.)',
+  warnRates:list=>`Missing FX rates: ${list}. Affected entries are excluded. Set rates in the tracker and sync.`,
+  noData:'No eligible entries for this month and person.',heroMonth:'Selected month',donutTitle:'🍩 Category share — selected month',dailyTitle:'📊 Daily spending — selected month',cmpAllD:'All spending in selected month',
+  subBase:'Base currency ฿ THB · ',bannerPrefix:'Google Sheets · ',foot:'Read from Google Sheets · Base currency ฿ THB',
+  statusNoUrl:()=> 'Not connected. Open Connection settings and paste the URL used by your tracker.'
+});
 function t(key){const d=I18N[CURRENT_LANG]||I18N.zh;const v=d[key];if(v!==undefined)return v;const f=I18N.zh[key];return f!==undefined?f:key;}
 function updateTodayStr(){document.getElementById("todayStr").textContent=new Date().toLocaleDateString(t("localeTag"),{month:'long',day:'numeric',weekday:'short'});}
 function renderLangToggle(){document.querySelectorAll(".lbtn").forEach(b=>b.setAttribute("aria-current",b.dataset.l===CURRENT_LANG));}
 function applyLang(lang){
   CURRENT_LANG=(lang==="en")?"en":"zh";
-  try{localStorage.setItem("dash_lang",CURRENT_LANG);}catch(e){}
+  writeLocal("dash_lang",CURRENT_LANG);
   document.documentElement.lang=t("htmlLang");
   document.title=t("pageTitle");
   document.querySelectorAll("[data-i18n]").forEach(el=>{el.textContent=t(el.dataset.i18n);});
   renderLangToggle();
   updateTodayStr();
   renderUserbar();
-  if(MONTHS.length){renderTabs();renderAll();}
+  if(MONTHS.length){renderTabs();renderAll();renderWarnings();}
   if(renderStatus)renderStatus(); // 動態狀態列跟著切語言
 }
 let renderStatus=null;
 function setLang(lang){if(lang===CURRENT_LANG)return;applyLang(lang);}
 
 // ---------- 特別類別存取 ----------
-function loadSpecial(){try{return JSON.parse(localStorage.getItem("dash_special_cats")||"[]");}catch(e){return [];}}
-function saveSpecial(arr){localStorage.setItem("dash_special_cats",JSON.stringify(arr||[]));}
+function loadSpecial(){try{const v=JSON.parse(readLocal("dash_special_cats")||"[]");return Array.isArray(v)?v.filter(x=>typeof x==='string').map(normalizeCategory):[];}catch(e){return [];}}
+function saveSpecial(arr){writeLocal("dash_special_cats",JSON.stringify(arr||[]));}
 
-// ---------- 模擬資料 ----------
-let CUR_MONTH="2026-06";
+// ---------- 資料狀態 ----------
+let CUR_MONTH=todayStr().slice(0,7);
+let showFuture=false,viewAudit={future:[],missingCurrencies:[],invalid:0};
 let SPECIAL=loadSpecial();
 let DATA={}, MONTHS=[], ALLCATS=[];
 let RAW_RECORDS=[], RATES={}, USERNAMES={Sam:"Sam",Patty:"Patty"};
@@ -383,31 +458,33 @@ let activeUser="Sam";
 
 function filterByUser(records, user){
   if(user==="__all__") return records.slice();
-  return records.filter(r=>String(r.user||"")===user);
+  return records.filter(r=>String(r.user||"")===USERNAMES[user]);
 }
 function rebuildFromRaw(){
-  const recs=filterByUser(RAW_RECORDS, activeUser);
-  const { data }=buildData(recs, RATES);
-  DATA=data;
+  CUR_MONTH=todayStr().slice(0,7);
+  const recs=filterByUser(RAW_RECORDS,activeUser);
+  viewAudit=buildData(recs,RATES,showFuture);DATA=viewAudit.data;
+  if(!showFuture&&activeMonth>CUR_MONTH)activeMonth=CUR_MONTH;
+  if(!DATA[activeMonth])activeMonth=CUR_MONTH;
+  DATA[CUR_MONTH]=DATA[CUR_MONTH]||Object.create(null);
   MONTHS=Object.keys(DATA).sort();
   ALLCATS=[...new Set(Object.values(DATA).flatMap(m=>Object.keys(m)))];
-  if(CURRENT) ALLCATS.forEach((c,i)=>CURRENT.catColors[c]=CURRENT.palette[i%CURRENT.palette.length]);
-  if(!DATA[activeMonth]) activeMonth=MONTHS[MONTHS.length-1]||"";
-  checked={}; donutDrill=null;
-  if(DATA[activeMonth]) Object.keys(DATA[activeMonth]).forEach(c=>checked[c]=true);
-  if(!MONTHS.length || !DATA[activeMonth]){
-    renderUserbar();
-    document.getElementById("tabs").innerHTML="";
-    document.getElementById("hToday").textContent="0";
-    document.getElementById("hTodayMeta").textContent=t("noData");
-    return;
-  }
-  renderTabs(); renderAll();
+  if(CURRENT)ALLCATS.forEach((c,i)=>CURRENT.catColors[c]=CURRENT.palette[i%CURRENT.palette.length]);
+  checked=Object.create(null);donutDrill=null;
+  Object.keys(DATA[activeMonth]).forEach(c=>checked[c]=true);
+  renderUserbar();renderTabs();renderAll();renderWarnings();
+}
+function renderWarnings(){
+  const notes=[];
+  if(viewAudit.future.length){const dates=[...new Set(viewAudit.future.map(r=>r.date))].sort();notes.push(t('futureWarning')(viewAudit.future.length,dates[0],dates[dates.length-1],showFuture));}
+  if(viewAudit.missingCurrencies.length)notes.push(t('warnRates')(viewAudit.missingCurrencies.join(', ')));
+  if(viewAudit.invalid)notes.push(t('invalidWarning')(viewAudit.invalid));
+  if(storageUnavailable)notes.push(t('storageWarning'));
+  document.getElementById('dataWarnings').textContent=notes.join('\n');
 }
 function renderUserbar(){
-  const opts=[["Sam",USERNAMES.Sam||"Sam"],["Patty",USERNAMES.Patty||"Patty"],["__all__",t("userAll")]];
-  document.getElementById("userbar").innerHTML=opts.map(([v,l])=>
-    `<button class="ubtn" data-u="${v}" aria-current="${v===activeUser}" onclick="switchUser('${v}')">${l}</button>`).join("");
+  const opts=[['Sam',USERNAMES.Sam],['Patty',USERNAMES.Patty],['__all__',t('userAll')]];
+  document.getElementById('userbar').innerHTML=opts.map(([v,l])=>`<button class="ubtn" data-u="${v}" aria-current="${v===activeUser}" onclick="switchUser('${v}')">${esc(l)}</button>`).join('');
 }
 function switchUser(u){activeUser=u;renderUserbar();rebuildFromRaw();}
 
@@ -426,13 +503,13 @@ function hexToRgba(hex,a){const c=hex.replace('#','');const r=parseInt(c.slice(0
 
 // ---------- 狀態 ----------
 let activeMonth=CUR_MONTH, checked={}, charts={}, donutDrill=null;
-const fmt=n=>Math.round(n).toLocaleString("en-US");
+const fmt=n=>Number(n).toLocaleString("en-US",{maximumFractionDigits:2});
 const sum=a=>a.reduce((s,t)=>s+t[2],0);
-const monthCatTotal=(m,c)=>DATA[m][c]?sum(DATA[m][c]):0;
-const monthTotal=m=>Object.keys(DATA[m]).reduce((s,c)=>s+monthCatTotal(m,c),0);
-const monthBase=m=>Object.keys(DATA[m]).filter(c=>!SPECIAL.includes(c)).reduce((s,c)=>s+monthCatTotal(m,c),0);
+const monthCatTotal=(m,c)=>DATA[m]?.[c]?sum(DATA[m][c]):0;
+const monthTotal=m=>Object.keys(DATA[m]||{}).reduce((s,c)=>s+monthCatTotal(m,c),0);
+const monthBase=m=>Object.keys(DATA[m]||{}).filter(c=>!SPECIAL.includes(c)).reduce((s,c)=>s+monthCatTotal(m,c),0);
 
-Chart.defaults.font.size=11;
+if(window.Chart){Chart.defaults.font.size=11;Chart.defaults.animation=false;}
 
 function applyTheme(name){
   CURRENT=THEMES[name];
@@ -440,8 +517,8 @@ function applyTheme(name){
   Object.entries(CURRENT.vars).forEach(([k,v])=>r.style.setProperty(k,v));
   document.body.dataset.theme=name;
   CURRENT.catColors={}; ALLCATS.forEach((c,i)=>CURRENT.catColors[c]=CURRENT.palette[i%CURRENT.palette.length]);
-  Chart.defaults.color=chartText();
-  Chart.defaults.font.family=CURRENT.vars["--font-body"].replace(/"/g,'');
+  if(window.Chart){Chart.defaults.color=chartText();
+  Chart.defaults.font.family=CURRENT.vars["--font-body"].replace(/"/g,'');}
   if(MONTHS.length) renderAll();
 }
 
@@ -449,7 +526,7 @@ function applyTheme(name){
 function renderTabs(){
   document.getElementById("tabs").innerHTML=MONTHS.slice().reverse().map(m=>{
     const cur=m===CUR_MONTH;
-    return `<button class="tab" data-m="${m}" aria-current="${m===activeMonth}" onclick="switchMonth('${m}')">${m}${cur?'<span class="cur-dot"></span>':''}</button>`;
+    return `<button class="tab" data-m="${m}" aria-current="${m===activeMonth}" onclick="switchMonth('${m}')">${m}${m>CUR_MONTH?' · '+t("futureTag"):''}${cur?'<span class="cur-dot"></span>':''}</button>`;
   }).join("");
 }
 function switchMonth(m){activeMonth=m;checked={};donutDrill=null;Object.keys(DATA[m]).forEach(c=>checked[c]=true);
@@ -460,7 +537,7 @@ function renderHero(){
   MONTHS.forEach(m=>Object.entries(DATA[m]).forEach(([c,rows])=>rows.forEach(r=>allTxns.push({date:r[0],amt:r[2]}))));
   const today=todayStr();
   const todaySum=allTxns.filter(t=>t.date===today).reduce((s,t)=>s+t.amt,0);
-  const d7=new Date(today);d7.setDate(d7.getDate()-6);
+  const d7=new Date(today+"T12:00:00");d7.setDate(d7.getDate()-6);
   const k=x=>{const m=String(x.getMonth()+1).padStart(2,"0");const day=String(x.getDate()).padStart(2,"0");return `${x.getFullYear()}-${m}-${day}`;};
   const from=k(d7);
   const w=allTxns.filter(t=>t.date>=from&&t.date<=today).reduce((s,t)=>s+t.amt,0);
@@ -471,8 +548,10 @@ function renderHero(){
   document.getElementById("h7").textContent=fmt(w);
   document.getElementById("h7Meta").innerHTML=t("dailyAvg")(fmt(w/7));
   document.getElementById("hMonth").textContent=fmt(ms);
-  const pm=MONTHS[MONTHS.indexOf(activeMonth)-1];
-  if(pm){const pv=monthTotal(pm),diff=pv?(ms-pv)/pv*100:0;
+  document.querySelector('[data-i18n="heroMonth"]').textContent=t("selectedMonth")(activeMonth);
+  const prev=new Date(activeMonth+"-01T12:00:00");prev.setMonth(prev.getMonth()-1);
+  const pm=`${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,"0")}`;
+  if(DATA[pm]&&monthTotal(pm)!==0){const pv=monthTotal(pm),diff=pv?(ms-pv)/pv*100:0;
     document.getElementById("hMonthMeta").innerHTML=t("monthVs")(pm,diff>=0?'up':'down',diff>=0?'▲':'▼',Math.abs(diff).toFixed(0));
   } else document.getElementById("hMonthMeta").textContent="—";
 }
@@ -487,12 +566,12 @@ function renderCats(){
   document.getElementById("catlist").innerHTML=cats.map(c=>{
     const v=monthCatTotal(activeMonth,c),isSp=SPECIAL.includes(c),on=checked[c]!==false;
     const txns=md[c].slice().sort((a,b)=>b[0].localeCompare(a[0]));
-    return `<div class="catrow ${on?'':'dim'}" data-cat="${c}">
+    return `<div class="catrow ${on?'':'dim'}" data-cat="${esc(c)}">
       <div class="catmain">
-        <input type="checkbox" class="chk" ${on?'checked':''} onclick="event.stopPropagation();toggleCat('${c}')">
+        <input type="checkbox" class="chk" ${on?'checked':''} onclick="event.stopPropagation();${esc("toggleCat("+JSON.stringify(c)+")")}">
         <div class="catname" onclick="toggleOpen(this)"><span class="swatch" style="background:${catColor(c)}"></span>${esc(catLabel(c))}${isSp?`<span class="tag">${t("specialTag")}</span>`:''}<span class="arw">▶</span></div>
-        <div class="barwrap"><div class="bar" style="width:${v/maxV*100}%;background:${catColor(c)}"></div></div>
-        <div class="catamt"><div class="a">฿${fmt(v)}</div><div class="p">${(v/total*100).toFixed(1)}%</div></div>
+        <div class="barwrap"><div class="bar" style="width:${maxV?v/maxV*100:0}%;background:${catColor(c)}"></div></div>
+        <div class="catamt"><div class="a">฿${fmt(v)}</div><div class="p">${(total?v/total*100:0).toFixed(1)}%</div></div>
       </div>
       <div class="detail"><div class="detail-inner">
         ${txns.map(t=>`<div class="txn"><div class="l"><span class="dt">${t[0].slice(5)}</span>${esc(t[1])}</div><div class="r">฿${fmt(t[2])}</div></div>`).join("")}
@@ -514,7 +593,7 @@ function renderCompare(){
 }
 
 // ---------- 圖表 ----------
-function catBreakdown(month,cat){const agg={};(DATA[month][cat]||[]).forEach(r=>{agg[r[1]]=(agg[r[1]]||0)+r[2]});return Object.entries(agg).sort((a,b)=>b[1]-a[1]);}
+function catBreakdown(month,cat){const agg=Object.create(null);(DATA[month][cat]||[]).forEach(r=>{agg[r[1]]=(agg[r[1]]||0)+r[2]});return Object.entries(agg).sort((a,b)=>b[1]-a[1]);}
 function shade(hex,i,n){const c=hex.replace('#','');const r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);
   const f=0.82-(i/Math.max(n-1,1))*0.55,mix=v=>Math.round(v+(CURRENT.vars["--ink"]==="#e6edf7"?(15-v):(238-v))*(1-f));return `rgb(${mix(r)},${mix(g)},${mix(b)})`;}
 function setDonutDrill(cat){donutDrill=cat;buildDonut();}
@@ -524,7 +603,7 @@ function buildDonut(){
   if(charts.donut)charts.donut.destroy();
   function paintLegend(keys,displays,colors,clickable){
     document.getElementById("donutLegend").innerHTML=keys.map((k,i)=>
-      `<div class="dleg ${clickable?'':'static'}" ${clickable?`onclick="setDonutDrill('${String(k).replace(/'/g,"\\'")}')"`:''}><span class="sw" style="background:${colors[i]}"></span>${esc(displays[i])}</div>`).join("");
+      `<div class="dleg ${clickable?'':'static'}" ${clickable?`onclick="${esc("setDonutDrill("+JSON.stringify(k)+")")}"`:''}><span class="sw" style="background:${colors[i]}"></span>${esc(displays[i])}</div>`).join("");
   }
   if(donutDrill&&md[donutDrill]){
     const cat=donutDrill,items=catBreakdown(activeMonth,cat),tot=monthCatTotal(activeMonth,cat),cols=items.map((_,i)=>shade(catColor(cat),i,items.length));
@@ -545,11 +624,13 @@ function buildDonut(){
     options:{maintainAspectRatio:false,cutout:"66%",onClick:(e,els)=>{if(els.length)setDonutDrill(cats[els[0].index]);},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}  ฿${fmt(c.raw)} (${(c.raw/c.dataset.data.reduce((s,v)=>s+v,0)*100).toFixed(1)}%)${t("donutTipSuffix")}`}}}}});
 }
+function trendMonths(){const end=new Date(activeMonth+"-01T12:00:00");return Array.from({length:6},(_,i)=>{const d=new Date(end);d.setMonth(d.getMonth()-5+i);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;});}
 function buildLine(){
+  const months=trendMonths();
   const ctx=document.getElementById("line");if(charts.line)charts.line.destroy();
-  charts.line=new Chart(ctx,{type:"line",data:{labels:MONTHS.map(m=>m.slice(5)),datasets:[
-    {label:t("lineAll"),data:MONTHS.map(monthTotal),borderColor:CURRENT.line[0],backgroundColor:hexToRgba(CURRENT.line[0],.09),fill:true,tension:.35,pointRadius:3,borderWidth:2},
-    {label:t("lineBase"),data:MONTHS.map(monthBase),borderColor:CURRENT.line[1],backgroundColor:hexToRgba(CURRENT.line[1],.09),fill:true,tension:.35,pointRadius:3,borderWidth:2}]},
+  charts.line=new Chart(ctx,{type:"line",data:{labels:months,datasets:[
+    {label:t("lineAll"),data:months.map(monthTotal),borderColor:CURRENT.line[0],backgroundColor:hexToRgba(CURRENT.line[0],.09),fill:true,tension:.35,pointRadius:3,borderWidth:2},
+    {label:t("lineBase"),data:months.map(monthBase),borderColor:CURRENT.line[1],backgroundColor:hexToRgba(CURRENT.line[1],.09),fill:true,tension:.35,pointRadius:3,borderWidth:2}]},
     options:{plugins:{legend:{position:"bottom",labels:{boxWidth:12,padding:12}}},scales:{y:{ticks:{callback:v=>"฿"+(v/1000)+"k"},grid:{color:chartGrid()}},x:{grid:{display:false}}}}});
 }
 function showDayDetail(day){
@@ -572,19 +653,24 @@ function buildDaily(){
 function buildStacked(){
   const ctx=document.getElementById("stacked");if(charts.stacked)charts.stacked.destroy();
   const ds=ALLCATS.map(c=>({label:catLabel(c),data:MONTHS.map(m=>monthCatTotal(m,c)),backgroundColor:catColor(c),borderWidth:0}));
-  charts.stacked=new Chart(ctx,{type:"bar",data:{labels:MONTHS.map(m=>m.slice(5)),datasets:ds},
+  charts.stacked=new Chart(ctx,{type:"bar",data:{labels:MONTHS,datasets:ds},
     options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}  ฿${fmt(c.raw)}`}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>"฿"+(v/1000)+"k"},grid:{color:chartGrid()}}}}});
 }
 
 // ---------- 互動 ----------
-function toggleCat(c){checked[c]=checked[c]===false;document.querySelector(`.catrow[data-cat="${c}"]`).classList.toggle("dim",checked[c]===false);renderCompare();buildDonut();}
+function toggleCat(c){checked[c]=checked[c]===false;syncChecks();}
 function toggleOpen(el){el.closest(".catrow").classList.toggle("open");}
 function selectAll(v){Object.keys(DATA[activeMonth]).forEach(c=>checked[c]=v);syncChecks();}
 function onlyDaily(){Object.keys(DATA[activeMonth]).forEach(c=>checked[c]=!SPECIAL.includes(c));syncChecks();}
 function onlySpecial(){Object.keys(DATA[activeMonth]).forEach(c=>checked[c]=SPECIAL.includes(c));syncChecks();}
-function syncChecks(){document.querySelectorAll(".catrow").forEach(row=>{const c=row.dataset.cat,on=checked[c]!==false;row.querySelector(".chk").checked=on;row.classList.toggle("dim",!on);});renderCompare();buildDonut();}
+function syncChecks(){document.querySelectorAll(".catrow").forEach(row=>{const c=row.dataset.cat,on=checked[c]!==false;row.querySelector(".chk").checked=on;row.classList.toggle("dim",!on);});renderCompare();if(window.Chart)buildDonut();}
 
-function renderAll(){renderHero();renderCats();renderCompare();buildDonut();buildLine();buildDaily();buildStacked();}
+function renderAll(){
+  renderHero();renderCats();renderCompare();clearDayDetail();
+  document.getElementById('emptyState').hidden=Object.keys(DATA[activeMonth]||{}).length>0;
+  if(window.Chart){buildDonut();buildLine();buildDaily();buildStacked();}
+  else document.getElementById('donutLegend').textContent=t('chartUnavailable');
+}
 
 // ---------- 設定特別類別 ----------
 function openSpecialSettings(){
@@ -597,67 +683,72 @@ function applySpecialSettings(){
   SPECIAL=[...document.querySelectorAll("#specialGrid input:checked")].map(i=>i.value);
   saveSpecial(SPECIAL);
   document.getElementById("specialSettings").style.display="none";
-  renderCats(); renderCompare(); buildDonut();
+  renderCats(); renderCompare(); if(window.Chart)buildDonut();renderWarnings();
 }
 
-// init
-// 讀記帳 App 共用的 Apps Script 網址（同 origin 共用 localStorage，key=xp_api_url）。
-// 在 GitHub Pages 上跟記帳 App 同網址時，這裡會自動拿到已設定好的網址，免再輸入。
-let API_URL=localStorage.getItem("xp_api_url")||"";
-applyTheme("ivory"); // 只設主題；MONTHS 空時 applyTheme 內 renderAll 被 guard 跳過
-applyLang(CURRENT_LANG); // 套用儲存的語言（含靜態文字／日期／使用者列）
-document.getElementById("loadStatus").textContent=t("loading");
-loadData();
-
+// Connection state: only read the ledger; save a new shared URL after both requests succeed.
+let API_URL=readLocal('xp_api_url')||'',requestId=0,pendingController=null,lastLoaded=0,lastDay=todayStr(),loadedUrl='';
 function setupApiUrl(){
-  const cur=API_URL||"";
-  const url=(prompt(t("promptUrl"), cur)||"").trim();
-  if(!url) return false;
-  API_URL=url; localStorage.setItem("xp_api_url", url);
-  return true;
+  document.getElementById('connectionForm').hidden=false;
+  document.getElementById('apiInput').value=API_URL;
+  document.getElementById('apiInput').focus();
 }
-
-async function loadData(){
-  const st=document.getElementById("loadStatus");
-  if(!API_URL){
-    renderStatus=()=>{st.innerHTML=t("statusNoUrl")();};
-    renderStatus();
-    return;
-  }
+function validateApiUrl(value){
+  try{const u=new URL(value);if(u.protocol==='https:'&&u.hostname==='script.google.com'&&!u.port&&!u.username&&!u.password&&/^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u.pathname)&&!u.search&&!u.hash)return u.href;}catch(e){}
+  throw new Error(t('badUrl'));
+}
+function connectApi(){return loadData(document.getElementById('apiInput').value.trim(),true);}
+function setLoadMessage(message){renderStatus=()=>{document.getElementById('loadStatus').textContent=typeof message==='function'?message():message;};renderStatus();}
+async function loadData(candidate,save=false){
+  const id=++requestId;
+  if(pendingController)pendingController.abort();
+  pendingController=null;
+  const url=candidate===undefined?(readLocal('xp_api_url')||(storageUnavailable?API_URL:'')):candidate;
+  if(!url){API_URL='';RAW_RECORDS=[];RATES={};loadedUrl='';rebuildFromRaw();setLoadMessage(()=>t('statusNoUrl')());document.getElementById('refreshBtn').disabled=false;return false;}
+  if(!save&&url!==loadedUrl){RAW_RECORDS=[];RATES={};loadedUrl='';rebuildFromRaw();}
+  let checkedUrl;
+  try{checkedUrl=validateApiUrl(url);}catch(e){setLoadMessage(()=>t('badUrl'));document.getElementById('refreshBtn').disabled=false;return false;}
+  const controller=new AbortController();pendingController=controller;
+  let timedOut=false;const timer=setTimeout(()=>{timedOut=true;controller.abort();},20000);
+  document.getElementById('refreshBtn').disabled=true;setLoadMessage(()=>t('loading'));
   try{
-    const [allRes,setRes]=await Promise.all([
-      fetch(`${API_URL}?action=getAll`).then(r=>r.json()),
-      fetch(`${API_URL}?action=getSettings`).then(r=>r.json())
-    ]);
-    if(!allRes.success) throw new Error(allRes.message||"getAll 失敗");
-    RAW_RECORDS=allRes.records||[];
-    const emptyUserCnt=RAW_RECORDS.filter(r=>!String(r&&r.user||"")).length;
-    const s=(setRes&&setRes.success&&setRes.settings)||{};
-    RATES=s.rates||{};
-    USERNAMES = Array.isArray(s.usernames)
-      ? {Sam:s.usernames[0]||"Sam", Patty:s.usernames[1]||"Patty"}
-      : (s.usernames||{Sam:"Sam",Patty:"Patty"});
-    // 找最新有資料的月份
-    const months=[...new Set(RAW_RECORDS.map(r=>String(r.date).slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)))].sort();
-    CUR_MONTH=months[months.length-1]||todayStr().slice(0,7);
-    activeMonth=CUR_MONTH;
-    // 缺匯率警告
-    const probe=buildData(RAW_RECORDS,RATES);
-    const loadedAt=new Date();
-    renderStatus=()=>{
-      const warn=probe.missingCurrencies.length?t("warnRates")(probe.missingCurrencies.join(t("listComma"))):"";
-      const emptyUserNote=emptyUserCnt>0?t("emptyUserNote")(emptyUserCnt):"";
-      st.innerHTML=t("statusLoaded")(RAW_RECORDS.length,loadedAt.toLocaleTimeString(t("localeTag")),warn,emptyUserNote);
+    const get=async action=>{
+      const response=await fetch(checkedUrl+'?action='+action,{signal:controller.signal,cache:'no-store'});
+      if(!response.ok)throw new Error('HTTP '+response.status);
+      let body;try{body=await response.json();}catch(e){throw new Error(t('badResponse'));}
+      if(!body||body.success!==true)throw new Error(t('badResponse'));
+      return body;
     };
-    renderStatus();
-    renderUserbar();
-    rebuildFromRaw();
-  }catch(err){
-    renderStatus=()=>{st.innerHTML=t("statusFail")(err.message);};
-    renderStatus();
-    console.error(err);
-  }
+    const [allRes,setRes]=await Promise.all([get('getAll'),get('getSettings')]);
+    if(id!==requestId)return false;
+    if(!Array.isArray(allRes.records)||!setRes.settings||typeof setRes.settings!=='object'||Array.isArray(setRes.settings))throw new Error(t('badResponse'));
+    const settings=setRes.settings;
+    if(save){writeLocal('xp_api_url',checkedUrl);document.getElementById('connectionForm').hidden=true;}
+    API_URL=checkedUrl;loadedUrl=checkedUrl;
+    RAW_RECORDS=allRes.records.filter(r=>r&&typeof r==='object');RATES=settings.rates||{};
+    const names=settings.usernames;
+    USERNAMES={Sam:String((Array.isArray(names)?names[0]:names?.Sam)||'Sam'),Patty:String((Array.isArray(names)?names[1]:names?.Patty)||'Patty')};
+    lastLoaded=Date.now();lastDay=todayStr();
+    const emptyUserCnt=RAW_RECORDS.filter(r=>!r.user).length;
+    setLoadMessage(()=>t('statusLoaded')(RAW_RECORDS.length,new Date(lastLoaded).toLocaleString(t('localeTag')), '',emptyUserCnt?t('emptyUserNote')(emptyUserCnt):''));
+    rebuildFromRaw();return true;
+  }catch(e){
+    if(id!==requestId)return false;
+    controller.abort();
+    setLoadMessage(()=> (timedOut?t('timeout'):t('networkError'))+(loadedUrl?' '+t('oldData'):''));
+    return false;
+  }finally{clearTimeout(timer);if(id===requestId){pendingController=null;document.getElementById('refreshBtn').disabled=false;}}
 }
+function onResume(){
+  if(document.visibilityState==='hidden')return;
+  const day=todayStr();if(day!==lastDay){if(activeMonth===lastDay.slice(0,7))activeMonth=day.slice(0,7);lastDay=day;updateTodayStr();rebuildFromRaw();}
+  if(!pendingController&&(Date.now()-lastLoaded>60000||(readLocal('xp_api_url')||'')!==API_URL))loadData();
+}
+window.addEventListener('storage',e=>{if(e.key==='xp_api_url'||e.key===null)loadData();});
+window.addEventListener('pageshow',onResume);window.addEventListener('focus',onResume);
+window.addEventListener('online',()=>loadData());document.addEventListener('visibilitychange',onResume);
+setInterval(onResume,60000);
+applyTheme('ivory');applyLang(CURRENT_LANG);rebuildFromRaw();loadData();
 </script>
 </body>
 </html>
